@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This page shows how miniz.c compares to several other popular open source data compression codecs at compression level 9 (max compression), with one example at level 1 (fastest compression) on wik8. The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff's] [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
+This page shows how miniz.c v1.09 compares to several other popular open source data compression codecs at compression level 9 (max compression), with one example at level 1 (fastest compression) on wik8. The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff's] [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
 
 miniz.c's typical decompression rate is around 175-250 MB/sec. on a Core i7, and its typical compression rate at level 9 is anywhere from 7-48MB/s (level 1, fastest, is ~48.5MB/sec.). The x64 version of the decompressor is faster than the x86 version, sometimes up to 20%, mostly due to good register utilization. miniz.c's inflater can be optionally configured to use a 64-bit bitbuffer on 64-bit CPU's, and unaligned loads on little endian platforms (the tests below had both optimizations enabled).
 
