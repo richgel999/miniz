@@ -43,7 +43,7 @@ Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      455 MS
 Decompress:CT_LZHAM   :FROM: 25,248,714 TO:100,000,000      853 MS
 }}}
 
-*File: Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus], added to a single uncompressed 7zip archive:*
+*File: Entire Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus] added to a single uncompressed 7zip archive:*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\calgary_corpus.7z
 x64 version
