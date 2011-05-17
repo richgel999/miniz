@@ -2,11 +2,11 @@
 
 = Introduction =
 
-This page shows how miniz.c compares to several other popular open source data compression codecs. The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff]'s [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
+This page shows how miniz.c compares to several other popular open source data compression codecs. The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff's] [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
 
 For comparison purposes, I've added [http://nothings.org/stb_image.c stb_image.c]'s Inflater implementation to compresssiontest, and [http://code.google.com/p/lzham/ LZHAM] alpha7. Note that miniz.c is used for compressing the data supplied to stb_image.c for decompression (stb_image.c does not include compression support).
 
-These tests where performed under Win7 x64, Intel Gulftown Core i7 (6 cores, 12 hyperthreads), 24GB of RAM, EVGA X58 motherboard. All code was compiled with Visual Studio 2005.
+Test machine: Win7 Ultimate x64, Intel Gulftown Core i7 3.2GHz (6 cores, 12 hyperthreads), 24GB of RAM, EVGA X58 motherboard. All code was compiled with Visual Studio 2005.
 
 *File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8]*
 {{{
