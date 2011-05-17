@@ -43,7 +43,7 @@ Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      455 MS
 Decompress:CT_LZHAM   :FROM: 25,248,714 TO:100,000,000      853 MS
 }}}
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8], miniz.c compression level 1 (fastest), compares miniz and stb_image.c only (all other results are the same as above):*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8] (miniz.c compression level 1), compares miniz and stb_image.c only (all other results are the same as above):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64.exe e:\dev\corpus\enwik8\enwik8
 x64 version - miniz level 1 (fastest)
@@ -62,7 +62,7 @@ Decompress:CT_STB     :FROM: 40,669,733 TO:100,000,000      810 MS
 Decompress:CT_MINIZ   :FROM: 40,669,733 TO:100,000,000      616 MS
 }}}
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9], (miniz.c compression level 9)*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9] (miniz.c compression level 9)*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\enwik9\enwik9
 x64 version
