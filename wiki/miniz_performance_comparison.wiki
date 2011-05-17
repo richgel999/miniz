@@ -8,7 +8,7 @@ For comparison purposes, I've added [http://nothings.org/stb_image.c stb_image.c
 
 Test machine: Win7 Ultimate x64, Intel Gulftown Core i7 3.2GHz (6 cores, 12 hyperthreads), 24GB of RAM, EVGA X58 motherboard. All code was compiled with Visual Studio 2005.
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8]*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8] (miniz.c compression level 9):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\enwik8\enwik8
 x64 version
@@ -43,7 +43,7 @@ Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      455 MS
 Decompress:CT_LZHAM   :FROM: 25,248,714 TO:100,000,000      853 MS
 }}}
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8], miniz.c level 1 - fastest compression, compares miniz and stb_image.c only (all other results are the same as above)*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8], miniz.c compression level 1 (fastest), compares miniz and stb_image.c only (all other results are the same as above):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64.exe e:\dev\corpus\enwik8\enwik8
 x64 version - miniz level 1 (fastest)
@@ -62,7 +62,7 @@ Decompress:CT_STB     :FROM: 40,669,733 TO:100,000,000      810 MS
 Decompress:CT_MINIZ   :FROM: 40,669,733 TO:100,000,000      616 MS
 }}}
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9]*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9], (miniz.c compression level 9)*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\enwik9\enwik9
 x64 version
@@ -97,7 +97,7 @@ Decompress:CT_FASTLZ  :FROM:487,260,768 TO:1,000,000,000    4,208 MS
 Decompress:CT_LZHAM   :FROM:219,044,419 TO:1,000,000,000    7,472 MS
 }}}
 
-*File: Entire Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus] added to a single uncompressed 7zip archive:*
+*File: Entire Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus] added to a single uncompressed 7zip archive (miniz.c compression level 9):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\calgary_corpus.7z
 x64 version
@@ -132,7 +132,7 @@ Decompress:CT_FASTLZ  :FROM:  1,606,374 TO:  3,251,898       13 MS
 Decompress:CT_LZHAM   :FROM:    891,866 TO:  3,251,898       38 MS
 }}}
 
-*File: "pic" from the Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus]:*
+*File: "pic" from the Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus] (miniz.c compression level 9):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\large_calgary_corpus\pic
 x64 version
@@ -167,7 +167,7 @@ Decompress:CT_FASTLZ  :FROM:     81,960 TO:    513,216        1 MS
 Decompress:CT_LZHAM   :FROM:     47,438 TO:    513,216        7 MS
 }}}
 
-*Files: Uncompressed 7zip archive of an Adobe Acrobat Reader 9.0 installation:*
+*Files: Uncompressed 7zip archive of an Adobe Acrobat Reader 9.0 installation (miniz.c compression level 9):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\adobe.7z
 x64 version
@@ -202,7 +202,7 @@ Decompress:CT_FASTLZ  :FROM:105,548,437 TO:146,332,683      556 MS
 Decompress:CT_LZHAM   :FROM: 77,260,885 TO:146,332,683    1,734 MS
 }}}
 
-*File: miniz3_v109.zip (a test of how well various codecs handle already compressed data):*
+*File: miniz3_v109.zip (a test of how well various codecs handle already compressed data) (miniz.c compression level 9):*
 {{{
 E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\miniz3_v109.zip
 x64 version
