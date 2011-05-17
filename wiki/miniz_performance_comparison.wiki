@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This page shows how miniz.c compares to several other popular open source data compression codecs. The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff's] [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
+This page shows how miniz.c compares to several other popular open source data compression codecs at compression level 9 (max compression). The data here was generated using a slightly modified and enhanced version of [http://en.wikipedia.org/wiki/John_W._Ratcliff John Ratcliff's] [http://code.google.com/p/compressiontest/ compressiontest] project, compiled to x64.
 
 For comparison purposes, I've added [http://nothings.org/stb_image.c stb_image.c]'s Inflater implementation to compresssiontest, and [http://code.google.com/p/lzham/ LZHAM] alpha7. Note that miniz.c is used for compressing the data supplied to stb_image.c for decompression (stb_image.c does not include compression support). Also, stb_image.c does not compute an [http://en.wikipedia.org/wiki/Adler32 Adler-32] checksum of the uncompressed data, and miniz.c and zlib do, so its actual "apples to apples" performance is lower than reported here. (Approximately 10% of miniz.c's decompression time is spent computing the Adler32 checksum.)
 
