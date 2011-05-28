@@ -1,5 +1,5 @@
 // example3.c - Demonstrates how to use miniz.c's deflate() and inflate() functions for simple file compression.
-// Public domain, May 15 2011, Rich Geldreich, richgel99@gmail.com
+// Public domain, May 15 2011, Rich Geldreich, richgel99@gmail.com. See "unlicense" statement at the end of tinfl.c.
 // For simplicity, this example is limited to files smaller than 4GB, but this is not a limitation of miniz.c.
 #include "miniz.c"
 

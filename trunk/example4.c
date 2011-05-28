@@ -1,5 +1,5 @@
 // example4.c - Uses tinfl.c to decompress a zlib stream in memory to an output file
-// Public domain, May 15 2011, Rich Geldreich, richgel99@gmail.com
+// Public domain, May 15 2011, Rich Geldreich, richgel99@gmail.com. See "unlicense" statement at the end of tinfl.c.
 #include "tinfl.c"
 #include <stdio.h>
 
