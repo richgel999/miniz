@@ -8,60 +8,78 @@ miniz.c's typical decompression rate is around 175-250 MB/sec. on a Core i7, and
 
 For comparison purposes, I've added [http://nothings.org/stb_image.c stb_image.c]'s Inflater implementation to compresssiontest, and [http://code.google.com/p/lzham/ LZHAM] alpha7. Note that miniz.c is used for compressing the data supplied to stb_image.c for decompression (stb_image.c does not include a compressor, [http://nothings.org/stb/stb_image_write.h stb_image_write.h] contains a simple compressor but I haven't tested it yet). Also, stb_image.c does not compute an [http://en.wikipedia.org/wiki/Adler32 Adler-32] checksum of the uncompressed data, and miniz.c and zlib do, so stb's actual "apples to apples" performance is a little lower than reported here. (Approximately 10% of miniz.c's decompression time is spent computing the Adler32 checksum. Note, stb_image.c is extremely useful and it inspired miniz.c -- I'm only using it as a point of reference to help compare alternate Inflate implementations against zlib.)
 
-Test machine: Win7 Ultimate x64, Intel Gulftown Core i7 3.2GHz (6 cores, 12 hyperthreads), 24GB of RAM, EVGA X58 motherboard. All code was compiled with Visual Studio 2005.
+Test machine: Win7 Ultimate x64, Intel Gulftown Core i7 3.2GHz (6 cores, 12 hyperthreads), 24GB of RAM, EVGA X58 motherboard. All code was compiled with Visual Studio 2005. 
+
+LZHAM and LZMA where both set to use 512MB dictionary sizes in these tests.
 
 *File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8] (miniz.c compression level 9):*
 {{{
-E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\enwik8\enwik8
+E:\lzham\compressiontest\test_compression>test_compression_x64.exe E:\dev\corpus\enwik8\enwik8
 x64 version
-Reading test file 'e:\dev\corpus\enwik8\enwik8' which is 100,000,000 bytes long.
+Reading test file 'E:\dev\corpus\enwik8\enwik8' which is 100,000,000 bytes long.
 
 ---------------------------------------------------------------
 Testing Compression rate and speed with various compressors.
 ---------------------------------------------------------------
-Compress:CT_STB     :FROM:100,000,000 TO: 36,473,214 63.53%    6,398 MS
-Compress:CT_MINIZ   :FROM:100,000,000 TO: 36,473,214 63.53%    6,394 MS
-Compress:CT_CRYPTO  :FROM:100,000,000 TO: 36,642,772 63.36%    7,519 MS
-Compress:CT_MINILZO :FROM:100,000,000 TO: 53,481,960 46.52%      870 MS
-Compress:CT_ZLIB    :FROM:100,000,000 TO: 36,475,808 63.52%    7,620 MS
-Compress:CT_BZIP    :FROM:100,000,000 TO: 33,259,584 66.74%    9,406 MS
+Compress:CT_STB     :FROM:100,000,000 TO: 36,460,117 63.54%    5,871 MS
+Compress:CT_MINIZ   :FROM:100,000,000 TO: 36,460,117 63.54%    5,872 MS
+Compress:CT_CRYPTO  :FROM:100,000,000 TO: 36,642,772 63.36%    7,501 MS
+Compress:CT_MINILZO :FROM:100,000,000 TO: 53,481,960 46.52%      868 MS
+Compress:CT_ZLIB    :FROM:100,000,000 TO: 36,475,808 63.52%    7,635 MS
+Compress:CT_BZIP    :FROM:100,000,000 TO: 33,259,584 66.74%    9,444 MS
 Compress:CT_LIBLZF  :FROM:100,000,000 TO: 53,945,398 46.05%      688 MS
-Compress:CT_LZMA    :FROM:100,000,000 TO: 25,209,489 74.79%   79,688 MS
+Compress:CT_LZMA    :FROM:100,000,000 TO: 24,797,518 75.20%   86,542 MS
 Compress:CT_FASTLZ  :FROM:100,000,000 TO: 54,163,029 45.84%      738 MS
-Compress:CT_LZHAM   :FROM:100,000,000 TO: 25,248,714 74.75%   26,848 MS
+Compress:CT_LZHAM   :FROM:100,000,000 TO: 24,814,835 75.19%   29,200 MS
 
 ---------------------------------------------------------------
 Testing Decompression speed with various decompressors.
 ---------------------------------------------------------------
-Decompress:CT_STB     :FROM: 36,473,214 TO:100,000,000      728 MS
-Decompress:CT_MINIZ   :FROM: 36,473,214 TO:100,000,000      558 MS
-Decompress:CT_CRYPTO  :FROM: 36,642,772 TO:100,000,000    1,819 MS
-Decompress:CT_MINILZO :FROM: 53,481,960 TO:100,000,000      467 MS
-Decompress:CT_ZLIB    :FROM: 36,475,808 TO:100,000,000      571 MS
-Decompress:CT_BZIP    :FROM: 33,259,584 TO:100,000,000    3,617 MS
-Decompress:CT_LIBLZF  :FROM: 53,945,398 TO:100,000,000      428 MS
-Decompress:CT_LZMA    :FROM: 25,209,489 TO:100,000,000    1,505 MS
-Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      455 MS
-Decompress:CT_LZHAM   :FROM: 25,248,714 TO:100,000,000      853 MS
+Decompress:CT_STB     :FROM: 36,460,117 TO:100,000,000      731 MS
+Decompress:CT_MINIZ   :FROM: 36,460,117 TO:100,000,000      559 MS
+Decompress:CT_CRYPTO  :FROM: 36,642,772 TO:100,000,000    1,823 MS
+Decompress:CT_MINILZO :FROM: 53,481,960 TO:100,000,000      463 MS
+Decompress:CT_ZLIB    :FROM: 36,475,808 TO:100,000,000      570 MS
+Decompress:CT_BZIP    :FROM: 33,259,584 TO:100,000,000    3,587 MS
+Decompress:CT_LIBLZF  :FROM: 53,945,398 TO:100,000,000      429 MS
+Decompress:CT_LZMA    :FROM: 24,797,518 TO:100,000,000    1,492 MS
+Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      458 MS
+Decompress:CT_LZHAM   :FROM: 24,814,835 TO:100,000,000      848 MS
 }}}
 
-*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8] (miniz.c compression level 1), compares miniz and stb_image.c only (all other results are the same as above):*
+*File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik8] (miniz.c compression level 1 (MZ_BEST_SPEED), zlib set to Z_BEST_SPEED, all other settings are the same as above):*
 {{{
-E:\lzham\compressiontest\test_compression>test_compression_x64.exe e:\dev\corpus\enwik8\enwik8
-x64 version - miniz level 1 (fastest)
-Reading test file 'e:\dev\corpus\enwik8\enwik8' which is 100,000,000 bytes long.
+E:\lzham\compressiontest\test_compression>test_compression_x64.exe E:\dev\corpus\enwik8\enwik8
+x64 version
+Reading test file 'E:\dev\corpus\enwik8\enwik8' which is 100,000,000 bytes long.
 
 ---------------------------------------------------------------
 Testing Compression rate and speed with various compressors.
 ---------------------------------------------------------------
-Compress:CT_STB     :FROM:100,000,000 TO: 40,669,733 59.33%    2,061 MS
-Compress:CT_MINIZ   :FROM:100,000,000 TO: 40,669,733 59.33%    2,061 MS
+Compress:CT_STB     :FROM:100,000,000 TO: 48,510,044 51.49%    1,159 MS
+Compress:CT_MINIZ   :FROM:100,000,000 TO: 48,510,044 51.49%    1,158 MS
+Compress:CT_CRYPTO  :FROM:100,000,000 TO: 36,642,772 63.36%    7,501 MS
+Compress:CT_MINILZO :FROM:100,000,000 TO: 53,481,960 46.52%      868 MS
+Compress:CT_ZLIB    :FROM:100,000,000 TO: 42,298,790 57.70%    2,443 MS
+Compress:CT_BZIP    :FROM:100,000,000 TO: 33,259,584 66.74%    9,431 MS
+Compress:CT_LIBLZF  :FROM:100,000,000 TO: 53,945,398 46.05%      685 MS
+Compress:CT_LZMA    :FROM:100,000,000 TO: 24,797,518 75.20%   86,736 MS
+Compress:CT_FASTLZ  :FROM:100,000,000 TO: 54,163,029 45.84%      739 MS
+Compress:CT_LZHAM   :FROM:100,000,000 TO: 24,813,424 75.19%   29,210 MS
 
 ---------------------------------------------------------------
 Testing Decompression speed with various decompressors.
 ---------------------------------------------------------------
-Decompress:CT_STB     :FROM: 40,669,733 TO:100,000,000      810 MS
-Decompress:CT_MINIZ   :FROM: 40,669,733 TO:100,000,000      616 MS
+Decompress:CT_STB     :FROM: 48,510,044 TO:100,000,000      987 MS
+Decompress:CT_MINIZ   :FROM: 48,510,044 TO:100,000,000      718 MS
+Decompress:CT_CRYPTO  :FROM: 36,642,772 TO:100,000,000    1,823 MS
+Decompress:CT_MINILZO :FROM: 53,481,960 TO:100,000,000      463 MS
+Decompress:CT_ZLIB    :FROM: 42,298,790 TO:100,000,000      612 MS
+Decompress:CT_BZIP    :FROM: 33,259,584 TO:100,000,000    3,563 MS
+Decompress:CT_LIBLZF  :FROM: 53,945,398 TO:100,000,000      429 MS
+Decompress:CT_LZMA    :FROM: 24,797,518 TO:100,000,000    1,497 MS
+Decompress:CT_FASTLZ  :FROM: 54,163,029 TO:100,000,000      458 MS
+Decompress:CT_LZHAM   :FROM: 24,813,424 TO:100,000,000      853 MS
 }}}
 
 *File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9] (miniz.c compression level 9):*
