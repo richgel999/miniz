@@ -84,37 +84,37 @@ Decompress:CT_LZHAM   :FROM: 24,813,424 TO:100,000,000      853 MS
 
 *File: [http://cs.fit.edu/~mmahoney/compression/textdata.html enwik9] (miniz.c compression level 9):*
 {{{
-E:\lzham\compressiontest\test_compression>test_compression_x64 e:\dev\corpus\enwik9\enwik9
+E:\lzham\compressiontest\test_compression>test_compression_x64.exe E:\dev\corpus\enwik9\enwik9
 x64 version
-Reading test file 'e:\dev\corpus\enwik9\enwik9' which is 1,000,000,000 bytes long.
+Reading test file 'E:\dev\corpus\enwik9\enwik9' which is 1,000,000,000 bytes long.
 
 ---------------------------------------------------------------
 Testing Compression rate and speed with various compressors.
 ---------------------------------------------------------------
-Compress:CT_STB     :FROM:1,000,000,000 TO:322,952,682 67.70%   55,295 MS
-Compress:CT_MINIZ   :FROM:1,000,000,000 TO:322,952,682 67.70%   55,259 MS
-Compress:CT_CRYPTO  :FROM:1,000,000,000 TO:324,897,277 67.51%   65,783 MS
-Compress:CT_MINILZO :FROM:1,000,000,000 TO:477,237,740 52.28%    7,762 MS
-Compress:CT_ZLIB    :FROM:1,000,000,000 TO:322,789,246 67.72%   66,350 MS
-Compress:CT_BZIP    :FROM:1,000,000,000 TO:295,663,950 70.43%   93,238 MS
-Compress:CT_LIBLZF  :FROM:1,000,000,000 TO:492,987,206 50.70%    6,306 MS
-Compress:CT_LZMA    :FROM:1,000,000,000 TO:218,545,630 78.15%  748,686 MS
-Compress:CT_FASTLZ  :FROM:1,000,000,000 TO:487,260,768 51.27%    6,740 MS
-Compress:CT_LZHAM   :FROM:1,000,000,000 TO:219,044,419 78.10%  268,488 MS
+Compress:CT_STB     :FROM:1,000,000,000 TO:322,771,589 67.72%   50,859 MS
+Compress:CT_MINIZ   :FROM:1,000,000,000 TO:322,771,589 67.72%   50,869 MS
+Compress:CT_CRYPTO  :FROM:1,000,000,000 TO:324,897,277 67.51%   65,744 MS
+Compress:CT_MINILZO :FROM:1,000,000,000 TO:477,237,740 52.28%    7,807 MS
+Compress:CT_ZLIB    :FROM:1,000,000,000 TO:322,789,246 67.72%   66,571 MS
+Compress:CT_BZIP    :FROM:1,000,000,000 TO:295,663,950 70.43%   94,037 MS
+Compress:CT_LIBLZF  :FROM:1,000,000,000 TO:492,987,206 50.70%    6,310 MS
+Compress:CT_LZMA    :FROM:1,000,000,000 TO:201,776,574 79.82% 1,043,293 MS
+Compress:CT_FASTLZ  :FROM:1,000,000,000 TO:487,260,768 51.27%    6,748 MS
+Compress:CT_LZHAM   :FROM:1,000,000,000 TO:202,475,460 79.75%  351,687 MS
 
 ---------------------------------------------------------------
 Testing Decompression speed with various decompressors.
 ---------------------------------------------------------------
-Decompress:CT_STB     :FROM:322,952,682 TO:1,000,000,000    6,704 MS
-Decompress:CT_MINIZ   :FROM:322,952,682 TO:1,000,000,000    5,055 MS
-Decompress:CT_CRYPTO  :FROM:324,897,277 TO:1,000,000,000   16,761 MS
-Decompress:CT_MINILZO :FROM:477,237,740 TO:1,000,000,000    4,252 MS
-Decompress:CT_ZLIB    :FROM:322,789,246 TO:1,000,000,000    5,180 MS
-Decompress:CT_BZIP    :FROM:295,663,950 TO:1,000,000,000   33,624 MS
-Decompress:CT_LIBLZF  :FROM:492,987,206 TO:1,000,000,000    4,019 MS
-Decompress:CT_LZMA    :FROM:218,545,630 TO:1,000,000,000   13,300 MS
-Decompress:CT_FASTLZ  :FROM:487,260,768 TO:1,000,000,000    4,208 MS
-Decompress:CT_LZHAM   :FROM:219,044,419 TO:1,000,000,000    7,472 MS
+Decompress:CT_STB     :FROM:322,771,589 TO:1,000,000,000    6,717 MS
+Decompress:CT_MINIZ   :FROM:322,771,589 TO:1,000,000,000    5,050 MS
+Decompress:CT_CRYPTO  :FROM:324,897,277 TO:1,000,000,000   16,770 MS
+Decompress:CT_MINILZO :FROM:477,237,740 TO:1,000,000,000    4,205 MS
+Decompress:CT_ZLIB    :FROM:322,789,246 TO:1,000,000,000    5,171 MS
+Decompress:CT_BZIP    :FROM:295,663,950 TO:1,000,000,000   33,298 MS
+Decompress:CT_LIBLZF  :FROM:492,987,206 TO:1,000,000,000    4,025 MS
+Decompress:CT_LZMA    :FROM:201,776,574 TO:1,000,000,000   12,650 MS
+Decompress:CT_FASTLZ  :FROM:487,260,768 TO:1,000,000,000    4,223 MS
+Decompress:CT_LZHAM   :FROM:202,475,460 TO:1,000,000,000    7,444 MS
 }}}
 
 *File: Entire Large [http://www.data-compression.info/Corpora/CalgaryCorpus/ Calgary Corpus] added to a single uncompressed 7zip archive (miniz.c compression level 9):*
