@@ -19,20 +19,73 @@ int main(int argc, char *argv[])
   const char *pMode;
   FILE *pInfile, *pOutfile;
   uint infile_size;
+  int level = Z_BEST_COMPRESSION;
   z_stream stream;
-  
-  if (argc != 4)
+  int n = 1;
+  const char *pSrc_filename;
+  const char *pDst_filename;
+    
+  printf("miniz.c version: %s\n", MZ_VERSION);
+
+  if (argc < 4)
   {
-    printf("Usage: example3 [c/d] infile outfile\n");
+    printf("Usage: example3 [options] [mode:c or d] infile outfile\n");
+    printf("\nModes:\n");
     printf("c - Compresses file infile to a zlib stream in file outfile\n");
     printf("d - Decompress zlib stream in file infile to file outfile\n");
+    printf("\nOptions:\n");
+    printf("-l[0-10] - Compression level, higher values are slower.\n");
     return EXIT_FAILURE;
   }
 
-  pMode = argv[1];
+  while ((n < argc) && (argv[n][0] == '-'))
+  {
+    switch (argv[n][1])
+    {
+      case 'l':
+      {
+        level = atoi(&argv[1][2]);
+        if ((level < 0) || (level > 10))
+        {
+          printf("Invalid level!\n");
+          return EXIT_FAILURE;
+        }
+        break;
+      }
+      default:
+      {
+        printf("Invalid option: %s\n", argv[n]);
+        return EXIT_FAILURE;
+      }
+    }
+    n++;
+  }
+
+  if ((argc - n) < 3)
+  {
+    printf("Must specify mode, input filename, and output filename after options!\n");
+    return EXIT_FAILURE;
+  }
+  else if ((argc - n) > 3)
+  {
+    printf("Too many filenames!\n");
+    return EXIT_FAILURE;
+  }
   
+  pMode = argv[n++];
+  if (!strchr("cCdD", pMode[0]))
+  {
+    printf("Invalid mode!\n");
+    return EXIT_FAILURE;
+  }
+
+  pSrc_filename = argv[n++];
+  pDst_filename = argv[n++];
+
+  printf("Mode: %c, Level: %u\nInput File: \"%s\"\nOutput File: \"%s\"\n", pMode[0], level, pSrc_filename, pDst_filename);
+      
   // Open input file.
-  pInfile = fopen(argv[2], "rb");
+  pInfile = fopen(pSrc_filename, "rb");
   if (!pInfile)
   {
     printf("Failed opening input file!\n");
@@ -45,7 +98,7 @@ int main(int argc, char *argv[])
   fseek(pInfile, 0, SEEK_SET);
 
   // Open output file.
-  pOutfile = fopen(argv[3], "wb");
+  pOutfile = fopen(pDst_filename, "wb");
   if (!pOutfile)
   {
     printf("Failed opening output file!\n");
@@ -66,7 +119,7 @@ int main(int argc, char *argv[])
     // Compression.
     uint infile_remaining = infile_size;
 
-    if (deflateInit(&stream, Z_BEST_COMPRESSION) != Z_OK)
+    if (deflateInit(&stream, level) != Z_OK)
     {
       printf("deflateInit() failed!\n");
       return EXIT_FAILURE;
@@ -90,7 +143,7 @@ int main(int argc, char *argv[])
         stream.avail_in = n;
         
         infile_remaining -= n;
-        printf("Input bytes remaining: %u\n", infile_remaining);
+        //printf("Input bytes remaining: %u\n", infile_remaining);
       }
 
       status = deflate(&stream, infile_remaining ? Z_NO_FLUSH : Z_FINISH);
