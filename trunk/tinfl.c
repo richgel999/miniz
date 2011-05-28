@@ -1,5 +1,5 @@
-/* tinfl.c v1.09 - public domain inflate with zlib header parsing/adler32 checking (inflate-only subset of miniz.c)
-   Rich Geldreich <richgel99@gmail.com>, last updated May 15, 2011
+/* tinfl.c v1.10 - public domain inflate with zlib header parsing/adler32 checking (inflate-only subset of miniz.c)
+   Rich Geldreich <richgel99@gmail.com>, last updated May 20, 2011
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 
    The entire decompressor coroutine is implemented in tinfl_decompress(). The other functions are optional high-level helpers.

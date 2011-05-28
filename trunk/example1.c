@@ -26,11 +26,13 @@ int main(int argc, char *argv[])
   uint total_succeeded = 0;
   argc, argv;
 
+  printf("miniz.c version: %s\n", MZ_VERSION);
+
   do
   {
     // Allocate buffers to hold compressed and uncompressed data.
-    pCmp = (mz_uint8 *)malloc(cmp_len);
-    pUncomp = (mz_uint8 *)malloc(src_len);
+    pCmp = (mz_uint8 *)malloc((size_t)cmp_len);
+    pUncomp = (mz_uint8 *)malloc((size_t)src_len);
     if ((!pCmp) || (!pUncomp))
     {
       printf("Out of memory!\n");
@@ -81,7 +83,7 @@ int main(int argc, char *argv[])
       printf("Decompressed from %u to %u bytes\n", cmp_len, uncomp_len);
 
       // Ensure uncompress() returned the expected data.
-      if ((uncomp_len != src_len) || (memcmp(pUncomp, s_pStr, src_len)))
+      if ((uncomp_len != src_len) || (memcmp(pUncomp, s_pStr, (size_t)src_len)))
       {
         printf("Decompression failed!\n");
         free(pCmp);
