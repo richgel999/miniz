@@ -32,7 +32,11 @@ typedef unsigned long long mz_uint64;
 // Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
 #define MZ_MACRO_END while (0, 0)
 
-// Decompression flags.
+// Decompression flags used by tinfl_decompress().
+// TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream.
+// TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input.
+// TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is at least the size of the dictionary (typically 32KB).
+// TINFL_FLAG_COMPUTE_ADLER32: Force adler-32 checksum computation of the decompressed bytes.
 enum
 {
   TINFL_FLAG_PARSE_ZLIB_HEADER = 1,

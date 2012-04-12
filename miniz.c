@@ -1,30 +1,32 @@
-/* miniz.c v1.11 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c v1.12 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
-   Rich Geldreich <richgel99@gmail.com>, last updated May 27, 2011
+   Rich Geldreich <richgel99@gmail.com>, last updated April 12, 2012
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 
    Most API's defined in miniz.c are optional. For example, to disable the archive related functions just define
    MINIZ_NO_ARCHIVE_APIS, or to get rid of all stdio usage define MINIZ_NO_STDIO (see the list below for more macros).
 
    * Change History
-     May 15, v1.09 - Initial stable release.
-     May 27, v1.10 - Substantial compressor optimizations:
+     4/12/12 v1.12 - More comments, added low-level example5.c, fixed a couple minor level_and_flags issues in the archive API's.
+      level_and_flags can now be set to MZ_DEFAULT_COMPRESSION. Thanks to Bruce Dawson <bruced@valvesoftware.com> for the feedback/bug report.
+     5/28/11 v1.11 - Added statement from unlicense.org
+     5/27/11 v1.10 - Substantial compressor optimizations:
       Level 1 is now ~4x faster than before. The L1 compressor's throughput now varies between 70-110MB/sec. on a 
       Core i7 (actual throughput varies depending on the type of data, and x64 vs. x86).     
       Improved baseline L2-L9 compression perf. Also, greatly improved compression perf. issues on some file types.
       Refactored the compression code for better readability and maintainability.
       Added level 10 compression level (L10 has slightly better ratio than level 9, but could have a potentially large
       drop in throughput on some files).
-     May 28, v1.11 - Added statement from unlicense.org
+     5/15/11 v1.09 - Initial stable release.
 
-   * Deflate/Inflate implementation notes:
+   * Low-level Deflate/Inflate implementation notes:
 
      Compression: Use the "tdefl" API's. The compressor supports raw, static, and dynamic blocks, lazy or
      greedy parsing, match length filtering, RLE-only, and Huffman-only streams. It performs and compresses
      approximately as well as zlib.
 
      Decompression: Use the "tinfl" API's. The entire decompressor is implemented as a single function
-     coroutine: see tinfl_decompress(). It supports decompression into a 32KB wrapping buffer or into a memory
+     coroutine: see tinfl_decompress(). It supports decompression into a 32KB (or larger power of 2) wrapping buffer, or into a memory
      block large enough to hold the entire file.
 
      The low-level tdefl/tinfl API's do not make any use of dynamic memory allocation.
@@ -37,7 +39,7 @@
         deflateInit/deflateInit2/deflate/deflateReset/deflateEnd/deflateBound
         inflateInit/inflateInit2/inflate/inflateEnd
         compress, compress2, compressBound, uncompress
-        CRC-32, Adler-32
+        CRC-32, Adler-32 - Using modern, minimal code size, CPU cache friendly routines.
         Supports raw deflate streams or standard zlib streams with adler-32 checking.
 
      Limitations:
@@ -202,21 +204,21 @@ enum { MZ_DEFAULT_STRATEGY = 0, MZ_FILTERED = 1, MZ_HUFFMAN_ONLY = 2, MZ_RLE = 3
 
 #ifndef MINIZ_NO_ZLIB_APIS
 
-#define MZ_VERSION          "9.1.11"
-#define MZ_VERNUM           0x91B0
+#define MZ_VERSION          "9.1.12"
+#define MZ_VERNUM           0x91C0
 #define MZ_VER_MAJOR        9
 #define MZ_VER_MINOR        1
-#define MZ_VER_REVISION     11
+#define MZ_VER_REVISION     12
 #define MZ_VER_SUBREVISION  0
 
-// Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other stuff is for advanced use.
+// Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs).
 enum { MZ_NO_FLUSH = 0, MZ_PARTIAL_FLUSH = 1, MZ_SYNC_FLUSH = 2, MZ_FULL_FLUSH = 3, MZ_FINISH = 4, MZ_BLOCK = 5 };
 
 // Return status codes. MZ_PARAM_ERROR is non-standard.
 enum { MZ_OK = 0, MZ_STREAM_END = 1, MZ_NEED_DICT = 2, MZ_ERRNO = -1, MZ_STREAM_ERROR = -2, MZ_DATA_ERROR = -3, MZ_MEM_ERROR = -4, MZ_BUF_ERROR = -5, MZ_VERSION_ERROR = -6, MZ_PARAM_ERROR = -10000 };
 
-// Compression levels.
-enum { MZ_NO_COMPRESSION = 0, MZ_BEST_SPEED = 1, MZ_BEST_COMPRESSION = 9, MZ_DEFAULT_COMPRESSION = -1 };
+// Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL.
+enum { MZ_NO_COMPRESSION = 0, MZ_BEST_SPEED = 1, MZ_BEST_COMPRESSION = 9, MZ_UBER_COMPRESSION = 10, MZ_DEFAULT_LEVEL = 6, MZ_DEFAULT_COMPRESSION = -1 };
 
 // Window bits
 #define MZ_DEFAULT_WINDOW_BITS 15
@@ -585,11 +587,13 @@ mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilena
 
 // Adds the contents of a memory buffer to an archive. These functions record the current local time into the archive.
 // To add a directory entry, call this method with an archive name ending in a forwardslash with empty buffer.
+// level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION.
 mz_bool mz_zip_writer_add_mem(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, mz_uint level_and_flags);
 mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, mz_uint64 uncomp_size, mz_uint32 uncomp_crc32);
 
 #ifndef MINIZ_NO_STDIO
 // Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive.
+// level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION.
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
 #endif
 
@@ -610,6 +614,7 @@ mz_bool mz_zip_writer_end(mz_zip_archive *pZip);
 // Misc. high-level helper functions:
 
 // mz_zip_add_mem_to_archive_file_in_place() efficiently (but not atomically) appends a memory blob to a ZIP archive.
+// level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION.
 mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
 
 // Reads a single file from an archive into a heap block.
@@ -622,7 +627,11 @@ void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char 
 
 // ------------------- Low-level Decompression API Definitions
 
-// Decompression flags.
+// Decompression flags used by tinfl_decompress().
+// TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream.
+// TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input.
+// TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is at least the size of the dictionary (typically 32KB).
+// TINFL_FLAG_COMPUTE_ADLER32: Force adler-32 checksum computation of the decompressed bytes.
 enum
 {
   TINFL_FLAG_PARSE_ZLIB_HEADER = 1,
@@ -714,17 +723,21 @@ struct tinfl_decompressor_tag
 // Set TDEFL_LESS_MEMORY to 1 to use less memory (compression will be slightly slower, and raw/dynamic blocks will be output more frequently).
 #define TDEFL_LESS_MEMORY 0
 
-// Compression flags logically OR'd together (low 12 bits contain the max. number of probes per dictionary search):
+// tdefl_init() compression flags logically OR'd together (low 12 bits contain the max. number of probes per dictionary search):
 // TDEFL_DEFAULT_MAX_PROBES: The compressor defaults to 128 dictionary probes per dictionary search. 0=Huffman only, 1=Huffman+LZ (fastest/crap compression), 4095=Huffman+LZ (slowest/best compression).
 enum
 {
   TDEFL_HUFFMAN_ONLY = 0, TDEFL_DEFAULT_MAX_PROBES = 128, TDEFL_MAX_PROBES_MASK = 0xFFF
 };
+
 // TDEFL_WRITE_ZLIB_HEADER: If set, the compressor outputs a zlib header before the deflate data, and the Adler-32 of the source data at the end. Otherwise, you'll get raw deflate data.
 // TDEFL_COMPUTE_ADLER32: Always compute the adler-32 of the input data (even when not writing zlib headers).
 // TDEFL_GREEDY_PARSING_FLAG: Set to use faster greedy parsing, instead of more efficient lazy parsing.
 // TDEFL_NONDETERMINISTIC_PARSING_FLAG: Enable to decrease the compressor's initialization time to the minimum, but the output may vary from run to run given the same input (depending on the contents of memory).
+// TDEFL_RLE_MATCHES: Only look for RLE matches (matches with a distance of 1)
+// TDEFL_FILTER_MATCHES: Discards matches <= 5 chars if enabled.
 // TDEFL_FORCE_ALL_STATIC_BLOCKS: Disable usage of optimized Huffman tables.
+// TDEFL_FORCE_ALL_RAW_BLOCKS: Only use raw (uncompressed) deflate blocks.
 enum
 {
   TDEFL_WRITE_ZLIB_HEADER             = 0x01000,
@@ -794,6 +807,7 @@ typedef enum
   TDEFL_FINISH = 4
 } tdefl_flush;
 
+// tdefl's compression state structure.
 typedef struct
 {
   tdefl_put_buf_func_ptr m_pPut_buf_func;
@@ -821,12 +835,17 @@ typedef struct
   mz_uint8 m_output_buf[TDEFL_OUT_BUF_SIZE];
 } tdefl_compressor;
 
-// Initializes the compressor.
+// Initializes the compressor. 
+// There is no corresponding deinit() function because the tdefl API's do not dynamically allocate memory.
+// pBut_buf_func: If NULL, output data will be supplied to the specified callback. In this case, the user should call the tdefl_compress_buffer() API for compression.
+// If pBut_buf_func is NULL the user should always call the tdefl_compress() API.
+// flags: See the above enums (TDEFL_HUFFMAN_ONLY, TDEFL_WRITE_ZLIB_HEADER, etc.)
 tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
 
-// Compresses a block of data, consuming as much of the input as possible, and writing as much compressed data as possible.
+// Compresses a block of data, consuming as much of the specified input buffer as possible, and writing as much compressed data to the specified output buffer as possible.
 tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pIn_buf_size, void *pOut_buf, size_t *pOut_buf_size, tdefl_flush flush);
-// tdefl_compress_buffer() is only usable when the tdefl_init() is called with a valid tdefl_put_buf_func_ptr.
+
+// tdefl_compress_buffer() is only usable when the tdefl_init() is called with a non-NULL tdefl_put_buf_func_ptr.
 // tdefl_compress_buffer() always consumes the entire input buffer.
 tdefl_status tdefl_compress_buffer(tdefl_compressor *d, const void *pIn_buf, size_t in_buf_size, tdefl_flush flush);
 
@@ -2691,7 +2710,7 @@ static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32,  16, 32, 128, 256, 
 // level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files).
 mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
 {
-  mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : 6] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
+  mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
   if (window_bits > 0) comp_flags |= TDEFL_WRITE_ZLIB_HEADER;
 
   if (!level) comp_flags |= TDEFL_FORCE_ALL_RAW_BLOCKS;
@@ -4041,15 +4060,20 @@ static mz_bool mz_zip_writer_write_zeros(mz_zip_archive *pZip, mz_uint64 cur_fil
 mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, mz_uint64 uncomp_size, mz_uint32 uncomp_crc32)
 {
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
-  mz_uint level = level_and_flags & 0xF, ext_attributes = 0, num_alignment_padding_bytes;
+  mz_uint level, ext_attributes = 0, num_alignment_padding_bytes;
   mz_uint64 local_dir_header_ofs = pZip->m_archive_size, cur_archive_file_ofs = pZip->m_archive_size, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   tdefl_compressor *pComp = NULL;
-  mz_bool store_data_uncompressed = ((!level) || (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA));
+  mz_bool store_data_uncompressed;
   mz_zip_internal_state *pState;
 
-  if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING) || ((buf_size) && (!pBuf)) || (!pArchive_name) || ((comment_size) && (!pComment)) || (pZip->m_total_files == 0xFFFF) || (level > 10))
+  if ((int)level_and_flags < 0)
+    level_and_flags = MZ_DEFAULT_LEVEL;
+  level = level_and_flags & 0xF;
+  store_data_uncompressed = ((!level) || (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA));
+
+  if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING) || ((buf_size) && (!pBuf)) || (!pArchive_name) || ((comment_size) && (!pComment)) || (pZip->m_total_files == 0xFFFF) || (level > MZ_UBER_COMPRESSION))
     return MZ_FALSE;
 
   pState = pZip->m_pState;
@@ -4186,14 +4210,18 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip, const char *pArchive_name
 #ifndef MINIZ_NO_STDIO
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags)
 {
-  mz_uint uncomp_crc32 = MZ_CRC32_INIT, level = level_and_flags & 0xF, num_alignment_padding_bytes;
+  mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0, ext_attributes = 0;
   mz_uint64 local_dir_header_ofs = pZip->m_archive_size, cur_archive_file_ofs = pZip->m_archive_size, uncomp_size = 0, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   MZ_FILE *pSrc_file = NULL;
+  
+  if ((int)level_and_flags < 0)
+    level_and_flags = MZ_DEFAULT_LEVEL;
+  level = level_and_flags & 0xF;
 
-  if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING) || (!pArchive_name) || ((comment_size) && (!pComment)) || (level > 10))
+  if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING) || (!pArchive_name) || ((comment_size) && (!pComment)) || (level > MZ_UBER_COMPRESSION))
     return MZ_FALSE;
   if (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA)
     return MZ_FALSE;
@@ -4582,7 +4610,9 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const
   mz_zip_archive zip_archive;
   struct MZ_FILE_STAT_STRUCT file_stat;
   MZ_CLEAR_OBJ(zip_archive);
-  if ((!pZip_filename) || (!pArchive_name) || ((buf_size) && (!pBuf)) || ((comment_size) && (!pComment)) || ((level_and_flags & 0xF) > 9))
+  if ((int)level_and_flags < 0)
+     level_and_flags = MZ_DEFAULT_LEVEL;
+  if ((!pZip_filename) || (!pArchive_name) || ((buf_size) && (!pBuf)) || ((comment_size) && (!pComment)) || ((level_and_flags & 0xF) > MZ_UBER_COMPRESSION))
     return MZ_FALSE;
   if (!mz_zip_writer_validate_archive_name(pArchive_name))
     return MZ_FALSE;
