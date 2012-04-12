@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="example4"
-	ProjectGUID="{AE293522-92D8-4B60-95C7-C3AEE10A303F}"
-	RootNamespace="example4"
+	Name="example5"
+	ProjectGUID="{AE293522-92D8-4B60-95C7-B4AEE10A303F}"
+	RootNamespace="example5"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -327,17 +327,17 @@
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FD737F1-C7A5-4376-A066-2A32D752A2FF}"
+			UniqueIdentifier="{4FD737F1-C7A5-4376-A066-2A32D752A31F}"
 			>
 			<File
-				RelativePath=".\example4.c"
+				RelativePath=".\example5.c"
 				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{17DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			UniqueIdentifier="{17DA6AB6-F800-4c08-8B7A-83BB121AAC02}"
 			>
 		</Filter>
 	</Files>
