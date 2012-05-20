@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   uLong uncomp_len = src_len;
   uint8 *pCmp, *pUncomp;
   uint total_succeeded = 0;
-  argc, argv;
+  (void)argc, (void)argv;
 
   printf("miniz.c version: %s\n", MZ_VERSION);
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-    printf("Compressed from %u to %u bytes\n", src_len, cmp_len);
+    printf("Compressed from %u to %u bytes\n", (mz_uint32)src_len, (mz_uint32)cmp_len);
 
     if (step)
     {
@@ -61,11 +61,11 @@ int main(int argc, char *argv[])
         pCmp[i] ^= (rand() & 0xFF);
       }
     }
-    
+
     // Decompress.
     cmp_status = uncompress(pUncomp, &uncomp_len, pCmp, cmp_len);
     total_succeeded += (cmp_status == Z_OK);
-    
+
     if (step)
     {
       printf("Simple fuzzy test: step %u total_succeeded: %u\n", step, total_succeeded);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
       }
 
-      printf("Decompressed from %u to %u bytes\n", cmp_len, uncomp_len);
+      printf("Decompressed from %u to %u bytes\n", (mz_uint32)cmp_len, (mz_uint32)uncomp_len);
 
       // Ensure uncompress() returned the expected data.
       if ((uncomp_len != src_len) || (memcmp(pUncomp, s_pStr, (size_t)src_len)))
@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
     free(pUncomp);
 
     step++;
-    
+
     // Keep on fuzzy testing if there's a non-empty command line.
-  } while (argc >= 2);  
+  } while (argc >= 2);
 
   printf("Success.\n");
   return EXIT_SUCCESS;

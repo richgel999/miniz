@@ -10,11 +10,11 @@
 
 #include <stdlib.h>
 
-typedef unsigned char mz_uint8; 
-typedef signed short mz_int16; 
-typedef unsigned short mz_uint16; 
-typedef unsigned int mz_uint32; 
-typedef unsigned int mz_uint; 
+typedef unsigned char mz_uint8;
+typedef signed short mz_int16;
+typedef unsigned short mz_uint16;
+typedef unsigned int mz_uint32;
+typedef unsigned int mz_uint;
 typedef unsigned long long mz_uint64;
 
 #if defined(_M_IX86) || defined(_M_X64)
@@ -30,7 +30,11 @@ typedef unsigned long long mz_uint64;
 #endif
 
 // Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
-#define MZ_MACRO_END while (0, 0)
+#ifdef _MSC_VER
+  #define MZ_MACRO_END while (0, 0)
+#else
+  #define MZ_MACRO_END while (0)
+#endif
 
 // Decompression flags used by tinfl_decompress().
 // TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream.
@@ -560,7 +564,7 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
 
 #endif // #ifndef TINFL_HEADER_FILE_ONLY
 
-/* 
+/*
   This is free and unencumbered software released into the public domain.
 
   Anyone is free to copy, modify, publish, use, compile, sell, or

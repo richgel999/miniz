@@ -2,6 +2,7 @@
 // Public domain, May 15 2011, Rich Geldreich, richgel99@gmail.com. See "unlicense" statement at the end of tinfl.c.
 // For simplicity, this example is limited to files smaller than 4GB, but this is not a limitation of miniz.c.
 #include "miniz.c"
+#include <limits.h>
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -21,10 +22,11 @@ int main(int argc, char *argv[])
   uint infile_size;
   int level = Z_BEST_COMPRESSION;
   z_stream stream;
-  int n = 1;
+  int p = 1;
   const char *pSrc_filename;
   const char *pDst_filename;
-    
+  long file_loc;
+
   printf("miniz.c version: %s\n", MZ_VERSION);
 
   if (argc < 4)
@@ -38,9 +40,9 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  while ((n < argc) && (argv[n][0] == '-'))
+  while ((p < argc) && (argv[p][0] == '-'))
   {
-    switch (argv[n][1])
+    switch (argv[p][1])
     {
       case 'l':
       {
@@ -54,36 +56,36 @@ int main(int argc, char *argv[])
       }
       default:
       {
-        printf("Invalid option: %s\n", argv[n]);
+        printf("Invalid option: %s\n", argv[p]);
         return EXIT_FAILURE;
       }
     }
-    n++;
+    p++;
   }
 
-  if ((argc - n) < 3)
+  if ((argc - p) < 3)
   {
     printf("Must specify mode, input filename, and output filename after options!\n");
     return EXIT_FAILURE;
   }
-  else if ((argc - n) > 3)
+  else if ((argc - p) > 3)
   {
     printf("Too many filenames!\n");
     return EXIT_FAILURE;
   }
-  
-  pMode = argv[n++];
+
+  pMode = argv[p++];
   if (!strchr("cCdD", pMode[0]))
   {
     printf("Invalid mode!\n");
     return EXIT_FAILURE;
   }
 
-  pSrc_filename = argv[n++];
-  pDst_filename = argv[n++];
+  pSrc_filename = argv[p++];
+  pDst_filename = argv[p++];
 
   printf("Mode: %c, Level: %u\nInput File: \"%s\"\nOutput File: \"%s\"\n", pMode[0], level, pSrc_filename, pDst_filename);
-      
+
   // Open input file.
   pInfile = fopen(pSrc_filename, "rb");
   if (!pInfile)
@@ -91,11 +93,20 @@ int main(int argc, char *argv[])
     printf("Failed opening input file!\n");
     return EXIT_FAILURE;
   }
-  
+
   // Determine input file's size.
   fseek(pInfile, 0, SEEK_END);
-  infile_size = ftell(pInfile);
+  file_loc = ftell(pInfile);
   fseek(pInfile, 0, SEEK_SET);
+
+  if ((file_loc < 0) || (file_loc > INT_MAX))
+  {
+     // This is not a limitation of miniz or tinfl, but this example.
+     printf("File is too large to be processed by this example.\n");
+     return EXIT_FAILURE;
+  }
+
+  infile_size = (uint)file_loc;
 
   // Open output file.
   pOutfile = fopen(pDst_filename, "wb");
@@ -106,7 +117,7 @@ int main(int argc, char *argv[])
   }
 
   printf("Input file size: %u\n", infile_size);
-  
+
   // Init the z_stream
   memset(&stream, 0, sizeof(stream));
   stream.next_in = s_inbuf;
@@ -132,16 +143,16 @@ int main(int argc, char *argv[])
       {
         // Input buffer is empty, so read more bytes from input file.
         uint n = my_min(BUF_SIZE, infile_remaining);
-                
+
         if (fread(s_inbuf, 1, n, pInfile) != n)
         {
           printf("Failed reading from input file!\n");
           return EXIT_FAILURE;
         }
-        
+
         stream.next_in = s_inbuf;
         stream.avail_in = n;
-        
+
         infile_remaining -= n;
         //printf("Input bytes remaining: %u\n", infile_remaining);
       }
@@ -235,7 +246,7 @@ int main(int argc, char *argv[])
     {
       printf("inflateEnd() failed!\n");
       return EXIT_FAILURE;
-    }      
+    }
   }
   else
   {
@@ -250,8 +261,8 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  printf("Total input bytes: %u\n", stream.total_in);
-  printf("Total output bytes: %u\n", stream.total_out);
+  printf("Total input bytes: %u\n", (mz_uint32)stream.total_in);
+  printf("Total output bytes: %u\n", (mz_uint32)stream.total_out);
   printf("Success.\n");
   return EXIT_SUCCESS;
 }
