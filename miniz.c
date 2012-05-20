@@ -2789,10 +2789,6 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
 
 #ifndef MINIZ_NO_ARCHIVE_APIS
 
-#ifndef MINIZ_NO_TIME
-#include <time.h>
-#endif
-
 #ifdef MINIZ_NO_STDIO
   #define MZ_FILE void *
 #else
