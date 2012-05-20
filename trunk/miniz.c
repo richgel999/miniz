@@ -16,7 +16,7 @@
        Added miniz_tester solution/project, which is a useful little app derived from LZHAM's tester app that I use as part of the regression test.
        Ran miniz.c and tinfl.c through another series of regression testing on ~500,000 files and archives.
        Modified example5.c so it purposely disables a bunch of high-level functionality (MINIZ_NO_STDIO, etc.). (Thanks to corysama for the MINIZ_NO_STDIO bug report.)
-       Fix fell() usage in examples so they exit with an error on files which are too large (a limitation of the examples, not miniz itself).
+       Fix ftell() usage in examples so they exit with an error on files which are too large (a limitation of the examples, not miniz itself).
      4/12/12 v1.12 - More comments, added low-level example5.c, fixed a couple minor level_and_flags issues in the archive API's.
       level_and_flags can now be set to MZ_DEFAULT_COMPRESSION. Thanks to Bruce Dawson <bruced@valvesoftware.com> for the feedback/bug report.
      5/28/11 v1.11 - Added statement from unlicense.org
