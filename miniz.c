@@ -1,6 +1,6 @@
-/* miniz.c v1.13 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c v1.14 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
-   Rich Geldreich <richgel99@gmail.com>, last updated May 19, 2012
+   Rich Geldreich <richgel99@gmail.com>, last updated May 20, 2012
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 
    Most API's defined in miniz.c are optional. For example, to disable the archive related functions just define
