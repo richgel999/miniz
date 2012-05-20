@@ -12,7 +12,7 @@
        Eliminated a bunch of warnings when compiling with GCC 32-bit/64.
        Ran all examples, miniz.c, and tinfl.c through MSVC 2008's /analyze (static analysis) option and fixed all warnings (except for the silly
        "Use of the comma-operator in a tested expression.." analysis warning, which I purposely use to work around a MSVC compiler warning).
-       Created 32-bit and 64-bit Codeblocks projects/workspace.
+       Created 32-bit and 64-bit Codeblocks projects/workspace. Built and tested Linux executables. The codeblocks workspace is compatible with Linux+Win32/x64.
        Added miniz_tester solution/project, which is a useful little app derived from LZHAM's tester app that I use as part of the regression test.
        Ran miniz.c and tinfl.c through another series of regression testing on ~500,000 files and archives.
        Modified example5.c so it purposely disables a bunch of high-level functionality (MINIZ_NO_STDIO, etc.). (Thanks to corysama for the MINIZ_NO_STDIO bug report.)
@@ -4676,8 +4676,10 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const
   }
   status = mz_zip_writer_add_mem_ex(&zip_archive, pArchive_name, pBuf, buf_size, pComment, comment_size, level_and_flags, 0, 0);
   // Always finalize, even if adding failed for some reason, so we have a valid central directory. (This may not always succeed, but we can try.)
-  status = status && mz_zip_writer_finalize_archive(&zip_archive);
-  status = status && mz_zip_writer_end(&zip_archive);
+  if (!mz_zip_writer_finalize_archive(&zip_archive))
+    status = MZ_FALSE;
+  if (!mz_zip_writer_end(&zip_archive))
+    status = MZ_FALSE;
   if ((!status) && (created_new_archive))
   {
     // It's a new archive and something went wrong, so just delete it.
