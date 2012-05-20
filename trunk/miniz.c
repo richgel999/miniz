@@ -2795,7 +2795,9 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
   #include <stdio.h>
   #include <sys/stat.h>
   #if defined(_MSC_VER) || defined(__MINGW64__)
-    #include <sys/utime.h>
+    #ifndef MINIZ_NO_TIME
+      #include <sys/utime.h>
+    #endif
     #define MZ_FILE FILE
     #define MZ_FOPEN fopen
     #define MZ_FCLOSE fclose
@@ -2809,7 +2811,9 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FREOPEN freopen
     #define MZ_DELETE_FILE remove
   #elif defined(__MINGW32__)
-    #include <sys/utime.h>
+    #ifndef MINIZ_NO_TIME
+      #include <sys/utime.h>
+    #endif
     #define MZ_FILE FILE
     #define MZ_FOPEN fopen
     #define MZ_FCLOSE fclose
@@ -2822,8 +2826,26 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FFLUSH fflush
     #define MZ_FREOPEN freopen
     #define MZ_DELETE_FILE remove
+  #elif defined(__TINYC__)
+    #ifndef MINIZ_NO_TIME
+      #include <sys\utime.h>
+    #endif
+    #define MZ_FILE FILE
+    #define MZ_FOPEN fopen
+    #define MZ_FCLOSE fclose
+    #define MZ_FREAD fread
+    #define MZ_FWRITE fwrite
+    #define MZ_FTELL64 ftell
+    #define MZ_FSEEK64 fseek
+    #define MZ_FILE_STAT_STRUCT stat
+    #define MZ_FILE_STAT stat
+    #define MZ_FFLUSH fflush
+    #define MZ_FREOPEN freopen
+    #define MZ_DELETE_FILE remove
   #else
-    #include <utime.h>
+    #ifndef MINIZ_NO_TIME
+      #include <utime.h>
+    #endif
     #define MZ_FILE FILE
     #define MZ_FOPEN fopen
     #define MZ_FCLOSE fclose
@@ -2958,7 +2980,7 @@ static mz_bool mz_zip_set_file_times(const char *pFilename, time_t access_time, 
   struct utimbuf t; t.actime = access_time; t.modtime = modified_time;
   return !utime(pFilename, &t);
 #else
-  pFilename, access_time, modified_time;
+  (void)pFilename, (void)access_time, (void)modified_time;
   return MZ_TRUE;
 #endif // #ifndef MINIZ_NO_TIME
 }
