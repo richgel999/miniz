@@ -7,6 +7,7 @@
    MINIZ_NO_ARCHIVE_APIS, or to get rid of all stdio usage define MINIZ_NO_STDIO (see the list below for more macros).
 
    * Change History
+     5/20/12 v1.14 - MinGW32/64 GCC 4.6.1 compiler fixes: added MZ_FORCEINLINE, #include <time.h> (thanks fermtect).
      5/19/12 v1.13 - From jason@cornsyrup.org and kelwert@mtu.edu - Fix mz_crc32() so it doesn't compute the wrong CRC-32's when mz_ulong is 64-bit.
        Temporarily/locally slammed in "typedef unsigned long mz_ulong" and re-ran a randomized regression test on ~500k files.
        Eliminated a bunch of warnings when compiling with GCC 32-bit/64.
@@ -135,6 +136,10 @@
 
 #include <stdlib.h>
 
+#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_ARCHIVE_APIS)
+#include <time.h>
+#endif
+
 // Defines to completely disable specific portions of miniz.c:
 // If all macros here are defined the only functionality remaining will be CRC-32, adler-32, tinfl, and tdefl.
 
@@ -214,11 +219,11 @@ enum { MZ_DEFAULT_STRATEGY = 0, MZ_FILTERED = 1, MZ_HUFFMAN_ONLY = 2, MZ_RLE = 3
 
 #ifndef MINIZ_NO_ZLIB_APIS
 
-#define MZ_VERSION          "9.1.13"
-#define MZ_VERNUM           0x91D0
+#define MZ_VERSION          "9.1.14"
+#define MZ_VERNUM           0x91E0
 #define MZ_VER_MAJOR        9
 #define MZ_VER_MINOR        1
-#define MZ_VER_REVISION     13
+#define MZ_VER_REVISION     14
 #define MZ_VER_SUBREVISION  0
 
 // Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs).
@@ -2793,7 +2798,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
 #else
   #include <stdio.h>
   #include <sys/stat.h>
-  #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
+  #if defined(_MSC_VER) || defined(__MINGW64__)
     #include <sys/utime.h>
     #define MZ_FILE FILE
     #define MZ_FOPEN fopen
@@ -2802,6 +2807,20 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FWRITE fwrite
     #define MZ_FTELL64 _ftelli64
     #define MZ_FSEEK64 _fseeki64
+    #define MZ_FILE_STAT_STRUCT _stat
+    #define MZ_FILE_STAT _stat
+    #define MZ_FFLUSH fflush
+    #define MZ_FREOPEN freopen
+    #define MZ_DELETE_FILE remove
+  #elif defined(__MINGW32__)
+    #include <sys/utime.h>
+    #define MZ_FILE FILE
+    #define MZ_FOPEN fopen
+    #define MZ_FCLOSE fclose
+    #define MZ_FREAD fread
+    #define MZ_FWRITE fwrite
+    #define MZ_FTELL64 ftello64
+    #define MZ_FSEEK64 fseeko64
     #define MZ_FILE_STAT_STRUCT _stat
     #define MZ_FILE_STAT _stat
     #define MZ_FFLUSH fflush
