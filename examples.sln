@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example4", "example4.vcproj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example5", "example5.vcproj", "{AE293522-92D8-4B60-95C7-B4AEE10A303F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniz_tester", "miniz_tester.vcproj", "{AE293522-92D9-1B60-95C7-B4AEE10A303F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -59,6 +61,14 @@ Global
 		{AE293522-92D8-4B60-95C7-B4AEE10A303F}.Release|Win32.Build.0 = Release|Win32
 		{AE293522-92D8-4B60-95C7-B4AEE10A303F}.Release|x64.ActiveCfg = Release|x64
 		{AE293522-92D8-4B60-95C7-B4AEE10A303F}.Release|x64.Build.0 = Release|x64
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Debug|Win32.Build.0 = Debug|Win32
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Debug|x64.ActiveCfg = Debug|x64
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Debug|x64.Build.0 = Debug|x64
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Release|Win32.ActiveCfg = Release|Win32
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Release|Win32.Build.0 = Release|Win32
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Release|x64.ActiveCfg = Release|x64
+		{AE293522-92D9-1B60-95C7-B4AEE10A303F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

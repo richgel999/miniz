@@ -1,18 +1,28 @@
-/* miniz.c v1.12 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c v1.13 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
-   Rich Geldreich <richgel99@gmail.com>, last updated April 12, 2012
+   Rich Geldreich <richgel99@gmail.com>, last updated May 19, 2012
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 
    Most API's defined in miniz.c are optional. For example, to disable the archive related functions just define
    MINIZ_NO_ARCHIVE_APIS, or to get rid of all stdio usage define MINIZ_NO_STDIO (see the list below for more macros).
 
    * Change History
+     5/19/12 v1.13 - From jason@cornsyrup.org and kelwert@mtu.edu - Fix mz_crc32() so it doesn't compute the wrong CRC-32's when mz_ulong is 64-bit.
+       Temporarily/locally slammed in "typedef unsigned long mz_ulong" and re-ran a randomized regression test on ~500k files.
+       Eliminated a bunch of warnings when compiling with GCC 32-bit/64.
+       Ran all examples, miniz.c, and tinfl.c through MSVC 2008's /analyze (static analysis) option and fixed all warnings (except for the silly
+       "Use of the comma-operator in a tested expression.." analysis warning, which I purposely use to work around a MSVC compiler warning).
+       Created 32-bit and 64-bit Codeblocks projects/workspace.
+       Added miniz_tester solution/project, which is a useful little app derived from LZHAM's tester app that I use as part of the regression test.
+       Ran miniz.c and tinfl.c through another series of regression testing on ~500,000 files and archives.
+       Modified example5.c so it purposely disables a bunch of high-level functionality (MINIZ_NO_STDIO, etc.). (Thanks to corysama for the MINIZ_NO_STDIO bug report.)
+       Fix fell() usage in examples so they exit with an error on files which are too large (a limitation of the examples, not miniz itself).
      4/12/12 v1.12 - More comments, added low-level example5.c, fixed a couple minor level_and_flags issues in the archive API's.
       level_and_flags can now be set to MZ_DEFAULT_COMPRESSION. Thanks to Bruce Dawson <bruced@valvesoftware.com> for the feedback/bug report.
      5/28/11 v1.11 - Added statement from unlicense.org
      5/27/11 v1.10 - Substantial compressor optimizations:
-      Level 1 is now ~4x faster than before. The L1 compressor's throughput now varies between 70-110MB/sec. on a 
-      Core i7 (actual throughput varies depending on the type of data, and x64 vs. x86).     
+      Level 1 is now ~4x faster than before. The L1 compressor's throughput now varies between 70-110MB/sec. on a
+      Core i7 (actual throughput varies depending on the type of data, and x64 vs. x86).
       Improved baseline L2-L9 compression perf. Also, greatly improved compression perf. issues on some file types.
       Refactored the compression code for better readability and maintainability.
       Added level 10 compression level (L10 has slightly better ratio than level 9, but could have a potentially large
@@ -179,7 +189,7 @@ extern "C" {
 
 // ------------------- zlib-style API Definitions.
 
-// For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members.
+// For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members. Beware: mz_ulong can be either 32 or 64-bits!
 typedef unsigned long mz_ulong;
 
 // Heap allocation callbacks.
@@ -204,11 +214,11 @@ enum { MZ_DEFAULT_STRATEGY = 0, MZ_FILTERED = 1, MZ_HUFFMAN_ONLY = 2, MZ_RLE = 3
 
 #ifndef MINIZ_NO_ZLIB_APIS
 
-#define MZ_VERSION          "9.1.12"
-#define MZ_VERNUM           0x91C0
+#define MZ_VERSION          "9.1.13"
+#define MZ_VERNUM           0x91D0
 #define MZ_VER_MAJOR        9
 #define MZ_VER_MINOR        1
-#define MZ_VER_REVISION     12
+#define MZ_VER_REVISION     13
 #define MZ_VER_SUBREVISION  0
 
 // Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs).
@@ -430,7 +440,11 @@ typedef int mz_bool;
 #define MZ_TRUE (1)
 
 // Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
-#define MZ_MACRO_END while (0, 0)
+#ifdef _MSC_VER
+   #define MZ_MACRO_END while (0, 0)
+#else
+   #define MZ_MACRO_END while (0)
+#endif
 
 // ------------------- ZIP archive reading/writing
 
@@ -835,7 +849,7 @@ typedef struct
   mz_uint8 m_output_buf[TDEFL_OUT_BUF_SIZE];
 } tdefl_compressor;
 
-// Initializes the compressor. 
+// Initializes the compressor.
 // There is no corresponding deinit() function because the tdefl API's do not dynamically allocate memory.
 // pBut_buf_func: If NULL, output data will be supplied to the specified callback. In this case, the user should call the tdefl_compress_buffer() API for compression.
 // If pBut_buf_func is NULL the user should always call the tdefl_compress() API.
@@ -852,11 +866,14 @@ tdefl_status tdefl_compress_buffer(tdefl_compressor *d, const void *pIn_buf, siz
 tdefl_status tdefl_get_prev_return_status(tdefl_compressor *d);
 mz_uint32 tdefl_get_adler32(tdefl_compressor *d);
 
+// Can't use tdefl_create_comp_flags_from_zip_params if MINIZ_NO_ZLIB_APIS isn't defined, because it uses some of its macros.
+#ifndef MINIZ_NO_ZLIB_APIS
 // Create tdefl_compress() flags given zlib-style compression parameters.
 // level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files)
 // window_bits may be -15 (raw deflate) or 15 (zlib)
 // strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED
 mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
+#endif // #ifndef MINIZ_NO_ZLIB_APIS
 
 #ifdef __cplusplus
 }
@@ -879,7 +896,7 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
 
 #ifdef MINIZ_NO_MALLOC
   #define MZ_MALLOC(x) NULL
-  #define MZ_FREE(x) x, ((void)0)
+  #define MZ_FREE(x) (void)x, ((void)0)
   #define MZ_REALLOC(p, x) NULL
 #else
   #define MZ_MALLOC(x) malloc(x)
@@ -913,10 +930,6 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
 
 // ------------------- zlib-style API's
 
-static void *def_alloc_func(void *opaque, size_t items, size_t size) { (void)opaque; return MZ_MALLOC(items * size); }
-static void def_free_func(void *opaque, void *address) { (void)opaque, MZ_FREE(address); }
-static void *def_realloc_func(void *opaque, void *address, size_t items, size_t size) { (void)opaque; return MZ_REALLOC(address, items * size); }
-
 mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
 {
   mz_uint32 i, s1 = (mz_uint32)(adler & 0xffff), s2 = (mz_uint32)(adler >> 16); size_t block_len = buf_len % 5552;
@@ -937,11 +950,17 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 {
   static const mz_uint32 s_crc32[16] = { 0, 0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
     0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c, 0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c };
+  mz_uint32 crcu32 = (mz_uint32)crc;
   if (!ptr) return MZ_CRC32_INIT;
-  crc = ~crc; while (buf_len--) { mz_uint8 b = *ptr++; crc = (crc >> 4) ^ s_crc32[(crc & 0xF) ^ (b & 0xF)]; crc = (crc >> 4) ^ s_crc32[(crc & 0xF) ^ (b >> 4)]; } return ~crc;
+  crcu32 = ~crcu32; while (buf_len--) { mz_uint8 b = *ptr++; crcu32 = (crcu32 >> 4) ^ s_crc32[(crcu32 & 0xF) ^ (b & 0xF)]; crcu32 = (crcu32 >> 4) ^ s_crc32[(crcu32 & 0xF) ^ (b >> 4)]; }
+  return ~crcu32;
 }
 
 #ifndef MINIZ_NO_ZLIB_APIS
+
+static void *def_alloc_func(void *opaque, size_t items, size_t size) { (void)opaque, (void)items, (void)size; return MZ_MALLOC(items * size); }
+static void def_free_func(void *opaque, void *address) { (void)opaque, (void)address; MZ_FREE(address); }
+static void *def_realloc_func(void *opaque, void *address, size_t items, size_t size) { (void)opaque, (void)address, (void)items, (void)size; return MZ_REALLOC(address, items * size); }
 
 const char *mz_version(void)
 {
@@ -1055,7 +1074,7 @@ int mz_deflateEnd(mz_streamp pStream)
 
 mz_ulong mz_deflateBound(mz_streamp pStream, mz_ulong source_len)
 {
-  pStream;
+  (void)pStream;
   // This is really over conservative. (And lame, but it's actually pretty tricky to compute a true upper bound given the way tdefl's blocking works.)
   return MZ_MAX(128 + (source_len * 110) / 100, 128 + source_len + ((source_len / (31 * 1024)) + 1) * 5);
 }
@@ -2172,7 +2191,7 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
       if (!(*d->m_pPut_buf_func)(d->m_output_buf, n, d->m_pPut_buf_user))
         return (d->m_prev_return_status = TDEFL_STATUS_PUT_BUF_FAILED);
     }
-    else if (pOutput_buf_start == d->m_output_buf) 
+    else if (pOutput_buf_start == d->m_output_buf)
     {
       int bytes_to_copy = (int)MZ_MIN((size_t)n, (size_t)(*d->m_pOut_buf_size - d->m_out_buf_ofs));
       memcpy((mz_uint8 *)d->m_pOut_buf + d->m_out_buf_ofs, d->m_output_buf, bytes_to_copy);
@@ -2421,10 +2440,10 @@ static __forceinline void tdefl_record_match(tdefl_compressor *d, mz_uint match_
 
   *d->m_pLZ_flags = (mz_uint8)((*d->m_pLZ_flags >> 1) | 0x80); if (--d->m_num_flags_left == 0) { d->m_num_flags_left = 8; d->m_pLZ_flags = d->m_pLZ_code_buf++; }
 
-  s0 = s_tdefl_small_dist_sym[match_dist & 511]; s1 = s_tdefl_large_dist_sym[match_dist >> 8];
+  s0 = s_tdefl_small_dist_sym[match_dist & 511]; s1 = s_tdefl_large_dist_sym[(match_dist >> 8) & 127];
   d->m_huff_count[1][(match_dist < 512) ? s0 : s1]++;
 
-  d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
+  if (match_len >= TDEFL_MIN_MATCH_LEN) d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
 }
 
 static mz_bool tdefl_compress_normal(tdefl_compressor *d)
@@ -2515,7 +2534,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
       }
     }
     else if (!cur_match_dist)
-      tdefl_record_literal(d, d->m_dict[cur_pos]);
+      tdefl_record_literal(d, d->m_dict[MZ_MIN(cur_pos, sizeof(d->m_dict) - 1)]);
     else if ((d->m_greedy_parsing) || (d->m_flags & TDEFL_RLE_MATCHES) || (cur_match_len >= 128))
     {
       tdefl_record_match(d, cur_match_len, cur_match_dist);
@@ -2523,7 +2542,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
     }
     else
     {
-      d->m_saved_lit = d->m_dict[cur_pos]; d->m_saved_match_dist = cur_match_dist; d->m_saved_match_len = cur_match_len;
+      d->m_saved_lit = d->m_dict[MZ_MIN(cur_pos, sizeof(d->m_dict) - 1)]; d->m_saved_match_dist = cur_match_dist; d->m_saved_match_len = cur_match_len;
     }
     // Move the lookahead forward by len_to_move bytes.
     d->m_lookahead_pos += len_to_move;
@@ -2705,6 +2724,7 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
   return out_buf.m_size;
 }
 
+#ifndef MINIZ_NO_ZLIB_APIS
 static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32,  16, 32, 128, 256,  512, 768, 1500 };
 
 // level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files).
@@ -2721,6 +2741,7 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int 
 
   return comp_flags;
 }
+#endif //MINIZ_NO_ZLIB_APIS
 
 #ifdef _MSC_VER
 #pragma warning (push)
@@ -3016,7 +3037,7 @@ static void mz_zip_reader_sort_central_dir_offsets_by_filename(mz_zip_archive *p
 
 static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 flags)
 {
-  mz_uint i, n, cdir_size, num_this_disk, cdir_disk_index;
+  mz_uint cdir_size, num_this_disk, cdir_disk_index;
   mz_uint64 cdir_ofs;
   mz_int64 cur_file_ofs;
   const mz_uint8 *p;
@@ -3066,6 +3087,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 fl
 
   if (pZip->m_total_files)
   {
+     mz_uint i, n;
     // Read the entire central directory into a heap block, and allocate another heap block to hold the unsorted central dir file record offsets, and another to hold the sorted indices.
     if ((!mz_zip_array_resize(pZip, &pZip->m_pState->m_central_dir, cdir_size, MZ_FALSE)) ||
         (!mz_zip_array_resize(pZip, &pZip->m_pState->m_central_dir_offsets, pZip->m_total_files, MZ_FALSE)) ||
@@ -3438,7 +3460,11 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file
   {
     // Temporarily allocate a read buffer.
     read_buf_size = MZ_MIN(file_stat.m_comp_size, MZ_ZIP_MAX_IO_BUF_SIZE);
+#ifdef _MSC_VER
     if (((0, sizeof(size_t) == sizeof(mz_uint32))) && (read_buf_size > 0x7FFFFFFF))
+#else
+    if (((sizeof(size_t) == sizeof(mz_uint32))) && (read_buf_size > 0x7FFFFFFF))
+#endif
       return MZ_FALSE;
     if (NULL == (pRead_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)read_buf_size)))
       return MZ_FALSE;
@@ -3514,7 +3540,11 @@ void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, si
   uncomp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS);
 
   alloc_size = (flags & MZ_ZIP_FLAG_COMPRESSED_DATA) ? comp_size : uncomp_size;
+#ifdef _MSC_VER
   if (((0, sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF))
+#else
+  if (((sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF))
+#endif
     return NULL;
   if (NULL == (pBuf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)alloc_size)))
     return NULL;
@@ -3594,7 +3624,11 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_ind
     // The file is stored or the caller has requested the compressed data.
     if (pZip->m_pState->m_pMem)
     {
+#ifdef _MSC_VER
       if (((0, sizeof(size_t) == sizeof(mz_uint32))) && (file_stat.m_comp_size > 0xFFFFFFFF))
+#else
+      if (((sizeof(size_t) == sizeof(mz_uint32))) && (file_stat.m_comp_size > 0xFFFFFFFF))
+#endif
         return MZ_FALSE;
       if (pCallback(pOpaque, out_buf_ofs, pRead_buf, (size_t)file_stat.m_comp_size) != file_stat.m_comp_size)
         status = TINFL_STATUS_FAILED;
@@ -3755,6 +3789,7 @@ mz_bool mz_zip_reader_end(mz_zip_archive *pZip)
   return MZ_TRUE;
 }
 
+#ifndef MINIZ_NO_STDIO
 mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags)
 {
   int file_index = mz_zip_reader_locate_file(pZip, pArchive_filename, NULL, flags);
@@ -3762,6 +3797,7 @@ mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pAr
     return MZ_FALSE;
   return mz_zip_reader_extract_to_file(pZip, file_index, pDst_filename, flags);
 }
+#endif
 
 // ------------------- .ZIP archive writing
 
@@ -3807,7 +3843,11 @@ static size_t mz_zip_heap_write_func(void *pOpaque, mz_uint64 file_ofs, const vo
   mz_zip_archive *pZip = (mz_zip_archive *)pOpaque;
   mz_zip_internal_state *pState = pZip->m_pState;
   mz_uint64 new_size = MZ_MAX(file_ofs + n, pState->m_mem_size);
+#ifdef _MSC_VER
   if ((!n) || ((0, sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF)))
+#else
+  if ((!n) || ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF)))
+#endif
     return 0;
   if (new_size > pState->m_mem_capacity)
   {
@@ -4216,7 +4256,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, 
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   MZ_FILE *pSrc_file = NULL;
-  
+
   if ((int)level_and_flags < 0)
     level_and_flags = MZ_DEFAULT_LEVEL;
   level = level_and_flags & 0xF;
@@ -4641,7 +4681,8 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const
   if ((!status) && (created_new_archive))
   {
     // It's a new archive and something went wrong, so just delete it.
-    MZ_DELETE_FILE(pZip_filename);
+    int ignoredStatus = MZ_DELETE_FILE(pZip_filename);
+    (void)ignoredStatus;
   }
   return status;
 }
