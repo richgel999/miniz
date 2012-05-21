@@ -197,11 +197,8 @@ extern "C" {
 // For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members. Beware: mz_ulong can be either 32 or 64-bits!
 typedef unsigned long mz_ulong;
 
-// Heap allocation callbacks.
-// Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long.
-typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
-typedef void (*mz_free_func)(void *opaque, void *address);
-typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
+// mz_free() internally uses the MZ_FREE() macro (which by default calls free() unless you've modified the MZ_MALLOC macro) to release a block allocated from the heap.
+void mz_free(void *p);
 
 #define MZ_ADLER32_INIT (1)
 // mz_adler32() returns the initial adler-32 value to use when called with ptr==NULL.
@@ -218,6 +215,12 @@ enum { MZ_DEFAULT_STRATEGY = 0, MZ_FILTERED = 1, MZ_HUFFMAN_ONLY = 2, MZ_RLE = 3
 #define MZ_DEFLATED 8
 
 #ifndef MINIZ_NO_ZLIB_APIS
+
+// Heap allocation callbacks.
+// Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long.
+typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
+typedef void (*mz_free_func)(void *opaque, void *address);
+typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
 
 #define MZ_VERSION          "9.1.14"
 #define MZ_VERNUM           0x91E0
@@ -666,7 +669,7 @@ enum
 // On return:
 //  Function returns a pointer to the decompressed data, or NULL on failure.
 //  *pOut_len will be set to the decompressed data's size, which could be larger than src_buf_len on uncompressible data.
-//  The caller must free() the returned block when it's no longer needed.
+//  The caller must call mz_free() on the returned block when it's no longer needed.
 void *tinfl_decompress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, int flags);
 
 // tinfl_decompress_mem_to_mem() decompresses a block in memory to another block in memory.
@@ -786,11 +789,12 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
 
 // Compresses an image to a compressed PNG file in memory.
 // On entry:
-//  pImage, w, h, and num_chans describe the image to compress. num_chans may be 1, 2, 3, or 4.
+//  pImage, w, h, and num_chans describe the image to compress. num_chans may be 1, 2, 3, or 4. 
+//  The image pitch in bytes per scanline will be w*num_chans. The leftmost pixel on the top scanline is stored first in memory.
 // On return:
 //  Function returns a pointer to the compressed data, or NULL on failure.
 //  *pLen_out will be set to the size of the PNG image file.
-//  The caller must free() the returned heap block (which will typically be larger than *pLen_out) when it's no longer needed.
+//  The caller must mz_free() the returned heap block (which will typically be larger than *pLen_out) when it's no longer needed.
 void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out);
 
 // Output stream interface. The compressor uses this interface to write compressed data. It'll typically be called TDEFL_OUT_BUF_SIZE at a time.
@@ -926,7 +930,7 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
 #elif defined(__GNUC__)
   #define MZ_FORCEINLINE __attribute__((__always_inline__))
 #else
-  #define MZ_FORCEINLINE inline
+  #define MZ_FORCEINLINE
 #endif
 
 #ifdef __cplusplus
@@ -959,6 +963,11 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
   if (!ptr) return MZ_CRC32_INIT;
   crcu32 = ~crcu32; while (buf_len--) { mz_uint8 b = *ptr++; crcu32 = (crcu32 >> 4) ^ s_crc32[(crcu32 & 0xF) ^ (b & 0xF)]; crcu32 = (crcu32 >> 4) ^ s_crc32[(crcu32 & 0xF) ^ (b >> 4)]; }
   return ~crcu32;
+}
+
+void mz_free(void *p)
+{
+  MZ_FREE(p);
 }
 
 #ifndef MINIZ_NO_ZLIB_APIS
@@ -2794,12 +2803,38 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
 #else
   #include <stdio.h>
   #include <sys/stat.h>
+
+  #if defined(_MSC_VER)
+    static FILE *mz_fopen(const char *pFilename, const char *pMode)
+    {
+      FILE* pFile = NULL;
+      fopen_s(&pFile, pFilename, pMode);
+      return pFile;
+    }
+    static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
+    {
+      FILE* pFile = NULL;
+      if (freopen_s(&pFile, pPath, pMode, pStream))
+        return NULL;
+      return pFile;
+    }
+  #else
+    static FILE *mz_fopen(const char *pFilename, const char *pMode)
+    {
+      return fopen(pFilename, pMode);
+    }
+    static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
+    {
+      return freopen(pPath, pMode, pStream);
+    }
+  #endif // #if defined(_MSC_VER)
+
   #if defined(_MSC_VER) || defined(__MINGW64__)
     #ifndef MINIZ_NO_TIME
       #include <sys/utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN fopen
+    #define MZ_FOPEN mz_fopen
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2808,14 +2843,14 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT _stat
     #define MZ_FILE_STAT _stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN freopen
+    #define MZ_FREOPEN mz_freopen
     #define MZ_DELETE_FILE remove
   #elif defined(__MINGW32__)
     #ifndef MINIZ_NO_TIME
       #include <sys/utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN fopen
+    #define MZ_FOPEN mz_fopen
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2824,14 +2859,14 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT _stat
     #define MZ_FILE_STAT _stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN freopen
+    #define MZ_FREOPEN mz_freopen
     #define MZ_DELETE_FILE remove
   #elif defined(__TINYC__)
     #ifndef MINIZ_NO_TIME
       #include <sys\utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN fopen
+    #define MZ_FOPEN mz_fopen
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2840,14 +2875,14 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT stat
     #define MZ_FILE_STAT stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN freopen
+    #define MZ_FREOPEN mz_freopen
     #define MZ_DELETE_FILE remove
   #else
     #ifndef MINIZ_NO_TIME
       #include <utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN fopen
+    #define MZ_FOPEN mz_fopen
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2856,7 +2891,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT stat
     #define MZ_FILE_STAT stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN freopen
+    #define MZ_FREOPEN mz_freopen
     #define MZ_DELETE_FILE remove
   #endif // #ifdef _MSC_VER
 #endif // #ifdef MINIZ_NO_STDIO
@@ -2956,7 +2991,18 @@ static time_t mz_zip_dos_to_time_t(int dos_time, int dos_date)
 
 static void mz_zip_time_to_dos_time(time_t time, mz_uint16 *pDOS_time, mz_uint16 *pDOS_date)
 {
+#ifdef _MSC_VER
+  struct tm tm_struct;
+  struct tm *tm = &tm_struct;
+  errno_t err = localtime_s(tm, &time);
+  if (err)
+  {
+    *pDOS_date = 0; *pDOS_time = 0;
+    return;
+  }
+#else
   struct tm *tm = localtime(&time);
+#endif
   *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) + ((tm->tm_sec) >> 1));
   *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday);
 }
