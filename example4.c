@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
     printf("Usage: example4 infile outfile\n");
     printf("Decompresses zlib stream in file infile to file outfile.\n");
     printf("Input file must be able to fit entirely in memory.\n");
+    printf("example3 can be used to create compressed zlib streams.\n");
     return EXIT_FAILURE;
   }
 

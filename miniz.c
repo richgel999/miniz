@@ -1,33 +1,51 @@
-/* miniz.c v1.14 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c v1.15 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
-   Rich Geldreich <richgel99@gmail.com>, last updated May 20, 2012
+   Rich Geldreich <richgel99@gmail.com>, last updated Oct. 13, 2013
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 
    Most API's defined in miniz.c are optional. For example, to disable the archive related functions just define
    MINIZ_NO_ARCHIVE_APIS, or to get rid of all stdio usage define MINIZ_NO_STDIO (see the list below for more macros).
 
    * Change History
+    10/13/13 v1.15 - Interim bugfix release while I work on the next major release with Zip64 support (almost there!):
+       - Critical fix for the MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY bug (thanks kahmyong.moon@hp.com) which could cause locate files to not find files. This bug
+        would only have occured in earlier versions if you explicitly used this flag, OR if you used mz_zip_extract_archive_file_to_heap() or mz_zip_add_mem_to_archive_file_in_place()
+        (which used this flag). If you can't switch to v1.15 but want to fix this bug, just remove the uses of this flag from both helper funcs (and of course don't use the flag).
+       - Fixing mz_zip_reader_extract_*() funcs so they don't try to extract compressed data from directory entries, to account for weird zipfiles which contain zero-size compressed data on dir entries.
+         Hopefully this fix won't cause any issues on weird zip archives, because it assumes the low 16-bits of zip external attributes are DOS attributes (which I believe they always are in practice).
+       - Fixing mz_zip_reader_is_file_a_directory() so it doesn't check the internal attributes, just the filename and external attributes
+       - mz_zip_reader_init_file() - missing MZ_FCLOSE() call if the seek failed
+       - Added cmake support for Linux builds which builds all the examples, tested with clang v3.3 and gcc v4.6.
+       - Clang fix for tdefl_write_image_to_png_file_in_memory() from toffaletti
+       - Merged MZ_FORCEINLINE fix from hdeanclark
+       - Fix <time.h> include before config #ifdef, thanks emil.brink
+       - Added tdefl_write_image_to_png_file_in_memory_ex(): supports Y flipping (super useful for OpenGL apps), and explicit control over the compression level (so you can
+        set it to 1 for real-time compression).
+       - Merged in some compiler fixes from paulharris's github repro.
+       - Retested this build under Windows (VS 2010, including static analysis), tcc  0.9.26, gcc v4.6 and clang v3.3.
+       - Added example6.c, which dumps an image of the mandelbrot set to a PNG file.
+       - Modified example2 to help test the MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY flag more.
      5/20/12 v1.14 - MinGW32/64 GCC 4.6.1 compiler fixes: added MZ_FORCEINLINE, #include <time.h> (thanks fermtect).
      5/19/12 v1.13 - From jason@cornsyrup.org and kelwert@mtu.edu - Fix mz_crc32() so it doesn't compute the wrong CRC-32's when mz_ulong is 64-bit.
-       Temporarily/locally slammed in "typedef unsigned long mz_ulong" and re-ran a randomized regression test on ~500k files.
-       Eliminated a bunch of warnings when compiling with GCC 32-bit/64.
-       Ran all examples, miniz.c, and tinfl.c through MSVC 2008's /analyze (static analysis) option and fixed all warnings (except for the silly
-       "Use of the comma-operator in a tested expression.." analysis warning, which I purposely use to work around a MSVC compiler warning).
-       Created 32-bit and 64-bit Codeblocks projects/workspace. Built and tested Linux executables. The codeblocks workspace is compatible with Linux+Win32/x64.
-       Added miniz_tester solution/project, which is a useful little app derived from LZHAM's tester app that I use as part of the regression test.
-       Ran miniz.c and tinfl.c through another series of regression testing on ~500,000 files and archives.
-       Modified example5.c so it purposely disables a bunch of high-level functionality (MINIZ_NO_STDIO, etc.). (Thanks to corysama for the MINIZ_NO_STDIO bug report.)
-       Fix ftell() usage in examples so they exit with an error on files which are too large (a limitation of the examples, not miniz itself).
+       - Temporarily/locally slammed in "typedef unsigned long mz_ulong" and re-ran a randomized regression test on ~500k files.
+       - Eliminated a bunch of warnings when compiling with GCC 32-bit/64.
+       - Ran all examples, miniz.c, and tinfl.c through MSVC 2008's /analyze (static analysis) option and fixed all warnings (except for the silly
+        "Use of the comma-operator in a tested expression.." analysis warning, which I purposely use to work around a MSVC compiler warning).
+       - Created 32-bit and 64-bit Codeblocks projects/workspace. Built and tested Linux executables. The codeblocks workspace is compatible with Linux+Win32/x64.
+       - Added miniz_tester solution/project, which is a useful little app derived from LZHAM's tester app that I use as part of the regression test.
+       - Ran miniz.c and tinfl.c through another series of regression testing on ~500,000 files and archives.
+       - Modified example5.c so it purposely disables a bunch of high-level functionality (MINIZ_NO_STDIO, etc.). (Thanks to corysama for the MINIZ_NO_STDIO bug report.)
+       - Fix ftell() usage in examples so they exit with an error on files which are too large (a limitation of the examples, not miniz itself).
      4/12/12 v1.12 - More comments, added low-level example5.c, fixed a couple minor level_and_flags issues in the archive API's.
       level_and_flags can now be set to MZ_DEFAULT_COMPRESSION. Thanks to Bruce Dawson <bruced@valvesoftware.com> for the feedback/bug report.
      5/28/11 v1.11 - Added statement from unlicense.org
      5/27/11 v1.10 - Substantial compressor optimizations:
-      Level 1 is now ~4x faster than before. The L1 compressor's throughput now varies between 70-110MB/sec. on a
-      Core i7 (actual throughput varies depending on the type of data, and x64 vs. x86).
-      Improved baseline L2-L9 compression perf. Also, greatly improved compression perf. issues on some file types.
-      Refactored the compression code for better readability and maintainability.
-      Added level 10 compression level (L10 has slightly better ratio than level 9, but could have a potentially large
-      drop in throughput on some files).
+      - Level 1 is now ~4x faster than before. The L1 compressor's throughput now varies between 70-110MB/sec. on a
+      - Core i7 (actual throughput varies depending on the type of data, and x64 vs. x86).
+      - Improved baseline L2-L9 compression perf. Also, greatly improved compression perf. issues on some file types.
+      - Refactored the compression code for better readability and maintainability.
+      - Added level 10 compression level (L10 has slightly better ratio than level 9, but could have a potentially large
+       drop in throughput on some files).
      5/15/11 v1.09 - Initial stable release.
 
    * Low-level Deflate/Inflate implementation notes:
@@ -129,16 +147,16 @@
      #define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 1
      #define MINIZ_LITTLE_ENDIAN 1
      #define MINIZ_HAS_64BIT_REGISTERS 1
+
+   * On platforms using glibc, Be sure to "#define _LARGEFILE64_SOURCE 1" before including miniz.c to ensure miniz
+     uses the 64-bit variants: fopen64(), stat64(), etc. Otherwise you won't be able to process large files
+     (i.e. 32-bit stat() fails for me on files > 0x7FFFFFFF bytes).
 */
 
 #ifndef MINIZ_HEADER_INCLUDED
 #define MINIZ_HEADER_INCLUDED
 
 #include <stdlib.h>
-
-#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_ARCHIVE_APIS)
-#include <time.h>
-#endif
 
 // Defines to completely disable specific portions of miniz.c:
 // If all macros here are defined the only functionality remaining will be CRC-32, adler-32, tinfl, and tdefl.
@@ -147,7 +165,8 @@
 //#define MINIZ_NO_STDIO
 
 // If MINIZ_NO_TIME is specified then the ZIP archive functions will not be able to get the current time, or
-// get/set file times.
+// get/set file times, and the C run-time funcs that get/set times won't be called.
+// The current downside is the times written to your archives will be from 1979.
 //#define MINIZ_NO_TIME
 
 // Define MINIZ_NO_ARCHIVE_APIS to disable all ZIP archive API's.
@@ -167,6 +186,15 @@
 // callbacks to the zlib and archive API's, and a few stand-alone helper API's which don't provide custom user
 // functions (such as tdefl_compress_mem_to_heap() and tinfl_decompress_mem_to_heap()) won't work.
 //#define MINIZ_NO_MALLOC
+
+#if defined(__TINYC__) && (defined(__linux) || defined(__linux__))
+  // TODO: Work around "error: include file 'sys\utime.h' when compiling with tcc on Linux
+  #define MINIZ_NO_TIME
+#endif
+
+#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_ARCHIVE_APIS)
+  #include <time.h>
+#endif
 
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__i386) || defined(__i486__) || defined(__i486) || defined(i386) || defined(__ia64__) || defined(__x86_64__)
 // MINIZ_X86_OR_X64_CPU is only used to help set the below macros.
@@ -222,11 +250,11 @@ typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
 typedef void (*mz_free_func)(void *opaque, void *address);
 typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
 
-#define MZ_VERSION          "9.1.14"
-#define MZ_VERNUM           0x91E0
+#define MZ_VERSION          "9.1.15"
+#define MZ_VERNUM           0x91F0
 #define MZ_VER_MAJOR        9
 #define MZ_VER_MINOR        1
-#define MZ_VER_REVISION     14
+#define MZ_VER_REVISION     15
 #define MZ_VER_SUBREVISION  0
 
 // Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs).
@@ -447,7 +475,7 @@ typedef int mz_bool;
 #define MZ_FALSE (0)
 #define MZ_TRUE (1)
 
-// Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
+// An attempt to work around MSVC's spammy "warning C4127: conditional expression is constant" message.
 #ifdef _MSC_VER
    #define MZ_MACRO_END while (0, 0)
 #else
@@ -501,7 +529,7 @@ typedef enum
   MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED = 3
 } mz_zip_mode;
 
-typedef struct
+typedef struct mz_zip_archive_tag
 {
   mz_uint64 m_archive_size;
   mz_uint64 m_central_directory_file_ofs;
@@ -760,6 +788,7 @@ enum
 // TDEFL_FILTER_MATCHES: Discards matches <= 5 chars if enabled.
 // TDEFL_FORCE_ALL_STATIC_BLOCKS: Disable usage of optimized Huffman tables.
 // TDEFL_FORCE_ALL_RAW_BLOCKS: Only use raw (uncompressed) deflate blocks.
+// The low 12 bits are reserved to control the max # of hash probes per dictionary lookup (see TDEFL_MAX_PROBES_MASK).
 enum
 {
   TDEFL_WRITE_ZLIB_HEADER             = 0x01000,
@@ -791,10 +820,13 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
 // On entry:
 //  pImage, w, h, and num_chans describe the image to compress. num_chans may be 1, 2, 3, or 4. 
 //  The image pitch in bytes per scanline will be w*num_chans. The leftmost pixel on the top scanline is stored first in memory.
+//  level may range from [0,10], use MZ_NO_COMPRESSION, MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc. or a decent default is MZ_DEFAULT_LEVEL
+//  If flip is true, the image will be flipped on the Y axis (useful for OpenGL apps).
 // On return:
 //  Function returns a pointer to the compressed data, or NULL on failure.
 //  *pLen_out will be set to the size of the PNG image file.
 //  The caller must mz_free() the returned heap block (which will typically be larger than *pLen_out) when it's no longer needed.
+void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip);
 void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out);
 
 // Output stream interface. The compressor uses this interface to write compressed data. It'll typically be called TDEFL_OUT_BUF_SIZE at a time.
@@ -928,9 +960,9 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
 #ifdef _MSC_VER
   #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
-  #define MZ_FORCEINLINE __attribute__((__always_inline__))
+  #define MZ_FORCEINLINE inline __attribute__((__always_inline__))
 #else
-  #define MZ_FORCEINLINE
+  #define MZ_FORCEINLINE inline
 #endif
 
 #ifdef __cplusplus
@@ -2763,22 +2795,26 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int 
 
 // Simple PNG writer function by Alex Evans, 2011. Released into the public domain: https://gist.github.com/908299, more context at
 // http://altdevblogaday.org/2011/04/06/a-smaller-jpg-encoder/.
-void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out)
+// This is actually a modification of Alex's original code so PNG files generated by this function pass pngcheck.
+void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip)
 {
+  // Using a local copy of this array here in case MINIZ_NO_ZLIB_APIS was defined.
+  static const mz_uint s_tdefl_png_num_probes[11] = { 0, 1, 6, 32,  16, 32, 128, 256,  512, 768, 1500 };
   tdefl_compressor *pComp = (tdefl_compressor *)MZ_MALLOC(sizeof(tdefl_compressor)); tdefl_output_buffer out_buf; int i, bpl = w * num_chans, y, z; mz_uint32 c; *pLen_out = 0;
   if (!pComp) return NULL;
   MZ_CLEAR_OBJ(out_buf); out_buf.m_expandable = MZ_TRUE; out_buf.m_capacity = 57+MZ_MAX(64, (1+bpl)*h); if (NULL == (out_buf.m_pBuf = (mz_uint8*)MZ_MALLOC(out_buf.m_capacity))) { MZ_FREE(pComp); return NULL; }
   // write dummy header
   for (z = 41; z; --z) tdefl_output_buffer_putter(&z, 1, &out_buf);
   // compress image data
-  tdefl_init(pComp, tdefl_output_buffer_putter, &out_buf, TDEFL_DEFAULT_MAX_PROBES | TDEFL_WRITE_ZLIB_HEADER);
-  for (y = 0; y < h; ++y) { tdefl_compress_buffer(pComp, &z, 1, TDEFL_NO_FLUSH); tdefl_compress_buffer(pComp, (mz_uint8*)pImage + y * bpl, bpl, TDEFL_NO_FLUSH); }
+  tdefl_init(pComp, tdefl_output_buffer_putter, &out_buf, s_tdefl_png_num_probes[MZ_MIN(10, level)] | TDEFL_WRITE_ZLIB_HEADER);
+  for (y = 0; y < h; ++y) { tdefl_compress_buffer(pComp, &z, 1, TDEFL_NO_FLUSH); tdefl_compress_buffer(pComp, (mz_uint8*)pImage + (flip ? (h - 1 - y) : y) * bpl, bpl, TDEFL_NO_FLUSH); }
   if (tdefl_compress_buffer(pComp, NULL, 0, TDEFL_FINISH) != TDEFL_STATUS_DONE) { MZ_FREE(pComp); MZ_FREE(out_buf.m_pBuf); return NULL; }
   // write real header
   *pLen_out = out_buf.m_size-41;
   {
+    static const mz_uint8 chans[] = {0x00, 0x00, 0x04, 0x02, 0x06};
     mz_uint8 pnghdr[41]={0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00,0x00,0x00,0x0d,0x49,0x48,0x44,0x52,
-      0,0,(mz_uint8)(w>>8),(mz_uint8)w,0,0,(mz_uint8)(h>>8),(mz_uint8)h,8,"\0\0\04\02\06"[num_chans],0,0,0,0,0,0,0,
+      0,0,(mz_uint8)(w>>8),(mz_uint8)w,0,0,(mz_uint8)(h>>8),(mz_uint8)h,8,chans[num_chans],0,0,0,0,0,0,0,
       (mz_uint8)(*pLen_out>>24),(mz_uint8)(*pLen_out>>16),(mz_uint8)(*pLen_out>>8),(mz_uint8)*pLen_out,0x49,0x44,0x41,0x54};
     c=(mz_uint32)mz_crc32(MZ_CRC32_INIT,pnghdr+12,17); for (i=0; i<4; ++i, c<<=8) ((mz_uint8*)(pnghdr+29))[i]=(mz_uint8)(c>>24);
     memcpy(out_buf.m_pBuf, pnghdr, 41);
@@ -2788,6 +2824,11 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
   c = (mz_uint32)mz_crc32(MZ_CRC32_INIT,out_buf.m_pBuf+41-4, *pLen_out+4); for (i=0; i<4; ++i, c<<=8) (out_buf.m_pBuf+out_buf.m_size-16)[i] = (mz_uint8)(c >> 24);
   // compute final size of file, grab compressed data buffer and return
   *pLen_out += 57; MZ_FREE(pComp); return out_buf.m_pBuf;
+}
+void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out)
+{
+  // Level 6 corresponds to TDEFL_DEFAULT_MAX_PROBES or MZ_DEFAULT_LEVEL (but we can't depend on MZ_DEFAULT_LEVEL being available in case the zlib API's where #defined out)
+  return tdefl_write_image_to_png_file_in_memory_ex(pImage, w, h, num_chans, pLen_out, 6, MZ_FALSE);
 }
 
 #ifdef _MSC_VER
@@ -2804,7 +2845,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
   #include <stdio.h>
   #include <sys/stat.h>
 
-  #if defined(_MSC_VER)
+  #if defined(_MSC_VER) || defined(__MINGW64__)
     static FILE *mz_fopen(const char *pFilename, const char *pMode)
     {
       FILE* pFile = NULL;
@@ -2818,18 +2859,6 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
         return NULL;
       return pFile;
     }
-  #else
-    static FILE *mz_fopen(const char *pFilename, const char *pMode)
-    {
-      return fopen(pFilename, pMode);
-    }
-    static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
-    {
-      return freopen(pPath, pMode, pStream);
-    }
-  #endif // #if defined(_MSC_VER)
-
-  #if defined(_MSC_VER) || defined(__MINGW64__)
     #ifndef MINIZ_NO_TIME
       #include <sys/utime.h>
     #endif
@@ -2850,7 +2879,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
       #include <sys/utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN mz_fopen
+    #define MZ_FOPEN(f, m) fopen(f, m)
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2859,14 +2888,14 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT _stat
     #define MZ_FILE_STAT _stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN mz_freopen
+    #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
     #define MZ_DELETE_FILE remove
   #elif defined(__TINYC__)
     #ifndef MINIZ_NO_TIME
-      #include <sys\utime.h>
+      #include <sys/utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN mz_fopen
+    #define MZ_FOPEN(f, m) fopen(f, m)
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2875,14 +2904,30 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT stat
     #define MZ_FILE_STAT stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN mz_freopen
+    #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
+    #define MZ_DELETE_FILE remove
+  #elif defined(__GNUC__) && _LARGEFILE64_SOURCE
+    #ifndef MINIZ_NO_TIME
+      #include <utime.h>
+    #endif
+    #define MZ_FILE FILE
+    #define MZ_FOPEN(f, m) fopen64(f, m)
+    #define MZ_FCLOSE fclose
+    #define MZ_FREAD fread
+    #define MZ_FWRITE fwrite
+    #define MZ_FTELL64 ftello64
+    #define MZ_FSEEK64 fseeko64
+    #define MZ_FILE_STAT_STRUCT stat64
+    #define MZ_FILE_STAT stat64
+    #define MZ_FFLUSH fflush
+    #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
     #define MZ_DELETE_FILE remove
   #else
     #ifndef MINIZ_NO_TIME
       #include <utime.h>
     #endif
     #define MZ_FILE FILE
-    #define MZ_FOPEN mz_fopen
+    #define MZ_FOPEN(f, m) fopen(f, m)
     #define MZ_FCLOSE fclose
     #define MZ_FREAD fread
     #define MZ_FWRITE fwrite
@@ -2891,7 +2936,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
     #define MZ_FILE_STAT_STRUCT stat
     #define MZ_FILE_STAT stat
     #define MZ_FFLUSH fflush
-    #define MZ_FREOPEN mz_freopen
+    #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
     #define MZ_DELETE_FILE remove
   #endif // #ifdef _MSC_VER
 #endif // #ifdef MINIZ_NO_STDIO
@@ -3014,23 +3059,23 @@ static mz_bool mz_zip_get_file_modified_time(const char *pFilename, mz_uint16 *p
 #ifdef MINIZ_NO_TIME
   (void)pFilename; *pDOS_date = *pDOS_time = 0;
 #else
-  struct MZ_FILE_STAT_STRUCT file_stat; if (MZ_FILE_STAT(pFilename, &file_stat) != 0) return MZ_FALSE;
+  struct MZ_FILE_STAT_STRUCT file_stat;
+  // On Linux with x86 glibc, this call will fail on large files (>= 0x80000000 bytes) unless you compiled with _LARGEFILE64_SOURCE. Argh.
+  if (MZ_FILE_STAT(pFilename, &file_stat) != 0)
+    return MZ_FALSE;
   mz_zip_time_to_dos_time(file_stat.st_mtime, pDOS_time, pDOS_date);
 #endif // #ifdef MINIZ_NO_TIME
   return MZ_TRUE;
 }
 
+#ifndef MINIZ_NO_TIME
 static mz_bool mz_zip_set_file_times(const char *pFilename, time_t access_time, time_t modified_time)
 {
-#ifndef MINIZ_NO_TIME
   struct utimbuf t; t.actime = access_time; t.modtime = modified_time;
   return !utime(pFilename, &t);
-#else
-  (void)pFilename, (void)access_time, (void)modified_time;
-  return MZ_TRUE;
-#endif // #ifndef MINIZ_NO_TIME
 }
-#endif
+#endif // #ifndef MINIZ_NO_TIME
+#endif // #ifndef MINIZ_NO_STDIO
 
 static mz_bool mz_zip_reader_init_internal(mz_zip_archive *pZip, mz_uint32 flags)
 {
@@ -3124,6 +3169,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 fl
   mz_int64 cur_file_ofs;
   const mz_uint8 *p;
   mz_uint32 buf_u32[4096 / sizeof(mz_uint32)]; mz_uint8 *pBuf = (mz_uint8 *)buf_u32;
+  mz_bool sort_central_dir = ((flags & MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY) == 0);
   // Basic sanity checks - reject files which are too small, and check the first 4 bytes of the file to make sure a local header is there.
   if (pZip->m_archive_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
     return MZ_FALSE;
@@ -3170,11 +3216,18 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 fl
   if (pZip->m_total_files)
   {
      mz_uint i, n;
+
     // Read the entire central directory into a heap block, and allocate another heap block to hold the unsorted central dir file record offsets, and another to hold the sorted indices.
     if ((!mz_zip_array_resize(pZip, &pZip->m_pState->m_central_dir, cdir_size, MZ_FALSE)) ||
-        (!mz_zip_array_resize(pZip, &pZip->m_pState->m_central_dir_offsets, pZip->m_total_files, MZ_FALSE)) ||
-        (!mz_zip_array_resize(pZip, &pZip->m_pState->m_sorted_central_dir_offsets, pZip->m_total_files, MZ_FALSE)))
+        (!mz_zip_array_resize(pZip, &pZip->m_pState->m_central_dir_offsets, pZip->m_total_files, MZ_FALSE)))
       return MZ_FALSE;
+
+    if (sort_central_dir)
+    {
+      if (!mz_zip_array_resize(pZip, &pZip->m_pState->m_sorted_central_dir_offsets, pZip->m_total_files, MZ_FALSE))
+        return MZ_FALSE;
+    }
+
     if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs, pZip->m_pState->m_central_dir.m_p, cdir_size) != cdir_size)
       return MZ_FALSE;
 
@@ -3186,7 +3239,8 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 fl
       if ((n < MZ_ZIP_CENTRAL_DIR_HEADER_SIZE) || (MZ_READ_LE32(p) != MZ_ZIP_CENTRAL_DIR_HEADER_SIG))
         return MZ_FALSE;
       MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, i) = (mz_uint32)(p - (const mz_uint8 *)pZip->m_pState->m_central_dir.m_p);
-      MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_sorted_central_dir_offsets, mz_uint32, i) = i;
+      if (sort_central_dir)
+        MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_sorted_central_dir_offsets, mz_uint32, i) = i;
       comp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_COMPRESSED_SIZE_OFS);
       decomp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS);
       if (((!MZ_READ_LE32(p + MZ_ZIP_CDH_METHOD_OFS)) && (decomp_size != comp_size)) || (decomp_size && !comp_size) || (decomp_size == 0xFFFFFFFF) || (comp_size == 0xFFFFFFFF))
@@ -3202,7 +3256,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint32 fl
     }
   }
 
-  if ((flags & MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY) == 0)
+  if (sort_central_dir)
     mz_zip_reader_sort_central_dir_offsets_by_filename(pZip);
 
   return MZ_TRUE;
@@ -3238,7 +3292,11 @@ mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem, size_t si
   pZip->m_archive_size = size;
   pZip->m_pRead = mz_zip_mem_read_func;
   pZip->m_pIO_opaque = pZip;
+#ifdef __cplusplus
+  pZip->m_pState->m_pMem = const_cast<void *>(pMem);
+#else
   pZip->m_pState->m_pMem = (void *)pMem;
+#endif
   pZip->m_pState->m_mem_size = size;
   if (!mz_zip_reader_read_central_dir(pZip, flags))
   {
@@ -3265,7 +3323,10 @@ mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_
   if (!pFile)
     return MZ_FALSE;
   if (MZ_FSEEK64(pFile, 0, SEEK_END))
+  {
+    MZ_FCLOSE(pFile);
     return MZ_FALSE;
+  }
   file_size = MZ_FTELL64(pFile);
   if (!mz_zip_reader_init_internal(pZip, flags))
   {
@@ -3309,22 +3370,25 @@ mz_bool mz_zip_reader_is_file_encrypted(mz_zip_archive *pZip, mz_uint file_index
 
 mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint file_index)
 {
-  mz_uint filename_len, internal_attr, external_attr;
+  mz_uint filename_len, external_attr;
   const mz_uint8 *p = mz_zip_reader_get_cdh(pZip, file_index);
   if (!p)
     return MZ_FALSE;
 
-  internal_attr = MZ_READ_LE16(p + MZ_ZIP_CDH_INTERNAL_ATTR_OFS);
-  external_attr = MZ_READ_LE32(p + MZ_ZIP_CDH_EXTERNAL_ATTR_OFS);
-  if ((!internal_attr) && ((external_attr & 0x10) != 0))
-    return MZ_TRUE;
-
+  // First see if the filename ends with a '/' character.
   filename_len = MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS);
   if (filename_len)
   {
     if (*(p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_len - 1) == '/')
       return MZ_TRUE;
   }
+
+  // Bugfix: This code was also checking if the internal attribute was non-zero, which wasn't correct.
+  // Most/all zip writers (hopefully) set DOS file/directory attributes in the low 16-bits, so check for the DOS directory flag and ignore the source OS ID in the created by field.
+  // FIXME: Remove this check? Is it necessary - we already check the filename.
+  external_attr = MZ_READ_LE32(p + MZ_ZIP_CDH_EXTERNAL_ATTR_OFS);
+  if ((external_attr & 0x10) != 0)
+    return MZ_TRUE;
 
   return MZ_FALSE;
 }
@@ -3433,7 +3497,7 @@ int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const cha
   mz_uint file_index; size_t name_len, comment_len;
   if ((!pZip) || (!pZip->m_pState) || (!pName) || (pZip->m_zip_mode != MZ_ZIP_MODE_READING))
     return -1;
-  if (((flags & (MZ_ZIP_FLAG_IGNORE_PATH | MZ_ZIP_FLAG_CASE_SENSITIVE)) == 0) && (!pComment) && (pZip->m_pState->m_sorted_central_dir_offsets.m_p))
+  if (((flags & (MZ_ZIP_FLAG_IGNORE_PATH | MZ_ZIP_FLAG_CASE_SENSITIVE)) == 0) && (!pComment) && (pZip->m_pState->m_sorted_central_dir_offsets.m_size))
     return mz_zip_reader_locate_file_binary_search(pZip, pName);
   name_len = strlen(pName); if (name_len > 0xFFFF) return -1;
   comment_len = pComment ? strlen(pComment) : 0; if (comment_len > 0xFFFF) return -1;
@@ -3483,7 +3547,13 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file
   if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
     return MZ_FALSE;
 
+  // Empty file, or a directory (but not always a directory - I've seen odd zips with directories that have compressed data which inflates to 0 bytes)
   if (!file_stat.m_comp_size)
+    return MZ_TRUE;
+
+  // Entry is a subdirectory (I've seen old zips with dir entries which have compressed deflate data which inflates to 0 bytes, but these entries claim to uncompress to 512 bytes in the headers).
+  // I'm torn how to handle this case - should it fail instead?
+  if (mz_zip_reader_is_file_a_directory(pZip, file_index))
     return MZ_TRUE;
 
   // Encryption and patch files are not supported.
@@ -3663,7 +3733,13 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_ind
   if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
     return MZ_FALSE;
 
+  // Empty file, or a directory (but not always a directory - I've seen odd zips with directories that have compressed data which inflates to 0 bytes)
   if (!file_stat.m_comp_size)
+    return MZ_TRUE;
+
+  // Entry is a subdirectory (I've seen old zips with dir entries which have compressed deflate data which inflates to 0 bytes, but these entries claim to uncompress to 512 bytes in the headers).
+  // I'm torn how to handle this case - should it fail instead?
+  if (mz_zip_reader_is_file_a_directory(pZip, file_index))
     return MZ_TRUE;
 
   // Encryption and patch files are not supported.
