@@ -6,7 +6,13 @@
 #endif
 
 #if defined(__GNUC__)
-#define _FILE_OFFSET_BITS 64
+  // Ensure we get the 64-bit variants of the CRT's file I/O calls
+  #ifndef _FILE_OFFSET_BITS
+    #define _FILE_OFFSET_BITS 64
+  #endif
+  #ifndef _LARGEFILE64_SOURCE
+    #define _LARGEFILE64_SOURCE 1
+  #endif
 #endif
 
 #define MINIZ_HEADER_FILE_ONLY
@@ -48,8 +54,8 @@ typedef unsigned int uint;
    #define _fseeki64 fseeko64
    #define _ftelli64 ftello64
    #define _stricmp strcasecmp
-   #define FILE_STAT_STRUCT stat
-   #define FILE_STAT stat
+   #define FILE_STAT_STRUCT stat64
+   #define FILE_STAT stat64
 #endif
 
 #ifdef WIN32
@@ -244,10 +250,9 @@ static bool ensure_file_is_writable(const char *pFilename)
 
 static int simple_test1(const comp_options &options)
 {
-  options;
+  (void)options;
 
-  uint8 cmp_buf[1024];
-  size_t cmp_len = sizeof(cmp_buf);
+  size_t cmp_len = 0;
 
   const char *p = "This is a test.This is a test.This is a test.1234567This is a test.This is a test.123456";
   size_t uncomp_len = strlen(p);
@@ -283,7 +288,7 @@ static int simple_test1(const comp_options &options)
 
 static int simple_test2(const comp_options &options)
 {
-  options;
+  (void)options;
 
   uint8 cmp_buf[1024], decomp_buf[1024];
   uLong cmp_len = sizeof(cmp_buf);
@@ -856,7 +861,7 @@ static bool zip_create(const char *pZip_filename, const char *pSrc_filename)
     zip.m_file_offset_alignment = 1 << (rand() & 15);
   if (!mz_zip_writer_init_file(&zip, pZip_filename, 65537))
   {
-    print_error("Failed creating zip archive \"%s\"!\n", pZip_filename);
+    print_error("Failed creating zip archive \"%s\" (1)!\n", pZip_filename);
     return false;
   }
 
@@ -890,7 +895,7 @@ static bool zip_create(const char *pZip_filename, const char *pSrc_filename)
   {
     mz_zip_writer_end(&zip);
     remove(pZip_filename);
-    print_error("Failed creating zip archive \"%s\"!\n", pZip_filename);
+    print_error("Failed creating zip archive \"%s\" (2)!\n", pZip_filename);
     return false;
   }
 
@@ -898,7 +903,7 @@ static bool zip_create(const char *pZip_filename, const char *pSrc_filename)
   {
     mz_zip_writer_end(&zip);
     remove(pZip_filename);
-    print_error("Failed creating zip archive \"%s\"!\n", pZip_filename);
+    print_error("Failed creating zip archive \"%s\" (3)!\n", pZip_filename);
     return false;
   }
 
@@ -919,7 +924,7 @@ static bool zip_create(const char *pZip_filename, const char *pSrc_filename)
 
 static size_t zip_write_callback(void *pOpaque, uint64 ofs, const void *pBuf, size_t n)
 {
-  pOpaque, ofs, pBuf, n;
+  (void)pOpaque, (void)ofs, (void)pBuf, (void)n;
   return n;
 }
 
@@ -1306,7 +1311,7 @@ static bool test_recursive(const char *pPath, comp_options options)
 
 static size_t dummy_zip_file_write_callback(void *pOpaque, uint64 ofs, const void *pBuf, size_t n)
 {
-  ofs; pBuf;
+  (void)ofs; (void)pBuf;
   uint32 *pCRC = (uint32*)pOpaque;
   *pCRC = mz_crc32(*pCRC, (const uint8*)pBuf, n);
   return n;
@@ -1314,7 +1319,7 @@ static size_t dummy_zip_file_write_callback(void *pOpaque, uint64 ofs, const voi
 
 static bool test_archives(const char *pPath, comp_options options)
 {
-  options;
+  (void)options;
 
   string_array files;
   if (!find_files(pPath, "*.zip", files, true))
@@ -1363,7 +1368,7 @@ static bool test_archives(const char *pPath, comp_options options)
     int64 src_file_size = _ftelli64(pFile);
     fclose(pFile);
 
-    src_file_size;
+    (void)src_file_size;
 
     sprintf(cmp_file, "__comp_temp_%u__.zip", file_index);
 
@@ -1787,7 +1792,7 @@ int main_internal(string_array cmd_line)
 
 int main(int argc, char *argv[])
 {
-#ifdef _WIN64
+#if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
   printf("miniz.c x64 Command Line Test App - Compiled %s %s\n", __DATE__, __TIME__);
 #else
   printf("miniz.c x86 Command Line Test App - Compiled %s %s\n", __DATE__, __TIME__);
