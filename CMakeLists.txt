@@ -62,3 +62,15 @@ add_executable(example6 ${EXAMPLE6_SRC_LIST})
 target_link_libraries(example6 m)
 
 add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
+
+# Allow user to 'make install' into the build dir,
+# so that library user can add to the -I include path:
+# INSTALLDIR / include
+# and then they can include miniz like so:
+# #include <miniz/miniz.c>
+# 
+# Also allows for future option to customise the generated
+# files via cmake (ie can control the #define options via
+# cmake OS detection routines).
+#
+install(FILES miniz.c tinfl.c DESTINATION include/miniz)
