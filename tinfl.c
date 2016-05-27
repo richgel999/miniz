@@ -297,13 +297,27 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
       if (r->m_type == 1)
       {
         mz_uint8 *p = r->m_tables[0].m_code_size; mz_uint i;
-        r->m_table_sizes[0] = 288; r->m_table_sizes[1] = 32; TINFL_MEMSET(r->m_tables[1].m_code_size, 5, 32);
-        for ( i = 0; i <= 143; ++i) *p++ = 8; for ( ; i <= 255; ++i) *p++ = 9; for ( ; i <= 279; ++i) *p++ = 7; for ( ; i <= 287; ++i) *p++ = 8;
+        r->m_table_sizes[0] = 288; r->m_table_sizes[1] = 32;
+        TINFL_MEMSET(r->m_tables[1].m_code_size, 5, 32);
+        for ( i = 0; i <= 143; ++i) *p++ = 8;
+        for ( ; i <= 255; ++i) *p++ = 9;
+        for ( ; i <= 279; ++i) *p++ = 7;
+        for ( ; i <= 287; ++i) *p++ = 8;
       }
       else
       {
-        for (counter = 0; counter < 3; counter++) { TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]); r->m_table_sizes[counter] += s_min_table_sizes[counter]; }
-        MZ_CLEAR_OBJ(r->m_tables[2].m_code_size); for (counter = 0; counter < r->m_table_sizes[2]; counter++) { mz_uint s; TINFL_GET_BITS(14, s, 3); r->m_tables[2].m_code_size[s_length_dezigzag[counter]] = (mz_uint8)s; }
+        for (counter = 0; counter < 3; counter++)
+        {
+          TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
+          r->m_table_sizes[counter] += s_min_table_sizes[counter];
+          
+        }
+        MZ_CLEAR_OBJ(r->m_tables[2].m_code_size);
+        for (counter = 0; counter < r->m_table_sizes[2]; counter++)
+        {
+          mz_uint s; TINFL_GET_BITS(14, s, 3);
+          r->m_tables[2].m_code_size[s_length_dezigzag[counter]] = (mz_uint8)s;
+        }
         r->m_table_sizes[2] = 19;
       }
       for ( ; (int)r->m_type >= 0; r->m_type--)
