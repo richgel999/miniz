@@ -1,4 +1,4 @@
-* * miniz
+## miniz
 
 This is a reorganized version of miniz
 https://github.com/richgel999/miniz
