@@ -3220,7 +3220,7 @@ static mz_bool mz_zip_writer_update_zip64_extension_block(mz_zip_array *pNew_ext
             pDst += sizeof(mz_uint32);
         }
 
-        mz_write_le16(new_ext_block + sizeof(mz_uint16), safe_int_cast<mz_uint16>((pDst - new_ext_block) - sizeof(mz_uint16) * 2));
+        mz_write_le16(new_ext_block + sizeof(mz_uint16), (mz_uint16)((pDst - new_ext_block) - sizeof(mz_uint16) * 2));
 
         if (!mz_zip_array_push_back(pZip, pNew_ext, new_ext_block, pDst - new_ext_block))
             return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);

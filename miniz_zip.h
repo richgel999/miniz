@@ -86,32 +86,6 @@ typedef enum
     MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED = 3
 } mz_zip_mode;
 
-typedef struct
-{
-    mz_uint64 m_archive_size;
-    mz_uint64 m_central_directory_file_ofs;
-
-    // We only support up to UINT32_MAX files in zip64 mode.
-    mz_uint32 m_total_files;
-    mz_zip_mode m_zip_mode;
-    mz_zip_type m_zip_type;
-    mz_zip_error m_last_error;
-
-    mz_uint64 m_file_offset_alignment;
-
-    mz_alloc_func m_pAlloc;
-    mz_free_func m_pFree;
-    mz_realloc_func m_pRealloc;
-    void *m_pAlloc_opaque;
-
-    mz_file_read_func m_pRead;
-    mz_file_write_func m_pWrite;
-    void *m_pIO_opaque;
-
-    mz_zip_internal_state *m_pState;
-
-} mz_zip_archive;
-
 typedef enum
 {
     MZ_ZIP_FLAG_CASE_SENSITIVE = 0x0100,
@@ -172,6 +146,32 @@ typedef enum
     MZ_ZIP_WRITE_CALLBACK_FAILED,
     MZ_ZIP_TOTAL_ERRORS
 } mz_zip_error;
+
+typedef struct
+{
+    mz_uint64 m_archive_size;
+    mz_uint64 m_central_directory_file_ofs;
+
+    // We only support up to UINT32_MAX files in zip64 mode.
+    mz_uint32 m_total_files;
+    mz_zip_mode m_zip_mode;
+    mz_zip_type m_zip_type;
+    mz_zip_error m_last_error;
+
+    mz_uint64 m_file_offset_alignment;
+
+    mz_alloc_func m_pAlloc;
+    mz_free_func m_pFree;
+    mz_realloc_func m_pRealloc;
+    void *m_pAlloc_opaque;
+
+    mz_file_read_func m_pRead;
+    mz_file_write_func m_pWrite;
+    void *m_pIO_opaque;
+
+    mz_zip_internal_state *m_pState;
+
+} mz_zip_archive;
 
 // -------- ZIP reading
 

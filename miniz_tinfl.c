@@ -1,3 +1,4 @@
+#include "miniz_tinfl.h"
 
 // ------------------- Low-level Decompression (completely independent from all compression API's)
 
