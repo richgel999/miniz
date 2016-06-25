@@ -43,7 +43,8 @@ typedef size_t (*mz_file_write_func)(void *pOpaque, mz_uint64 file_ofs, const vo
 struct mz_zip_internal_state_tag;
 typedef struct mz_zip_internal_state_tag mz_zip_internal_state;
 
-typedef enum {
+typedef enum
+{
     MZ_ZIP_MODE_INVALID = 0,
     MZ_ZIP_MODE_READING = 1,
     MZ_ZIP_MODE_WRITING = 2,
@@ -72,7 +73,8 @@ typedef struct mz_zip_archive_tag
 
 } mz_zip_archive;
 
-typedef enum {
+typedef enum
+{
     MZ_ZIP_FLAG_CASE_SENSITIVE = 0x0100,
     MZ_ZIP_FLAG_IGNORE_PATH = 0x0200,
     MZ_ZIP_FLAG_COMPRESSED_DATA = 0x0400,
