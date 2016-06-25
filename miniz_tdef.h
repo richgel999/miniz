@@ -1,6 +1,9 @@
 #pragma once
 #include "miniz_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 // ------------------- Low-level Compression API Definitions
 
 // Set TDEFL_LESS_MEMORY to 1 to use less memory (compression will be slightly slower, and raw/dynamic blocks will be output more frequently).
@@ -184,3 +187,7 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int 
 // structure size and allocation mechanism.
 tdefl_compressor *tdefl_compressor_alloc();
 void tdefl_compressor_free(tdefl_compressor *pComp);
+
+#ifdef __cplusplus
+}
+#endif
