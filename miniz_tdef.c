@@ -418,7 +418,7 @@ static void tdefl_start_static_block(tdefl_compressor *d)
 
 static const mz_uint mz_bitmasks[17] = { 0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF, 0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF };
 
-#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN && MINIZ_HAS_64BIT_REGISTERS
+#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES &&MINIZ_LITTLE_ENDIAN &&MINIZ_HAS_64BIT_REGISTERS
 static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
 {
     mz_uint flags;
@@ -747,7 +747,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         if (!probe_len)
         {
             *pMatch_dist = dist;
-            *pMatch_len = MZ_MIN(max_match_len, TDEFL_MAX_MATCH_LEN);
+            *pMatch_len = MZ_MIN(max_match_len, (mz_uint)TDEFL_MAX_MATCH_LEN);
             break;
         }
         else if ((probe_len = ((mz_uint)(p - s) * 2) + (mz_uint)(*(const mz_uint8 *)p == *(const mz_uint8 *)q)) > match_len)
@@ -805,7 +805,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 }
 #endif // #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES
 
-#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES &&MINIZ_LITTLE_ENDIAN
 static mz_bool tdefl_compress_fast(tdefl_compressor *d)
 {
     // Faster, minimally featured LZRW1-style match+parse loop with better register utilization. Intended for applications where raw throughput is valued more highly than ratio.
@@ -901,7 +901,7 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
 
             total_lz_bytes += cur_match_len;
             lookahead_pos += cur_match_len;
-            dict_size = MZ_MIN(dict_size + cur_match_len, TDEFL_LZ_DICT_SIZE);
+            dict_size = MZ_MIN(dict_size + cur_match_len, (mz_uint)TDEFL_LZ_DICT_SIZE);
             cur_pos = (cur_pos + cur_match_len) & TDEFL_LZ_DICT_SIZE_MASK;
             MZ_ASSERT(lookahead_size >= cur_match_len);
             lookahead_size -= cur_match_len;
@@ -941,7 +941,7 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
             d->m_huff_count[0][lit]++;
 
             lookahead_pos++;
-            dict_size = MZ_MIN(dict_size + 1, TDEFL_LZ_DICT_SIZE);
+            dict_size = MZ_MIN(dict_size + 1, (mz_uint)TDEFL_LZ_DICT_SIZE);
             cur_pos = (cur_pos + 1) & TDEFL_LZ_DICT_SIZE_MASK;
             lookahead_size--;
 
@@ -1146,7 +1146,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
         d->m_lookahead_pos += len_to_move;
         MZ_ASSERT(d->m_lookahead_size >= len_to_move);
         d->m_lookahead_size -= len_to_move;
-        d->m_dict_size = MZ_MIN(d->m_dict_size + len_to_move, TDEFL_LZ_DICT_SIZE);
+        d->m_dict_size = MZ_MIN(d->m_dict_size + len_to_move, (mz_uint)TDEFL_LZ_DICT_SIZE);
         // Check if it's time to flush the current LZ codes to the internal output buffer.
         if ((d->m_pLZ_code_buf > &d->m_lz_code_buf[TDEFL_LZ_CODE_BUF_SIZE - 8]) ||
             ((d->m_total_lz_bytes > 31 * 1024) && (((((mz_uint)(d->m_pLZ_code_buf - d->m_lz_code_buf) * 115) >> 7) >= d->m_total_lz_bytes) || (d->m_flags & TDEFL_FORCE_ALL_RAW_BLOCKS))))
@@ -1219,7 +1219,7 @@ tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pI
     if ((d->m_output_flush_remaining) || (d->m_finished))
         return (d->m_prev_return_status = tdefl_flush_output_buffer(d));
 
-#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES &&MINIZ_LITTLE_ENDIAN
     if (((d->m_flags & TDEFL_MAX_PROBES_MASK) == 1) &&
         ((d->m_flags & TDEFL_GREEDY_PARSING_FLAG) != 0) &&
         ((d->m_flags & (TDEFL_FILTER_MATCHES | TDEFL_FORCE_ALL_RAW_BLOCKS | TDEFL_RLE_MATCHES)) == 0))

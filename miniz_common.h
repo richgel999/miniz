@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 // ------------------- Types and macros
 typedef unsigned char mz_uint8;
@@ -9,18 +10,35 @@ typedef signed short mz_int16;
 typedef unsigned short mz_uint16;
 typedef unsigned int mz_uint32;
 typedef unsigned int mz_uint;
-typedef long long mz_int64;
-typedef unsigned long long mz_uint64;
+typedef int64_t mz_int64;
+typedef uint64_t mz_uint64;
 typedef int mz_bool;
 
 #define MZ_FALSE (0)
 #define MZ_TRUE (1)
 
-// An attempt to work around MSVC's spammy "warning C4127: conditional expression is constant" message.
+// Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
 #ifdef _MSC_VER
 #define MZ_MACRO_END while (0, 0)
 #else
 #define MZ_MACRO_END while (0)
+#endif
+
+#ifdef MINIZ_NO_STDIO
+#define MZ_FILE void *
+#else
+#include <stdio.h>
+#define MZ_FILE FILE
+#endif // #ifdef MINIZ_NO_STDIO
+
+#ifdef MINIZ_NO_TIME
+typedef struct mz_dummy_time_t_tag
+{
+    int m_dummy;
+} mz_dummy_time_t;
+#define MZ_TIME_T mz_dummy_time_t
+#else
+#define MZ_TIME_T time_t
 #endif
 
 #define MZ_ASSERT(x) assert(x)
@@ -47,6 +65,8 @@ typedef int mz_bool;
 #define MZ_READ_LE32(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U) | ((mz_uint32)(((const mz_uint8 *)(p))[2]) << 16U) | ((mz_uint32)(((const mz_uint8 *)(p))[3]) << 24U))
 #endif
 
+#define MZ_READ_LE64(p) (((mz_uint64)MZ_READ_LE32(p)) | (((mz_uint64)MZ_READ_LE32((const mz_uint8 *)(p) + sizeof(mz_uint32))) << 32U))
+
 #ifdef _MSC_VER
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
@@ -62,6 +82,9 @@ extern "C" {
 extern void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
 extern void miniz_def_free_func(void *opaque, void *address);
 extern void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size);
+
+#define MZ_UINT16_MAX (0xFFFFU)
+#define MZ_UINT32_MAX (0xFFFFFFFFU)
 
 #ifdef __cplusplus
 }
