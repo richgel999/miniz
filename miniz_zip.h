@@ -3,6 +3,11 @@
 #include "miniz.h"
 
 // ------------------- ZIP archive reading/writing
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum
 {
     MZ_ZIP_MAX_IO_BUF_SIZE = 64 * 1024,
@@ -187,3 +192,7 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const
 void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint zip_flags);
 
 #endif // #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
+
+#ifdef __cplusplus
+}
+#endif
