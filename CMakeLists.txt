@@ -1,6 +1,7 @@
 PROJECT(miniz)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CONFIGURATION_TYPES Release)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
@@ -32,5 +33,5 @@ target_link_libraries(example5 miniz)
 add_executable(example6 ${EXAMPLE6_SRC_LIST})
 target_link_libraries(example6 miniz)
 
-add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
-target_link_libraries(miniz_tester miniz)
+# add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
+# target_link_libraries(miniz_tester miniz)
