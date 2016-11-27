@@ -32,6 +32,7 @@ rm main.c
 cd amalgamation
 ! test -e miniz.zip || rm miniz.zip
 echo -e "miniz.c\nminiz.h" | zip -@ miniz
+cd ..
 
 echo "Amalgamation created."
 
