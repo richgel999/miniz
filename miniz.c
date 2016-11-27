@@ -34,8 +34,7 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64) == 8 ? 1 : -1];
 extern "C" {
 #endif
 
-/* ------------------- zlib-style API's
- */
+/* ------------------- zlib-style API's */
 
 mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
 {
@@ -65,8 +64,7 @@ mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
     return (s2 << 16) + s1;
 }
 
-/* Karl Malbrain's compact CRC-32. See "A compact CCITT crc16 and crc32 C implementation that balances processor cache usage against speed": http://www.geocities.com/malbrain/
- */
+/* Karl Malbrain's compact CRC-32. See "A compact CCITT crc16 and crc32 C implementation that balances processor cache usage against speed": http://www.geocities.com/malbrain/ */
 #if 0
     mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
     {
@@ -305,8 +303,7 @@ int mz_deflateEnd(mz_streamp pStream)
 mz_ulong mz_deflateBound(mz_streamp pStream, mz_ulong source_len)
 {
     (void)pStream;
-    /* This is really over conservative. (And lame, but it's actually pretty tricky to compute a true upper bound given the way tdefl's blocking works.)
- */
+    /* This is really over conservative. (And lame, but it's actually pretty tricky to compute a true upper bound given the way tdefl's blocking works.) */
     return MZ_MAX(128 + (source_len * 110) / 100, 128 + source_len + ((source_len / (31 * 1024)) + 1) * 5);
 }
 
@@ -316,8 +313,7 @@ int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char 
     mz_stream stream;
     memset(&stream, 0, sizeof(stream));
 
-    /* In case mz_ulong is 64-bits (argh I hate longs).
- */
+    /* In case mz_ulong is 64-bits (argh I hate longs). */
     if ((source_len | *pDest_len) > 0xFFFFFFFFU)
         return MZ_PARAM_ERROR;
 
@@ -431,8 +427,7 @@ int mz_inflate(mz_streamp pStream, int flush)
 
     if ((flush == MZ_FINISH) && (first_call))
     {
-        /* MZ_FINISH on the first call implies that the input and output buffers are large enough to hold the entire compressed/decompressed file.
- */
+        /* MZ_FINISH on the first call implies that the input and output buffers are large enough to hold the entire compressed/decompressed file. */
         decomp_flags |= TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
         in_bytes = pStream->avail_in;
         out_bytes = pStream->avail_out;
@@ -455,8 +450,7 @@ int mz_inflate(mz_streamp pStream, int flush)
         }
         return MZ_STREAM_END;
     }
-    /* flush != MZ_FINISH then we must assume there's more input.
- */
+    /* flush != MZ_FINISH then we must assume there's more input. */
     if (flush != MZ_FINISH)
         decomp_flags |= TINFL_FLAG_HAS_MORE_INPUT;
 
@@ -496,19 +490,15 @@ int mz_inflate(mz_streamp pStream, int flush)
         pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
 
         if (status < 0)
-            return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well).
- */
+            return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
         else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
-            return MZ_BUF_ERROR; /* Signal caller that we can't make forward progress without supplying more input or by setting flush to MZ_FINISH.
- */
+            return MZ_BUF_ERROR; /* Signal caller that we can't make forward progress without supplying more input or by setting flush to MZ_FINISH. */
         else if (flush == MZ_FINISH)
         {
-            /* The output buffer MUST be large to hold the remaining uncompressed data when flush==MZ_FINISH.
- */
+            /* The output buffer MUST be large to hold the remaining uncompressed data when flush==MZ_FINISH. */
             if (status == TINFL_STATUS_DONE)
                 return pState->m_dict_avail ? MZ_BUF_ERROR : MZ_STREAM_END;
-            /* status here must be TINFL_STATUS_HAS_MORE_OUTPUT, which means there's at least 1 more byte on the way. If there's no more room left in the output buffer then something is wrong.
- */
+            /* status here must be TINFL_STATUS_HAS_MORE_OUTPUT, which means there's at least 1 more byte on the way. If there's no more room left in the output buffer then something is wrong. */
             else if (!pStream->avail_out)
                 return MZ_BUF_ERROR;
         }
@@ -537,8 +527,7 @@ int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char
     int status;
     memset(&stream, 0, sizeof(stream));
 
-    /* In case mz_ulong is 64-bits (argh I hate longs).
- */
+    /* In case mz_ulong is 64-bits (argh I hate longs). */
     if ((source_len | *pDest_len) > 0xFFFFFFFFU)
         return MZ_PARAM_ERROR;
 
@@ -580,8 +569,7 @@ const char *mz_error(int err)
     return NULL;
 }
 
-#endif /*MINIZ_NO_ZLIB_APIS
- */
+#endif /*MINIZ_NO_ZLIB_APIS */
 
 #ifdef __cplusplus
 }
