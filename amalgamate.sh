@@ -19,8 +19,8 @@ cat miniz_zip.h >> $OUTPUT_PREFIX.h
 sed -i 's/#include "miniz.h"/#include  "miniz.h"/' $OUTPUT_PREFIX.c
 for i in miniz miniz_common miniz_tdef miniz_tinfl miniz_zip
 do
-        sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.h
-        sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.c
+	sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.h
+	sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.c
 done
 
 
@@ -34,3 +34,5 @@ cd amalgamation
 echo -e "miniz.c\nminiz.h" | zip -@ miniz
 
 echo "Amalgamation created."
+
+

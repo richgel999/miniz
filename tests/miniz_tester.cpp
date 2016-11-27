@@ -922,7 +922,7 @@ static bool zip_create(const char *pZip_filename, const char *pSrc_filename)
   return true;
 }
 
-static size_t zip_write_callback(void *pOpaque, uint64 ofs, const void *pBuf, size_t n)
+static size_t zip_write_callback(void *pOpaque, mz_uint64 ofs, const void *pBuf, size_t n)
 {
   (void)pOpaque, (void)ofs, (void)pBuf, (void)n;
   return n;
@@ -957,7 +957,7 @@ static bool zip_extract(const char *pZip_filename, const char *pDst_filename)
 
   if (!mz_zip_reader_extract_to_file(&zip, file_index, pDst_filename, 0))
   {
-    print_error("Failed extracting test.bin from archive \"%s\"!\n", pZip_filename);
+    print_error("Failed extracting test.bin from archive \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
     mz_zip_reader_end(&zip);
     return false;
   }
@@ -967,7 +967,7 @@ static bool zip_extract(const char *pZip_filename, const char *pDst_filename)
     mz_zip_archive_file_stat stat;
     if (!mz_zip_reader_file_stat(&zip, i, &stat))
     {
-      print_error("Failed testing archive \"%s\"!\n", pZip_filename);
+      print_error("Failed testing archive -1 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
       mz_zip_reader_end(&zip);
       return false;
     }
@@ -977,19 +977,22 @@ static bool zip_extract(const char *pZip_filename, const char *pDst_filename)
     mz_bool status = mz_zip_reader_extract_to_callback(&zip, i, zip_write_callback, NULL, 0);
     if (!status)
     {
-      print_error("Failed testing archive \"%s\"!\n", pZip_filename);
+      print_error("Failed testing archive -2 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
       mz_zip_reader_end(&zip);
       return false;
     }
 
-    void *p = mz_zip_reader_extract_to_heap(&zip, i, &size, 0);
-    if (!p)
+    if (stat.m_uncomp_size<100*1024*1024)
     {
-      print_error("Failed testing archive \"%s\"!\n", pZip_filename);
-      mz_zip_reader_end(&zip);
-      return false;
+        void *p = mz_zip_reader_extract_to_heap(&zip, i, &size, 0);
+        if (!p)
+        {
+            print_error("Failed testing archive -3 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+            mz_zip_reader_end(&zip);
+            return false;
+        }
+        free(p);
     }
-    free(p);
   }
   printf("Verified %u files\n",  mz_zip_reader_get_num_files(&zip));
 
@@ -1218,11 +1221,6 @@ static bool test_recursive(const char *pPath, comp_options options)
     bool status;
     if (file_options.m_archive_test)
     {
-      if (src_file_size > 0xFFF00000)
-      {
-        printf("Skipping too big file \"%s\"\n", src_file.c_str());
-        continue;
-      }
       printf("Creating test archive with file \"%s\", size " QUAD_INT_FMT "\n", src_file.c_str(), src_file_size);
       status = zip_create(cmp_file, src_file.c_str());
     }
@@ -1309,7 +1307,7 @@ static bool test_recursive(const char *pPath, comp_options options)
   return true;
 }
 
-static size_t dummy_zip_file_write_callback(void *pOpaque, uint64 ofs, const void *pBuf, size_t n)
+static size_t dummy_zip_file_write_callback(void *pOpaque, mz_uint64 ofs, const void *pBuf, size_t n)
 {
   (void)ofs; (void)pBuf;
   uint32 *pCRC = (uint32*)pOpaque;
