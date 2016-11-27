@@ -26,9 +26,14 @@
 
 #include "miniz_tdef.h"
 #include "miniz.h"
-// ------------------- Low-level Compression (independent from all decompression API's)
 
-// Purposely making these tables static for faster init and thread safety.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ------------------- Low-level Compression (independent from all decompression API's) */
+
+/* Purposely making these tables static for faster init and thread safety. */
 static const mz_uint16 s_tdefl_len_sym[256] =
     {
         257, 258, 259, 260, 261, 262, 263, 264, 265, 265, 266, 266, 267, 267, 268, 268, 269, 269, 269, 269, 270, 270, 270, 270, 271, 271, 271, 271, 272, 272, 272, 272,
@@ -91,7 +96,7 @@ static const mz_uint8 s_tdefl_large_dist_extra[128] =
         13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13
     };
 
-// Radix sorts tdefl_sym_freq[] array by 16-bit key m_key. Returns ptr to sorted values.
+/* Radix sorts tdefl_sym_freq[] array by 16-bit key m_key. Returns ptr to sorted values. */
 typedef struct
 {
     mz_uint16 m_key, m_sym_index;
@@ -129,7 +134,7 @@ static tdefl_sym_freq *tdefl_radix_sort_syms(mz_uint num_syms, tdefl_sym_freq *p
     return pCur_syms;
 }
 
-// tdefl_calculate_minimum_redundancy() originally written by: Alistair Moffat, alistair@cs.mu.oz.au, Jyrki Katajainen, jyrki@diku.dk, November 1996.
+/* tdefl_calculate_minimum_redundancy() originally written by: Alistair Moffat, alistair@cs.mu.oz.au, Jyrki Katajainen, jyrki@diku.dk, November 1996. */
 static void tdefl_calculate_minimum_redundancy(tdefl_sym_freq *A, int n)
 {
     int root, leaf, next, avbl, used, dpth;
@@ -185,7 +190,7 @@ static void tdefl_calculate_minimum_redundancy(tdefl_sym_freq *A, int n)
     }
 }
 
-// Limits canonical Huffman code table's max code size.
+/* Limits canonical Huffman code table's max code size. */
 enum
 {
     TDEFL_MAX_SUPPORTED_HUFF_CODESIZE = 32
@@ -476,7 +481,7 @@ static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
             TDEFL_PUT_BITS_FAST(d->m_huff_codes[0][s_tdefl_len_sym[match_len]], d->m_huff_code_sizes[0][s_tdefl_len_sym[match_len]]);
             TDEFL_PUT_BITS_FAST(match_len & mz_bitmasks[s_tdefl_len_extra[match_len]], s_tdefl_len_extra[match_len]);
 
-            // This sequence coaxes MSVC into using cmov's vs. jmp's.
+            /* This sequence coaxes MSVC into using cmov's vs. jmp's. */
             s0 = s_tdefl_small_dist_sym[match_dist & 511];
             n0 = s_tdefl_small_dist_extra[match_dist & 511];
             s1 = s_tdefl_large_dist_sym[match_dist >> 8];
@@ -585,7 +590,7 @@ static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
 
     return (d->m_pOutput_buf < d->m_pOutput_buf_end);
 }
-#endif // MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN && MINIZ_HAS_64BIT_REGISTERS
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN && MINIZ_HAS_64BIT_REGISTERS */
 
 static mz_bool tdefl_compress_block(tdefl_compressor *d, mz_bool static_block)
 {
@@ -629,7 +634,7 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
     if (!use_raw_block)
         comp_block_succeeded = tdefl_compress_block(d, (d->m_flags & TDEFL_FORCE_ALL_STATIC_BLOCKS) || (d->m_total_lz_bytes < 48));
 
-    // If the block gets expanded, forget the current contents of the output buffer and send a raw block instead.
+    /* If the block gets expanded, forget the current contents of the output buffer and send a raw block instead. */
     if (((use_raw_block) || ((d->m_total_lz_bytes) && ((d->m_pOutput_buf - pSaved_output_buf + 1U) >= d->m_total_lz_bytes))) &&
         ((d->m_lookahead_pos - d->m_lz_code_buf_dict_pos) <= d->m_dict_size))
     {
@@ -650,7 +655,7 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
             TDEFL_PUT_BITS(d->m_dict[(d->m_lz_code_buf_dict_pos + i) & TDEFL_LZ_DICT_SIZE_MASK], 8);
         }
     }
-    // Check for the extremely unlikely (if not impossible) case of the compressed block not fitting into the output buffer when using dynamic codes.
+    /* Check for the extremely unlikely (if not impossible) case of the compressed block not fitting into the output buffer when using dynamic codes. */
     else if (!comp_block_succeeded)
     {
         d->m_pOutput_buf = pSaved_output_buf;
@@ -829,12 +834,12 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         }
     }
 }
-#endif // #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES
+#endif /* #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES */
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES &&MINIZ_LITTLE_ENDIAN
 static mz_bool tdefl_compress_fast(tdefl_compressor *d)
 {
-    // Faster, minimally featured LZRW1-style match+parse loop with better register utilization. Intended for applications where raw throughput is valued more highly than ratio.
+    /* Faster, minimally featured LZRW1-style match+parse loop with better register utilization. Intended for applications where raw throughput is valued more highly than ratio. */
     mz_uint lookahead_pos = d->m_lookahead_pos, lookahead_size = d->m_lookahead_size, dict_size = d->m_dict_size, total_lz_bytes = d->m_total_lz_bytes, num_flags_left = d->m_num_flags_left;
     mz_uint8 *pLZ_code_buf = d->m_pLZ_code_buf, *pLZ_flags = d->m_pLZ_flags;
     mz_uint cur_pos = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK;
@@ -1000,7 +1005,7 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
     d->m_num_flags_left = num_flags_left;
     return MZ_TRUE;
 }
-#endif // MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN */
 
 static MZ_FORCEINLINE void tdefl_record_literal(tdefl_compressor *d, mz_uint8 lit)
 {
@@ -1054,7 +1059,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
     while ((src_buf_left) || ((flush) && (d->m_lookahead_size)))
     {
         mz_uint len_to_move, cur_match_dist, cur_match_len, cur_pos;
-        // Update dictionary and hash chains. Keeps the lookahead size equal to TDEFL_MAX_MATCH_LEN.
+        /* Update dictionary and hash chains. Keeps the lookahead size equal to TDEFL_MAX_MATCH_LEN. */
         if ((d->m_lookahead_size + d->m_dict_size) >= (TDEFL_MIN_MATCH_LEN - 1))
         {
             mz_uint dst_pos = (d->m_lookahead_pos + d->m_lookahead_size) & TDEFL_LZ_DICT_SIZE_MASK, ins_pos = d->m_lookahead_pos + d->m_lookahead_size - 2;
@@ -1099,7 +1104,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
         if ((!flush) && (d->m_lookahead_size < TDEFL_MAX_MATCH_LEN))
             break;
 
-        // Simple lazy/greedy parsing state machine.
+        /* Simple lazy/greedy parsing state machine. */
         len_to_move = 1;
         cur_match_dist = 0;
         cur_match_len = d->m_saved_match_len ? d->m_saved_match_len : (TDEFL_MIN_MATCH_LEN - 1);
@@ -1168,12 +1173,12 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
             d->m_saved_match_dist = cur_match_dist;
             d->m_saved_match_len = cur_match_len;
         }
-        // Move the lookahead forward by len_to_move bytes.
+        /* Move the lookahead forward by len_to_move bytes. */
         d->m_lookahead_pos += len_to_move;
         MZ_ASSERT(d->m_lookahead_size >= len_to_move);
         d->m_lookahead_size -= len_to_move;
         d->m_dict_size = MZ_MIN(d->m_dict_size + len_to_move, (mz_uint)TDEFL_LZ_DICT_SIZE);
-        // Check if it's time to flush the current LZ codes to the internal output buffer.
+        /* Check if it's time to flush the current LZ codes to the internal output buffer. */
         if ((d->m_pLZ_code_buf > &d->m_lz_code_buf[TDEFL_LZ_CODE_BUF_SIZE - 8]) ||
             ((d->m_total_lz_bytes > 31 * 1024) && (((((mz_uint)(d->m_pLZ_code_buf - d->m_lz_code_buf) * 115) >> 7) >= d->m_total_lz_bytes) || (d->m_flags & TDEFL_FORCE_ALL_RAW_BLOCKS))))
         {
@@ -1254,7 +1259,7 @@ tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pI
             return d->m_prev_return_status;
     }
     else
-#endif // #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#endif /* #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN */
     {
         if (!tdefl_compress_normal(d))
             return d->m_prev_return_status;
@@ -1406,7 +1411,7 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
 #ifndef MINIZ_NO_ZLIB_APIS
 static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500 };
 
-// level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files).
+/* level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files). */
 mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
 {
     mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
@@ -1426,19 +1431,19 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int 
 
     return comp_flags;
 }
-#endif //MINIZ_NO_ZLIB_APIS
+#endif /*MINIZ_NO_ZLIB_APIS */
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable : 4204) // nonstandard extension used : non-constant aggregate initializer (also supported by GNU C and C99, so no big deal)
+#pragma warning(disable : 4204) /* nonstandard extension used : non-constant aggregate initializer (also supported by GNU C and C99, so no big deal) */
 #endif
 
-// Simple PNG writer function by Alex Evans, 2011. Released into the public domain: https://gist.github.com/908299, more context at
-// http://altdevblogaday.org/2011/04/06/a-smaller-jpg-encoder/.
-// This is actually a modification of Alex's original code so PNG files generated by this function pass pngcheck.
+/* Simple PNG writer function by Alex Evans, 2011. Released into the public domain: https://gist.github.com/908299, more context at
+ http://altdevblogaday.org/2011/04/06/a-smaller-jpg-encoder/.
+ This is actually a modification of Alex's original code so PNG files generated by this function pass pngcheck. */
 void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip)
 {
-    // Using a local copy of this array here in case MINIZ_NO_ZLIB_APIS was defined.
+    /* Using a local copy of this array here in case MINIZ_NO_ZLIB_APIS was defined. */
     static const mz_uint s_tdefl_png_num_probes[11] = { 0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500 };
     tdefl_compressor *pComp = (tdefl_compressor *)MZ_MALLOC(sizeof(tdefl_compressor));
     tdefl_output_buffer out_buf;
@@ -1455,10 +1460,10 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
         MZ_FREE(pComp);
         return NULL;
     }
-    // write dummy header
+    /* write dummy header */
     for (z = 41; z; --z)
         tdefl_output_buffer_putter(&z, 1, &out_buf);
-    // compress image data
+    /* compress image data */
     tdefl_init(pComp, tdefl_output_buffer_putter, &out_buf, s_tdefl_png_num_probes[MZ_MIN(10, level)] | TDEFL_WRITE_ZLIB_HEADER);
     for (y = 0; y < h; ++y)
     {
@@ -1471,7 +1476,7 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
         MZ_FREE(out_buf.m_pBuf);
         return NULL;
     }
-    // write real header
+    /* write real header */
     *pLen_out = out_buf.m_size - 41;
     {
         static const mz_uint8 chans[] = { 0x00, 0x00, 0x04, 0x02, 0x06 };
@@ -1483,7 +1488,7 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
             ((mz_uint8 *)(pnghdr + 29))[i] = (mz_uint8)(c >> 24);
         memcpy(out_buf.m_pBuf, pnghdr, 41);
     }
-    // write footer (IDAT CRC-32, followed by IEND chunk)
+    /* write footer (IDAT CRC-32, followed by IEND chunk) */
     if (!tdefl_output_buffer_putter("\0\0\0\0\0\0\0\0\x49\x45\x4e\x44\xae\x42\x60\x82", 16, &out_buf))
     {
         *pLen_out = 0;
@@ -1494,20 +1499,20 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
     c = (mz_uint32)mz_crc32(MZ_CRC32_INIT, out_buf.m_pBuf + 41 - 4, *pLen_out + 4);
     for (i = 0; i < 4; ++i, c <<= 8)
         (out_buf.m_pBuf + out_buf.m_size - 16)[i] = (mz_uint8)(c >> 24);
-    // compute final size of file, grab compressed data buffer and return
+    /* compute final size of file, grab compressed data buffer and return */
     *pLen_out += 57;
     MZ_FREE(pComp);
     return out_buf.m_pBuf;
 }
 void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out)
 {
-    // Level 6 corresponds to TDEFL_DEFAULT_MAX_PROBES or MZ_DEFAULT_LEVEL (but we can't depend on MZ_DEFAULT_LEVEL being available in case the zlib API's where #defined out)
+    /* Level 6 corresponds to TDEFL_DEFAULT_MAX_PROBES or MZ_DEFAULT_LEVEL (but we can't depend on MZ_DEFAULT_LEVEL being available in case the zlib API's where #defined out) */
     return tdefl_write_image_to_png_file_in_memory_ex(pImage, w, h, num_chans, pLen_out, 6, MZ_FALSE);
 }
 
-// Allocate the tdefl_compressor and tinfl_decompressor structures in C so that
-// non-C language bindings to tdefL_ and tinfl_ API don't need to worry about
-// structure size and allocation mechanism.
+/* Allocate the tdefl_compressor and tinfl_decompressor structures in C so that */
+/* non-C language bindings to tdefL_ and tinfl_ API don't need to worry about */
+/* structure size and allocation mechanism. */
 tdefl_compressor *tdefl_compressor_alloc()
 {
     return (tdefl_compressor *)MZ_MALLOC(sizeof(tdefl_compressor));
@@ -1521,3 +1526,8 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+

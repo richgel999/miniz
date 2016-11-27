@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 
-// ------------------- Types and macros
+/* ------------------- Types and macros */
 typedef unsigned char mz_uint8;
 typedef signed short mz_int16;
 typedef unsigned short mz_uint16;
@@ -17,7 +17,7 @@ typedef int mz_bool;
 #define MZ_FALSE (0)
 #define MZ_TRUE (1)
 
-// Works around MSVC's spammy "warning C4127: conditional expression is constant" message.
+/* Works around MSVC's spammy "warning C4127: conditional expression is constant" message. */
 #ifdef _MSC_VER
 #define MZ_MACRO_END while (0, 0)
 #else
@@ -29,7 +29,7 @@ typedef int mz_bool;
 #else
 #include <stdio.h>
 #define MZ_FILE FILE
-#endif // #ifdef MINIZ_NO_STDIO
+#endif /* #ifdef MINIZ_NO_STDIO */
 
 #ifdef MINIZ_NO_TIME
 typedef struct mz_dummy_time_t_tag
@@ -70,7 +70,7 @@ typedef struct mz_dummy_time_t_tag
 #ifdef _MSC_VER
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
-#define MZ_FORCEINLINE inline __attribute__((__always_inline__))
+#define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
 #else
 #define MZ_FORCEINLINE inline
 #endif

@@ -16,7 +16,7 @@ cat miniz_zip.c >> $OUTPUT_PREFIX.c
 cat miniz_zip.h >> $OUTPUT_PREFIX.h
 
 
-sed -i 's/#include "miniz.h"/#include  "miniz.h"/' $OUTPUT_PREFIX.c
+sed -i '0,/#include "miniz.h"/{s/#include "miniz.h"/#include  "miniz.h"/}' $OUTPUT_PREFIX.c
 for i in miniz miniz_common miniz_tdef miniz_tinfl miniz_zip
 do
 	sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.h
@@ -26,6 +26,7 @@ done
 
 echo "int main() { return 0; }" > main.c
 gcc main.c $OUTPUT_PREFIX.c -o test.out
+gcc -ansi main.c $OUTPUT_PREFIX.c -o test.out
 rm test.out
 rm main.c
 
