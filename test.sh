@@ -26,6 +26,6 @@ cd test_scratch
 ../miniz_tester -v -b -r a linux-4.8.11
 ../miniz_tester -v -a a linux-4.8.11
 
-mkdir large_file
+mkdir -p large_file
 truncate -s 5G large_file/lf
 ../miniz_tester -v -a a large_file
