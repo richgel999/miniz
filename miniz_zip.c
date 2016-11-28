@@ -2786,7 +2786,10 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     mz_uint8 *pExtra_data = NULL;
     mz_uint32 extra_size = 0;
     mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
-    mz_uint16 bit_flags = MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR;
+    mz_uint16 bit_flags = 0;
+	
+	if(uncomp_size)
+		bit_flags |= MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR
     
     if (level_and_flags & MZ_ZIP_FLAG_UTF8_FILENAME )
         bit_flags |= MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8;
