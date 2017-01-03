@@ -84,7 +84,6 @@ typedef enum
     /* (either exact or worst case) and will stop calling the inflator and fail after receiving too much. In pure streaming scenarios where you have no idea how many bytes to expect this may not be possible */
     /* so I may need to add some code to address this. */
     TINFL_STATUS_HAS_MORE_OUTPUT = 2
-
 } tinfl_status;
 
 /* Initializes the decompressor to its initial state. */

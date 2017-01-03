@@ -23,13 +23,12 @@
  * THE SOFTWARE.
  *
  **************************************************************************/
- 
+
 #include "miniz_tinfl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* ------------------- Low-level Decompression (completely independent from all compression API's) */
 
@@ -46,7 +45,8 @@ extern "C" {
         status = result;                     \
         r->m_state = state_index;            \
         goto common_exit;                    \
-        case state_index:;                   \
+        case state_index:                    \
+            ;                                \
     }                                        \
     MZ_MACRO_END
 #define TINFL_CR_RETURN_FOREVER(state_index, result) \
@@ -732,4 +732,3 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 #ifdef __cplusplus
 }
 #endif
-
