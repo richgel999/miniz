@@ -322,8 +322,10 @@ mz_bool mz_zip_end(mz_zip_archive *pZip);
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 
 /* Inits a ZIP archive writer. */
-mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags);
-mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags);
+mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size);
+mz_bool mz_zip_writer_init_v2(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags);
+mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size);
+mz_bool mz_zip_writer_init_heap_v2(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags);
 
 #ifndef MINIZ_NO_STDIO
 mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning);
@@ -337,7 +339,8 @@ mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint f
 /* Finally, for archives opened using mz_zip_reader_init, the mz_zip_archive's user provided m_pWrite function cannot be NULL. */
 /* Note: In-place archive modification is not recommended unless you know what you're doing, because if execution stops or something goes wrong before */
 /* the archive is finalized the file's central directory will be hosed. */
-mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
+mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilename);
+mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
 
 /* Adds the contents of a memory buffer to an archive. These functions record the current local time into the archive. */
 /* To add a directory entry, call this method with an archive name ending in a forwardslash with an empty buffer. */
@@ -396,7 +399,8 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place_v2(const char *pZip_filename, co
 /* Reads a single file from an archive into a heap block. */
 /* If pComment is not NULL, only the file with the specified comment will be extracted. */
 /* Returns NULL on failure. */
-void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr);
+void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint flags);
+void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr);
 
 #endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS */
 

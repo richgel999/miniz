@@ -2329,7 +2329,7 @@ static mz_bool mz_zip_writer_end_internal(mz_zip_archive *pZip, mz_bool set_last
     return status;
 }
 
-mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags)
+mz_bool mz_zip_writer_init_v2(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags)
 {
     mz_bool zip64 = (flags & MZ_ZIP_FLAG_WRITE_ZIP64) != 0;
 
@@ -2378,7 +2378,12 @@ mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uin
     return MZ_TRUE;
 }
 
-mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags)
+mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size)
+{
+	return mz_zip_writer_init_v2(pZip, existing_size, 0);
+}
+
+mz_bool mz_zip_writer_init_heap_v2(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags)
 {
     pZip->m_pWrite = mz_zip_heap_write_func;
 
@@ -2387,7 +2392,7 @@ mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_
 
     pZip->m_pIO_opaque = pZip;
 
-    if (!mz_zip_writer_init(pZip, size_to_reserve_at_beginning, flags))
+    if (!mz_zip_writer_init_v2(pZip, size_to_reserve_at_beginning, flags))
         return MZ_FALSE;
 
     pZip->m_zip_type = MZ_ZIP_TYPE_HEAP;
@@ -2403,6 +2408,11 @@ mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_
     }
 
     return MZ_TRUE;
+}
+
+mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size)
+{
+	return mz_zip_writer_init_heap_v2(pZip, size_to_reserve_at_beginning, initial_allocation_size, 0);
 }
 
 #ifndef MINIZ_NO_STDIO
@@ -2438,7 +2448,7 @@ mz_bool mz_zip_writer_init_file_v2(mz_zip_archive *pZip, const char *pFilename, 
 
     pZip->m_pIO_opaque = pZip;
 
-    if (!mz_zip_writer_init(pZip, size_to_reserve_at_beginning, flags))
+    if (!mz_zip_writer_init_v2(pZip, size_to_reserve_at_beginning, flags))
         return MZ_FALSE;
 
     if (NULL == (pFile = MZ_FOPEN(pFilename, (flags & MZ_ZIP_FLAG_WRITE_ALLOW_READING) ? "w+b" : "wb")))
@@ -2482,7 +2492,7 @@ mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint f
 
     pZip->m_pIO_opaque = pZip;
 
-    if (!mz_zip_writer_init(pZip, 0, flags))
+    if (!mz_zip_writer_init_v2(pZip, 0, flags))
         return MZ_FALSE;
 
     pZip->m_pState->m_pFile = pFile;
@@ -2493,7 +2503,7 @@ mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint f
 }
 #endif /* #ifndef MINIZ_NO_STDIO */
 
-mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilename, mz_uint flags)
+mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags)
 {
     mz_zip_internal_state *pState;
 
@@ -2576,6 +2586,11 @@ mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilena
     pZip->m_zip_mode = MZ_ZIP_MODE_WRITING;
 
     return MZ_TRUE;
+}
+
+mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilename)
+{
+	return mz_zip_writer_init_from_reader_v2(pZip, pFilename, 0);
 }
 
 /* TODO: pArchive_name is a terrible name here! */
@@ -3992,7 +4007,7 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place_v2(const char *pZip_filename, co
             return MZ_FALSE;
         }
 
-        if (!mz_zip_writer_init_from_reader(&zip_archive, pZip_filename, level_and_flags))
+        if (!mz_zip_writer_init_from_reader_v2(&zip_archive, pZip_filename, level_and_flags))
         {
             if (pErr)
                 *pErr = zip_archive.m_last_error;
@@ -4036,7 +4051,7 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place_v2(const char *pZip_filename, co
     return status;
 }
 
-void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr)
+void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr)
 {
     mz_uint32 file_index;
     mz_zip_archive zip_archive;
@@ -4073,6 +4088,11 @@ void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char 
         *pErr = zip_archive.m_last_error;
 
     return p;
+}
+
+void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint flags)
+{
+	return mz_zip_extract_archive_file_to_heap_v2(pZip_filename, pArchive_name, NULL, pSize, flags, NULL);
 }
 
 #endif /* #ifndef MINIZ_NO_STDIO */
