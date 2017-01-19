@@ -25,8 +25,8 @@ done
 
 
 echo "int main() { return 0; }" > main.c
-gcc -Wpedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
-gcc -ansi -Wpedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
+gcc -pedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
+gcc -ansi -pedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
 if command -v clang
 then
         clang -Wall -Wpedantic -fsanitize=unsigned-integer-overflow main.c $OUTPUT_PREFIX.c -o test.out
