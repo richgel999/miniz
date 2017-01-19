@@ -947,11 +947,12 @@ mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_
 mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags, mz_uint64 file_start_ofs, mz_uint64 archive_size)
 {
 	mz_uint64 file_size;
+	MZ_FILE *pFile;
 
     if ((!pZip) || (!pFilename) || ((archive_size) && (archive_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)))
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
-    MZ_FILE *pFile = MZ_FOPEN(pFilename, "rb");
+	pFile = MZ_FOPEN(pFilename, "rb");
     if (!pFile)
         return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
 
@@ -3335,30 +3336,32 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
         pZip->m_pFree(pZip->m_pAlloc_opaque, pRead_buf);
     }
 
-    mz_uint8 local_dir_footer[MZ_ZIP_DATA_DESCRIPTER_SIZE64];
-    mz_uint32 local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE32;
+	{
+		mz_uint8 local_dir_footer[MZ_ZIP_DATA_DESCRIPTER_SIZE64];
+		mz_uint32 local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE32;
 
-    MZ_WRITE_LE32(local_dir_footer + 0, MZ_ZIP_DATA_DESCRIPTOR_ID);
-    MZ_WRITE_LE32(local_dir_footer + 4, uncomp_crc32);
-    if (pExtra_data == NULL)
-    {
-        if (comp_size > MZ_UINT32_MAX)
-            return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
+		MZ_WRITE_LE32(local_dir_footer + 0, MZ_ZIP_DATA_DESCRIPTOR_ID);
+		MZ_WRITE_LE32(local_dir_footer + 4, uncomp_crc32);
+		if (pExtra_data == NULL)
+		{
+			if (comp_size > MZ_UINT32_MAX)
+				return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
 
-        MZ_WRITE_LE32(local_dir_footer + 8, comp_size);
-        MZ_WRITE_LE32(local_dir_footer + 12, uncomp_size);
-    }
-    else
-    {
-        MZ_WRITE_LE64(local_dir_footer + 8, comp_size);
-        MZ_WRITE_LE64(local_dir_footer + 16, uncomp_size);
-        local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE64;
-    }
+			MZ_WRITE_LE32(local_dir_footer + 8, comp_size);
+			MZ_WRITE_LE32(local_dir_footer + 12, uncomp_size);
+		}
+		else
+		{
+			MZ_WRITE_LE64(local_dir_footer + 8, comp_size);
+			MZ_WRITE_LE64(local_dir_footer + 16, uncomp_size);
+			local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE64;
+		}
 
-    if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
-        return MZ_FALSE;
+		if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
+			return MZ_FALSE;
 
-    cur_archive_file_ofs += local_dir_footer_size;
+		cur_archive_file_ofs += local_dir_footer_size;
+	}
 
     if (pExtra_data != NULL)
     {
