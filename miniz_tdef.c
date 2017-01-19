@@ -1480,9 +1480,24 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
     *pLen_out = out_buf.m_size - 41;
     {
         static const mz_uint8 chans[] = { 0x00, 0x00, 0x04, 0x02, 0x06 };
-        mz_uint8 pnghdr[41] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-                                0, 0, (mz_uint8)(w >> 8), (mz_uint8)w, 0, 0, (mz_uint8)(h >> 8), (mz_uint8)h, 8, chans[num_chans], 0, 0, 0, 0, 0, 0, 0,
-                                (mz_uint8)(*pLen_out >> 24), (mz_uint8)(*pLen_out >> 16), (mz_uint8)(*pLen_out >> 8), (mz_uint8) * pLen_out, 0x49, 0x44, 0x41, 0x54 };
+        mz_uint8 pnghdr[41] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 
+								0x0a, 0x1a, 0x0a, 0x00, 0x00, 
+								0x00, 0x0d, 0x49, 0x48, 0x44, 
+								0x52, 0x00, 0x00, 0x00, 0x00, 
+								0x00, 0x00, 0x00, 0x00, 0x08, 
+								0x00, 0x00, 0x00, 0x00, 0x00, 
+								0x00, 0x00, 0x00, 0x00, 0x00, 
+								0x00, 0x00, 0x49, 0x44, 0x41, 
+								0x54 };
+		pnghdr[18] = (mz_uint8)(w >> 8);
+		pnghdr[19] = (mz_uint8)w;
+		pnghdr[22] = (mz_uint8)(h >> 8);
+		pnghdr[22] = (mz_uint8)h;
+		pnghdr[25] = chans[num_chans];
+		pnghdr[33] = (mz_uint8)(*pLen_out >> 24);
+		pnghdr[34] = (mz_uint8)(*pLen_out >> 16);
+		pnghdr[35] = (mz_uint8)(*pLen_out >> 8);
+		pnghdr[36] = (mz_uint8)*pLen_out;
         c = (mz_uint32)mz_crc32(MZ_CRC32_INIT, pnghdr + 12, 17);
         for (i = 0; i < 4; ++i, c <<= 8)
             ((mz_uint8 *)(pnghdr + 29))[i] = (mz_uint8)(c >> 24);
