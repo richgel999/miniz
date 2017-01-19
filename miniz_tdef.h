@@ -116,7 +116,7 @@ typedef enum
     TDEFL_STATUS_BAD_PARAM = -2,
     TDEFL_STATUS_PUT_BUF_FAILED = -1,
     TDEFL_STATUS_OKAY = 0,
-    TDEFL_STATUS_DONE = 1,
+    TDEFL_STATUS_DONE = 1
 } tdefl_status;
 
 /* Must map to MZ_NO_FLUSH, MZ_SYNC_FLUSH, etc. enums */
