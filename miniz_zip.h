@@ -74,6 +74,7 @@ typedef struct
 
 typedef size_t (*mz_file_read_func)(void *pOpaque, mz_uint64 file_ofs, void *pBuf, size_t n);
 typedef size_t (*mz_file_write_func)(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n);
+typedef mz_bool (*mz_file_needs_keepalive)(void *pOpaque);
 
 struct mz_zip_internal_state_tag;
 typedef struct mz_zip_internal_state_tag mz_zip_internal_state;
@@ -168,6 +169,7 @@ typedef struct
 
     mz_file_read_func m_pRead;
     mz_file_write_func m_pWrite;
+	mz_file_needs_keepalive m_pNeeds_keepalive;
     void *m_pIO_opaque;
 
     mz_zip_internal_state *m_pState;

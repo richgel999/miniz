@@ -907,6 +907,7 @@ mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem, size_t si
     pZip->m_archive_size = size;
     pZip->m_pRead = mz_zip_mem_read_func;
     pZip->m_pIO_opaque = pZip;
+	pZip->m_pNeeds_keepalive = NULL;
 
 #ifdef __cplusplus
     pZip->m_pState->m_pMem = const_cast<void *>(pMem);
@@ -2402,6 +2403,7 @@ mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size)
 mz_bool mz_zip_writer_init_heap_v2(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags)
 {
     pZip->m_pWrite = mz_zip_heap_write_func;
+	pZip->m_pNeeds_keepalive = NULL;
 
     if (flags & MZ_ZIP_FLAG_WRITE_ALLOW_READING)
         pZip->m_pRead = mz_zip_mem_read_func;
@@ -2458,6 +2460,7 @@ mz_bool mz_zip_writer_init_file_v2(mz_zip_archive *pZip, const char *pFilename, 
     MZ_FILE *pFile;
 
     pZip->m_pWrite = mz_zip_file_write_func;
+	pZip->m_pNeeds_keepalive = NULL;
 
     if (flags & MZ_ZIP_FLAG_WRITE_ALLOW_READING)
         pZip->m_pRead = mz_zip_file_read_func;
@@ -2502,6 +2505,7 @@ mz_bool mz_zip_writer_init_file_v2(mz_zip_archive *pZip, const char *pFilename, 
 mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint flags)
 {
     pZip->m_pWrite = mz_zip_file_write_func;
+	pZip->m_pNeeds_keepalive = NULL;
 
     if (flags & MZ_ZIP_FLAG_WRITE_ALLOW_READING)
         pZip->m_pRead = mz_zip_file_read_func;
@@ -2574,6 +2578,7 @@ mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFil
         }
 
         pZip->m_pWrite = mz_zip_file_write_func;
+		pZip->m_pNeeds_keepalive = NULL;
 #endif /* #ifdef MINIZ_NO_STDIO */
     }
     else if (pState->m_pMem)
@@ -2584,6 +2589,7 @@ mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFil
 
         pState->m_mem_capacity = pState->m_mem_size;
         pZip->m_pWrite = mz_zip_heap_write_func;
+		pZip->m_pNeeds_keepalive = NULL;
     }
     /* Archive is being read via a user provided read function - make sure the user has specified a write function too. */
     else if (!pZip->m_pWrite)
@@ -3298,6 +3304,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
             {
                 size_t in_buf_size = (mz_uint32)MZ_MIN(uncomp_remaining, (mz_uint64)MZ_ZIP_MAX_IO_BUF_SIZE);
                 tdefl_status status;
+				tdefl_flush flush = TDEFL_NO_FLUSH;
 
                 if (MZ_FREAD(pRead_buf, 1, in_buf_size, pSrc_file) != in_buf_size)
                 {
@@ -3308,7 +3315,10 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
                 uncomp_crc32 = (mz_uint32)mz_crc32(uncomp_crc32, (const mz_uint8 *)pRead_buf, in_buf_size);
                 uncomp_remaining -= in_buf_size;
 
-                status = tdefl_compress_buffer(pComp, pRead_buf, in_buf_size, uncomp_remaining ? TDEFL_NO_FLUSH : TDEFL_FINISH);
+				if (pZip->m_pNeeds_keepalive != NULL && pZip->m_pNeeds_keepalive(pZip->m_pIO_opaque))
+					flush = TDEFL_FULL_FLUSH;
+
+                status = tdefl_compress_buffer(pComp, pRead_buf, in_buf_size, uncomp_remaining ? flush : TDEFL_FINISH);
                 if (status == TDEFL_STATUS_DONE)
                 {
                     result = MZ_TRUE;
