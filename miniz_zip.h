@@ -97,7 +97,7 @@ typedef enum
     MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY = 0x2000,     /* validate the local headers, but don't decompress the entire file and check the crc32 */
     MZ_ZIP_FLAG_WRITE_ZIP64 = 0x4000,               /* use the zip64 file format, instead of the original zip file format */
     MZ_ZIP_FLAG_WRITE_ALLOW_READING = 0x8000,
-    MZ_ZIP_FLAG_UTF8_FILENAME = 0x10000
+    MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000
 } mz_zip_flags;
 
 typedef enum
