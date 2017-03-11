@@ -4,7 +4,7 @@ Miniz is a lossless, high performance data compression library in a single sourc
 
 ## Usage
 
-Please use the files from the [releases page](https://github.com/richgel999/miniz/releases) in your projects. Do not use the git checkout directly! The different source and header files are (amalgamated)[https://www.sqlite.org/amalgamation.html] into one miniz.c/miniz.h pair in a build step (`amalgamate.sh`). Include `miniz.c` and `miniz.h` in your project to use Miniz.
+Please use the files from the [releases page](https://github.com/richgel999/miniz/releases) in your projects. Do not use the git checkout directly! The different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) into one `miniz.c`/`miniz.h` pair in a build step (`amalgamate.sh`). Include `miniz.c` and `miniz.h` in your project to use Miniz.
 
 ## Features
 
