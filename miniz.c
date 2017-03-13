@@ -157,8 +157,6 @@ void mz_free(void *p)
     MZ_FREE(p);
 }
 
-#ifndef MINIZ_NO_ZLIB_APIS
-
 void *miniz_def_alloc_func(void *opaque, size_t items, size_t size)
 {
     (void)opaque, (void)items, (void)size;
@@ -179,6 +177,8 @@ const char *mz_version(void)
 {
     return MZ_VERSION;
 }
+
+#ifndef MINIZ_NO_ZLIB_APIS
 
 int mz_deflateInit(mz_streamp pStream, int level)
 {

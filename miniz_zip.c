@@ -26,6 +26,8 @@
  **************************************************************************/
 #include "miniz_zip.h"
 
+#ifndef MINIZ_NO_ARCHIVE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -368,6 +370,7 @@ static MZ_TIME_T mz_zip_dos_to_time_t(int dos_time, int dos_date)
     return mktime(&tm);
 }
 
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 static void mz_zip_time_t_to_dos_time(MZ_TIME_T time, mz_uint16 *pDOS_time, mz_uint16 *pDOS_date)
 {
 #ifdef _MSC_VER
@@ -387,8 +390,10 @@ static void mz_zip_time_t_to_dos_time(MZ_TIME_T time, mz_uint16 *pDOS_time, mz_u
     *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) + ((tm->tm_sec) >> 1));
     *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday);
 }
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
 #ifndef MINIZ_NO_STDIO
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 static mz_bool mz_zip_get_file_modified_time(const char *pFilename, MZ_TIME_T *pTime)
 {
     struct MZ_FILE_STAT_STRUCT file_stat;
@@ -401,6 +406,7 @@ static mz_bool mz_zip_get_file_modified_time(const char *pFilename, MZ_TIME_T *p
 
     return MZ_TRUE;
 }
+#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS*/
 
 static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
 {
@@ -2865,20 +2871,18 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     if (!mz_zip_writer_validate_archive_name(pArchive_name))
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_FILENAME);
 
+#ifndef MINIZ_NO_TIME
     if (last_modified != NULL)
     {
         mz_zip_time_t_to_dos_time(*last_modified, &dos_time, &dos_date);
     }
     else
     {
-#ifndef MINIZ_NO_TIME
-        {
-            MZ_TIME_T cur_time;
-            time(&cur_time);
-            mz_zip_time_t_to_dos_time(cur_time, &dos_time, &dos_date);
-        }
-#endif /* #ifndef MINIZ_NO_TIME */
+		MZ_TIME_T cur_time;
+		time(&cur_time);
+		mz_zip_time_t_to_dos_time(cur_time, &dos_time, &dos_date);
     }
+#endif /* #ifndef MINIZ_NO_TIME */
 
     archive_name_size = strlen(pArchive_name);
     if (archive_name_size > MZ_UINT16_MAX)
@@ -4339,8 +4343,10 @@ mz_bool mz_zip_end(mz_zip_archive *pZip)
 
     if (pZip->m_zip_mode == MZ_ZIP_MODE_READING)
         return mz_zip_reader_end(pZip);
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
     else if ((pZip->m_zip_mode == MZ_ZIP_MODE_WRITING) || (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED))
         return mz_zip_writer_end(pZip);
+#endif
 
     return MZ_FALSE;
 }
@@ -4348,3 +4354,6 @@ mz_bool mz_zip_end(mz_zip_archive *pZip)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_ARCHIVE_APIS*/
+

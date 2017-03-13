@@ -130,7 +130,7 @@
 /* Define MINIZ_NO_ARCHIVE_APIS to disable all ZIP archive API's. */
 /*#define MINIZ_NO_ARCHIVE_APIS */
 
-/* Define MINIZ_NO_ARCHIVE_APIS to disable all writing related ZIP archive API's. */
+/* Define MINIZ_NO_ARCHIVE_WRITING_APIS to disable all writing related ZIP archive API's. */
 /*#define MINIZ_NO_ARCHIVE_WRITING_APIS */
 
 /* Define MINIZ_NO_ZLIB_APIS to remove all ZLIB-style compression/decompression API's. */
@@ -149,6 +149,8 @@
 /* TODO: Work around "error: include file 'sys\utime.h' when compiling with tcc on Linux */
 #define MINIZ_NO_TIME
 #endif
+
+#include <stddef.h>
 
 #if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_ARCHIVE_APIS)
 #include <time.h>
@@ -207,21 +209,31 @@ enum
 /* Method */
 #define MZ_DEFLATED 8
 
-#ifndef MINIZ_NO_ZLIB_APIS
-
 /* Heap allocation callbacks.
-   Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long. */
+Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long. */
 typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
-typedef void (*mz_free_func)(void *opaque, void *address);
+typedef void(*mz_free_func)(void *opaque, void *address);
 typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
 
-/* TODO: I can't encode "1.16" here, argh */
-#define MZ_VERSION "9.1.15"
-#define MZ_VERNUM 0x91F0
-#define MZ_VER_MAJOR 9
-#define MZ_VER_MINOR 1
-#define MZ_VER_REVISION 15
+/* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
+enum
+{
+	MZ_NO_COMPRESSION = 0,
+	MZ_BEST_SPEED = 1,
+	MZ_BEST_COMPRESSION = 9,
+	MZ_UBER_COMPRESSION = 10,
+	MZ_DEFAULT_LEVEL = 6,
+	MZ_DEFAULT_COMPRESSION = -1
+};
+
+#define MZ_VERSION "10.0.0"
+#define MZ_VERNUM 0xA000
+#define MZ_VER_MAJOR 10
+#define MZ_VER_MINOR 0
+#define MZ_VER_REVISION 0
 #define MZ_VER_SUBREVISION 0
+
+#ifndef MINIZ_NO_ZLIB_APIS
 
 /* Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs). */
 enum
@@ -247,17 +259,6 @@ enum
     MZ_BUF_ERROR = -5,
     MZ_VERSION_ERROR = -6,
     MZ_PARAM_ERROR = -10000
-};
-
-/* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
-enum
-{
-    MZ_NO_COMPRESSION = 0,
-    MZ_BEST_SPEED = 1,
-    MZ_BEST_COMPRESSION = 9,
-    MZ_UBER_COMPRESSION = 10,
-    MZ_DEFAULT_LEVEL = 6,
-    MZ_DEFAULT_COMPRESSION = -1
 };
 
 /* Window bits */

@@ -173,14 +173,11 @@ tdefl_status tdefl_compress_buffer(tdefl_compressor *d, const void *pIn_buf, siz
 tdefl_status tdefl_get_prev_return_status(tdefl_compressor *d);
 mz_uint32 tdefl_get_adler32(tdefl_compressor *d);
 
-/* Can't use tdefl_create_comp_flags_from_zip_params if MINIZ_NO_ZLIB_APIS isn't defined, because it uses some of its macros. */
-#ifndef MINIZ_NO_ZLIB_APIS
 /* Create tdefl_compress() flags given zlib-style compression parameters. */
 /* level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files) */
 /* window_bits may be -15 (raw deflate) or 15 (zlib) */
 /* strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED */
 mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
-#endif /* #ifndef MINIZ_NO_ZLIB_APIS */
 
 /* Allocate the tdefl_compressor structure in C so that */
 /* non-C language bindings to tdefl_ API don't need to worry about */

@@ -1408,7 +1408,6 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
     return out_buf.m_size;
 }
 
-#ifndef MINIZ_NO_ZLIB_APIS
 static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500 };
 
 /* level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files). */
@@ -1431,7 +1430,6 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int 
 
     return comp_flags;
 }
-#endif /*MINIZ_NO_ZLIB_APIS */
 
 #ifdef _MSC_VER
 #pragma warning(push)
