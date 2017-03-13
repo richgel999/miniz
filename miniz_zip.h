@@ -4,6 +4,8 @@
 
 /* ------------------- ZIP archive reading/writing */
 
+#ifndef MINIZ_NO_ARCHIVE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -406,3 +408,5 @@ void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const ch
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* MINIZ_NO_ARCHIVE_APIS */
