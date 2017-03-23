@@ -52,8 +52,7 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
 #define TINFL_LZ_DICT_SIZE 32768
 
 /* Return status. */
-typedef enum
-{
+typedef enum {
     /* This flags indicates the inflator needs 1 or more input bytes to make forward progress, but the caller is indicating that no more are available. The compressed data */
     /* is probably corrupted. If you call the inflator again with more bytes it'll try to continue processing the input but this is a BAD sign (either the data is corrupted or you called it incorrectly). */
     /* If you call it again with no input you'll just get TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS again. */

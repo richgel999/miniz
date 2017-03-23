@@ -111,8 +111,7 @@ enum
 #endif
 
 /* The low-level tdefl functions below may be used directly if the above helper functions aren't flexible enough. The low-level functions don't make any heap allocations, unlike the above helper functions. */
-typedef enum
-{
+typedef enum {
     TDEFL_STATUS_BAD_PARAM = -2,
     TDEFL_STATUS_PUT_BUF_FAILED = -1,
     TDEFL_STATUS_OKAY = 0,
@@ -120,8 +119,7 @@ typedef enum
 } tdefl_status;
 
 /* Must map to MZ_NO_FLUSH, MZ_SYNC_FLUSH, etc. enums */
-typedef enum
-{
+typedef enum {
     TDEFL_NO_FLUSH = 0,
     TDEFL_SYNC_FLUSH = 2,
     TDEFL_FULL_FLUSH = 3,

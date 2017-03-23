@@ -45,8 +45,7 @@ extern "C" {
         status = result;                     \
         r->m_state = state_index;            \
         goto common_exit;                    \
-        case state_index:                    \
-            ;                                \
+        case state_index:;                   \
     }                                        \
     MZ_MACRO_END
 #define TINFL_CR_RETURN_FOREVER(state_index, result) \
@@ -60,15 +59,15 @@ extern "C" {
     MZ_MACRO_END
 #define TINFL_CR_FINISH }
 
-#define TINFL_GET_BYTE(state_index, c)                                                                                                                          \
-    do                                                                                                                                                          \
-    {                                                                                                                                                           \
-        while (pIn_buf_cur >= pIn_buf_end)                                                                                                                      \
-        {                                                                                                                                                       \
-            TINFL_CR_RETURN(state_index, (decomp_flags &TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
-        }                                                                                                                                                       \
-        c = *pIn_buf_cur++;                                                                                                                                     \
-    }                                                                                                                                                           \
+#define TINFL_GET_BYTE(state_index, c)                                                                                                                           \
+    do                                                                                                                                                           \
+    {                                                                                                                                                            \
+        while (pIn_buf_cur >= pIn_buf_end)                                                                                                                       \
+        {                                                                                                                                                        \
+            TINFL_CR_RETURN(state_index, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
+        }                                                                                                                                                        \
+        c = *pIn_buf_cur++;                                                                                                                                      \
+    }                                                                                                                                                            \
     MZ_MACRO_END
 
 #define TINFL_NEED_BITS(state_index, n)                \
@@ -186,7 +185,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
     tinfl_bit_buf_t bit_buf;
     const mz_uint8 *pIn_buf_cur = pIn_buf_next, *const pIn_buf_end = pIn_buf_next + *pIn_buf_size;
     mz_uint8 *pOut_buf_cur = pOut_buf_next, *const pOut_buf_end = pOut_buf_next + *pOut_buf_size;
-    size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t) - 1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
+    size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
 
     /* Ensure the output buffer's size is a power of 2, unless the output buffer is large enough to hold the entire output file (in which case it doesn't matter). */
     if (((out_buf_size_mask + 1) & out_buf_size_mask) || (pOut_buf_next < pOut_buf_start))
@@ -568,7 +567,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
         --pIn_buf_cur;
         num_bits -= 8;
     }
-    bit_buf &= (tinfl_bit_buf_t)(( ((mz_uint64)1) << num_bits) - (mz_uint64)1);
+    bit_buf &= (tinfl_bit_buf_t)((((mz_uint64)1) << num_bits) - (mz_uint64)1);
     MZ_ASSERT(!num_bits); /* if this assert fires then we've read beyond the end of non-deflate/zlib streams with following data (such as gzip streams). */
 
     if (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER)
@@ -600,7 +599,7 @@ common_exit:
         }
     }
     r->m_num_bits = num_bits;
-    r->m_bit_buf = bit_buf & (tinfl_bit_buf_t)(( ((mz_uint64)1) << num_bits) - (mz_uint64)1);
+    r->m_bit_buf = bit_buf & (tinfl_bit_buf_t)((((mz_uint64)1) << num_bits) - (mz_uint64)1);
     r->m_dist = dist;
     r->m_counter = counter;
     r->m_num_extra = num_extra;

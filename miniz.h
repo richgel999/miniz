@@ -212,18 +212,18 @@ enum
 /* Heap allocation callbacks.
 Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long. */
 typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
-typedef void(*mz_free_func)(void *opaque, void *address);
+typedef void (*mz_free_func)(void *opaque, void *address);
 typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
 
 /* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
 enum
 {
-	MZ_NO_COMPRESSION = 0,
-	MZ_BEST_SPEED = 1,
-	MZ_BEST_COMPRESSION = 9,
-	MZ_UBER_COMPRESSION = 10,
-	MZ_DEFAULT_LEVEL = 6,
-	MZ_DEFAULT_COMPRESSION = -1
+    MZ_NO_COMPRESSION = 0,
+    MZ_BEST_SPEED = 1,
+    MZ_BEST_COMPRESSION = 9,
+    MZ_UBER_COMPRESSION = 10,
+    MZ_DEFAULT_LEVEL = 6,
+    MZ_DEFAULT_COMPRESSION = -1
 };
 
 #define MZ_VERSION "10.0.0"
