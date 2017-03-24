@@ -81,16 +81,14 @@ typedef mz_bool (*mz_file_needs_keepalive)(void *pOpaque);
 struct mz_zip_internal_state_tag;
 typedef struct mz_zip_internal_state_tag mz_zip_internal_state;
 
-typedef enum
-{
+typedef enum {
     MZ_ZIP_MODE_INVALID = 0,
     MZ_ZIP_MODE_READING = 1,
     MZ_ZIP_MODE_WRITING = 2,
     MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED = 3
 } mz_zip_mode;
 
-typedef enum
-{
+typedef enum {
     MZ_ZIP_FLAG_CASE_SENSITIVE = 0x0100,
     MZ_ZIP_FLAG_IGNORE_PATH = 0x0200,
     MZ_ZIP_FLAG_COMPRESSED_DATA = 0x0400,
@@ -102,8 +100,7 @@ typedef enum
     MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000
 } mz_zip_flags;
 
-typedef enum
-{
+typedef enum {
     MZ_ZIP_TYPE_INVALID = 0,
     MZ_ZIP_TYPE_USER,
     MZ_ZIP_TYPE_MEMORY,
@@ -114,8 +111,7 @@ typedef enum
 } mz_zip_type;
 
 /* miniz error codes. Be sure to update mz_zip_get_error_string() if you add or modify this enum. */
-typedef enum
-{
+typedef enum {
     MZ_ZIP_NO_ERROR = 0,
     MZ_ZIP_UNDEFINED_ERROR,
     MZ_ZIP_TOO_MANY_FILES,
@@ -171,7 +167,7 @@ typedef struct
 
     mz_file_read_func m_pRead;
     mz_file_write_func m_pWrite;
-	mz_file_needs_keepalive m_pNeeds_keepalive;
+    mz_file_needs_keepalive m_pNeeds_keepalive;
     void *m_pIO_opaque;
 
     mz_zip_internal_state *m_pState;
