@@ -1,7 +1,7 @@
 PROJECT(miniz)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CONFIGURATION_TYPES Release)
+set(CMAKE_CONFIGURATION_TYPES Release Debug)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
