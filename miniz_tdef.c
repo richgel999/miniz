@@ -1490,7 +1490,7 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
         pnghdr[18] = (mz_uint8)(w >> 8);
         pnghdr[19] = (mz_uint8)w;
         pnghdr[22] = (mz_uint8)(h >> 8);
-        pnghdr[22] = (mz_uint8)h;
+        pnghdr[23] = (mz_uint8)h;
         pnghdr[25] = chans[num_chans];
         pnghdr[33] = (mz_uint8)(*pLen_out >> 24);
         pnghdr[34] = (mz_uint8)(*pLen_out >> 16);
