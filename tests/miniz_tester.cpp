@@ -993,6 +993,71 @@ static bool zip_extract(const char *pZip_filename, const char *pDst_filename)
         }
         free(p);
     }
+
+    if (stat.m_uncomp_size<100*1024*1024)
+    {
+        /* Use iterative reader to read onto heap in one big chunk */
+        mz_zip_reader_extract_iter_state *pIter = mz_zip_reader_extract_iter_new(&zip, i, 0);
+        void *p = malloc(stat.m_uncomp_size);
+        if ((!pIter) && (0 != stat.m_uncomp_size))
+        {
+            print_error("Failed testing archive -4 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+            free(p);
+            mz_zip_reader_end(&zip);
+            return false;
+        }
+        if (pIter)
+        {
+            if (stat.m_uncomp_size != mz_zip_reader_extract_iter_read(pIter, p, stat.m_uncomp_size) )
+            {
+                print_error("Failed testing archive -5 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+                free(p);
+                mz_zip_reader_extract_iter_free(pIter);
+                mz_zip_reader_end(&zip);
+                return false;
+            }
+            if (MZ_TRUE != mz_zip_reader_extract_iter_free(pIter))
+            {
+                print_error("Failed testing archive -6 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+                free(p);
+                mz_zip_reader_end(&zip);
+                return false;
+            }
+        }
+        free(p);
+    }
+
+    if (stat.m_uncomp_size<100*1024)
+    {
+        /* Use iterative reader to read file one byte at a time */
+        mz_zip_reader_extract_iter_state *pIter = mz_zip_reader_extract_iter_new(&zip, i, 0);
+        uint8_t byBuffer;
+        if ((!pIter) && (0 != stat.m_uncomp_size))
+        {
+            print_error("Failed testing archive -7 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+            mz_zip_reader_end(&zip);
+            return false;
+        }
+        if (pIter)
+        {
+            for ( uint64_t uiIndex = 0; uiIndex < stat.m_uncomp_size; uiIndex++ )
+            {
+                if (sizeof(byBuffer) != mz_zip_reader_extract_iter_read(pIter, &byBuffer, sizeof(byBuffer)))
+                {
+                    print_error("Failed testing archive -8 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+                    mz_zip_reader_extract_iter_free(pIter);
+                    mz_zip_reader_end(&zip);
+                    return false;
+                }
+            }
+            if (MZ_TRUE != mz_zip_reader_extract_iter_free(pIter))
+            {
+                print_error("Failed testing archive -9 \"%s\" err: %s!\n", pZip_filename, mz_zip_get_error_string(mz_zip_get_last_error(&zip)));
+                mz_zip_reader_end(&zip);
+                return false;
+            }
+        }
+    }
   }
   printf("Verified %u files\n",  mz_zip_reader_get_num_files(&zip));
 
@@ -1446,6 +1511,15 @@ static bool test_archives(const char *pPath, comp_options options)
         if (mz_crc32(MZ_CRC32_INIT, (const uint8*)p, extracted_size) != extracted_crc32)
           status = false;
 
+        mz_zip_reader_extract_iter_state *pIter = mz_zip_reader_extract_file_iter_new(&src_archive, name, 0);
+        void *q = malloc(extracted_size);
+        mz_zip_reader_extract_iter_read(pIter, q, extracted_size);
+        mz_zip_reader_extract_iter_free(pIter);
+
+        if (mz_crc32(MZ_CRC32_INIT, (const uint8*)q, extracted_size) != extracted_crc32)
+            status = false;
+
+        free(q);
         free(p);
 
         if (options.m_write_archives)
