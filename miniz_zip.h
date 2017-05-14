@@ -174,6 +174,26 @@ typedef struct
 
 } mz_zip_archive;
 
+typedef struct
+{
+    mz_zip_archive *pZip;
+    mz_uint flags;
+
+    int status;
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+    mz_uint file_crc32;
+#endif
+    mz_uint64 read_buf_size, read_buf_ofs, read_buf_avail, comp_remaining, out_buf_ofs, cur_file_ofs;
+    mz_zip_archive_file_stat file_stat;
+    void *pRead_buf;
+    void *pWrite_buf;
+
+    size_t out_blk_remain;
+
+    tinfl_decompressor inflator;
+
+} mz_zip_reader_extract_iter_state;
+
 /* -------- ZIP reading */
 
 /* Inits a ZIP archive reader. */
@@ -280,6 +300,12 @@ void *mz_zip_reader_extract_file_to_heap(mz_zip_archive *pZip, const char *pFile
 /* Extracts a archive file using a callback function to output the file's data. */
 mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_index, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
 mz_bool mz_zip_reader_extract_file_to_callback(mz_zip_archive *pZip, const char *pFilename, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
+
+/* Extract a file iteratively */
+mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+mz_zip_reader_extract_iter_state* mz_zip_reader_extract_file_iter_new(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
+size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState, void* pvBuf, size_t buf_size);
+mz_bool mz_zip_reader_extract_iter_free(mz_zip_reader_extract_iter_state* pState);
 
 #ifndef MINIZ_NO_STDIO
 /* Extracts a archive file to a disk file and sets its last accessed and modified times. */
