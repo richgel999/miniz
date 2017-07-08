@@ -1817,6 +1817,304 @@ mz_bool mz_zip_reader_extract_file_to_callback(mz_zip_archive *pZip, const char 
     return mz_zip_reader_extract_to_callback(pZip, file_index, pCallback, pOpaque, flags);
 }
 
+mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags)
+{
+    mz_zip_reader_extract_iter_state *pState;
+    mz_uint32 local_header_u32[(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + sizeof(mz_uint32) - 1) / sizeof(mz_uint32)];
+    mz_uint8 *pLocal_header = (mz_uint8 *)local_header_u32;
+
+    /* Argument sanity check */
+    if ((!pZip) || (!pZip->m_pState))
+        return NULL;
+
+    /* Allocate an iterator status structure */
+    pState = (mz_zip_reader_extract_iter_state*)pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, sizeof(mz_zip_reader_extract_iter_state));
+    if (!pState)
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+        return NULL;
+    }
+
+    /* Fetch file details */
+    if (!mz_zip_reader_file_stat(pZip, file_index, &pState->file_stat))
+    {
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    /* Encryption and patch files are not supported. */
+    if (pState->file_stat.m_bit_flag & (MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_IS_ENCRYPTED | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_USES_STRONG_ENCRYPTION | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_COMPRESSED_PATCH_FLAG))
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_ENCRYPTION);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    /* This function only supports decompressing stored and deflate. */
+    if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (pState->file_stat.m_method != 0) && (pState->file_stat.m_method != MZ_DEFLATED))
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    /* Init state - save args */
+    pState->pZip = pZip;
+    pState->flags = flags;
+
+    /* Init state - reset variables to defaults */
+    pState->status = TINFL_STATUS_DONE;
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+    pState->file_crc32 = MZ_CRC32_INIT;
+#endif
+    pState->read_buf_ofs = 0;
+    pState->out_buf_ofs = 0;
+    pState->pRead_buf = NULL;
+    pState->pWrite_buf = NULL;
+    pState->out_blk_remain = 0;
+
+    /* Read and parse the local directory entry. */
+    pState->cur_file_ofs = pState->file_stat.m_local_header_ofs;
+    if (pZip->m_pRead(pZip->m_pIO_opaque, pState->cur_file_ofs, pLocal_header, MZ_ZIP_LOCAL_DIR_HEADER_SIZE) != MZ_ZIP_LOCAL_DIR_HEADER_SIZE)
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    if (MZ_READ_LE32(pLocal_header) != MZ_ZIP_LOCAL_DIR_HEADER_SIG)
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    pState->cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
+    if ((pState->cur_file_ofs + pState->file_stat.m_comp_size) > pZip->m_archive_size)
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+        return NULL;
+    }
+
+    /* Decompress the file either directly from memory or from a file input buffer. */
+    if (pZip->m_pState->m_pMem)
+    {
+        pState->pRead_buf = (mz_uint8 *)pZip->m_pState->m_pMem + pState->cur_file_ofs;
+        pState->read_buf_size = pState->read_buf_avail = pState->file_stat.m_comp_size;
+        pState->comp_remaining = pState->file_stat.m_comp_size;
+    }
+    else
+    {
+        if (!((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method)))
+        {
+            /* Decompression required, therefore intermediate read buffer required */
+            pState->read_buf_size = MZ_MIN(pState->file_stat.m_comp_size, MZ_ZIP_MAX_IO_BUF_SIZE);
+            if (NULL == (pState->pRead_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)pState->read_buf_size)))
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+                pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+                return NULL;
+            }
+        }
+        else
+        {
+            /* Decompression not required - we will be reading directly into user buffer, no temp buf required */
+            pState->read_buf_size = 0;
+        }
+        pState->read_buf_avail = 0;
+        pState->comp_remaining = pState->file_stat.m_comp_size;
+    }
+
+    if (!((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method)))
+    {
+        /* Decompression required, init decompressor */
+        tinfl_init( &pState->inflator );
+
+        /* Allocate write buffer */
+        if (NULL == (pState->pWrite_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, TINFL_LZ_DICT_SIZE)))
+        {
+            mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+            if (pState->pRead_buf)
+                pZip->m_pFree(pZip->m_pAlloc_opaque, pState->pRead_buf);
+            pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
+            return NULL;
+        }
+    }
+
+    return pState;
+}
+
+mz_zip_reader_extract_iter_state* mz_zip_reader_extract_file_iter_new(mz_zip_archive *pZip, const char *pFilename, mz_uint flags)
+{
+    mz_uint32 file_index;
+
+    /* Locate file index by name */
+    if (!mz_zip_reader_locate_file_v2(pZip, pFilename, NULL, flags, &file_index))
+        return NULL;
+
+    /* Construct iterator */
+    return mz_zip_reader_extract_iter_new(pZip, file_index, flags);
+}
+
+size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState, void* pvBuf, size_t buf_size)
+{
+    size_t copied_to_caller = 0;
+
+    /* Argument sanity check */
+    if ((!pState) || (!pState->pZip) || (!pState->pZip->m_pState) || (!pvBuf))
+        return 0;
+
+    if ((pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method))
+    {
+        /* The file is stored or the caller has requested the compressed data, calc amount to return. */
+        copied_to_caller = MZ_MIN( buf_size, pState->comp_remaining );
+
+        /* Zip is in memory....or requires reading from a file? */
+        if (pState->pZip->m_pState->m_pMem)
+        {
+            /* Copy data to caller's buffer */
+            memcpy( pvBuf, pState->pRead_buf, copied_to_caller );
+            pState->pRead_buf = ((mz_uint8*)pState->pRead_buf) + copied_to_caller;
+        }
+        else
+        {
+            /* Read directly into caller's buffer */
+            if (pState->pZip->m_pRead(pState->pZip->m_pIO_opaque, pState->cur_file_ofs, pvBuf, copied_to_caller) != copied_to_caller)
+            {
+                /* Failed to read all that was asked for, flag failure and alert user */
+                mz_zip_set_error(pState->pZip, MZ_ZIP_FILE_READ_FAILED);
+                pState->status = TINFL_STATUS_FAILED;
+                copied_to_caller = 0;
+            }
+        }
+
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+        /* Compute CRC if not returning compressed data only */
+        if (!(pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
+            pState->file_crc32 = (mz_uint32)mz_crc32(pState->file_crc32, (const mz_uint8 *)pvBuf, copied_to_caller);
+#endif
+
+        /* Advance offsets, dec counters */
+        pState->cur_file_ofs += copied_to_caller;
+        pState->out_buf_ofs += copied_to_caller;
+        pState->comp_remaining -= copied_to_caller;
+    }
+    else
+    {
+        do
+        {
+            /* Calc ptr to write buffer - given current output pos and block size */
+            mz_uint8 *pWrite_buf_cur = (mz_uint8 *)pState->pWrite_buf + (pState->out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
+
+            /* Calc max output size - given current output pos and block size */
+            size_t in_buf_size, out_buf_size = TINFL_LZ_DICT_SIZE - (pState->out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
+
+            if (!pState->out_blk_remain)
+            {
+                /* Read more data from file if none available (and reading from file) */
+                if ((!pState->read_buf_avail) && (!pState->pZip->m_pState->m_pMem))
+                {
+                    /* Calc read size */
+                    pState->read_buf_avail = MZ_MIN(pState->read_buf_size, pState->comp_remaining);
+                    if (pState->pZip->m_pRead(pState->pZip->m_pIO_opaque, pState->cur_file_ofs, pState->pRead_buf, (size_t)pState->read_buf_avail) != pState->read_buf_avail)
+                    {
+                        mz_zip_set_error(pState->pZip, MZ_ZIP_FILE_READ_FAILED);
+                        pState->status = TINFL_STATUS_FAILED;
+                        break;
+                    }
+
+                    /* Advance offsets, dec counters */
+                    pState->cur_file_ofs += pState->read_buf_avail;
+                    pState->comp_remaining -= pState->read_buf_avail;
+                    pState->read_buf_ofs = 0;
+                }
+
+                /* Perform decompression */
+                in_buf_size = (size_t)pState->read_buf_avail;
+                pState->status = tinfl_decompress(&pState->inflator, (const mz_uint8 *)pState->pRead_buf + pState->read_buf_ofs, &in_buf_size, (mz_uint8 *)pState->pWrite_buf, pWrite_buf_cur, &out_buf_size, pState->comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0);
+                pState->read_buf_avail -= in_buf_size;
+                pState->read_buf_ofs += in_buf_size;
+
+                /* Update current output block size remaining */
+                pState->out_blk_remain = out_buf_size;
+            }
+
+            if (pState->out_blk_remain)
+            {
+                /* Calc amount to return. */
+                size_t to_copy = MZ_MIN( (buf_size - copied_to_caller), pState->out_blk_remain );
+
+                /* Copy data to caller's buffer */
+                memcpy( (uint8_t*)pvBuf + copied_to_caller, pWrite_buf_cur, to_copy );
+
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+                /* Perform CRC */
+                pState->file_crc32 = (mz_uint32)mz_crc32(pState->file_crc32, pWrite_buf_cur, to_copy);
+#endif
+
+                /* Decrement data consumed from block */
+                pState->out_blk_remain -= to_copy;
+
+                /* Inc output offset, while performing sanity check */
+                if ((pState->out_buf_ofs += to_copy) > pState->file_stat.m_uncomp_size)
+                {
+                    mz_zip_set_error(pState->pZip, MZ_ZIP_DECOMPRESSION_FAILED);
+                    pState->status = TINFL_STATUS_FAILED;
+                    break;
+                }
+
+                /* Increment counter of data copied to caller */
+                copied_to_caller += to_copy;
+            }
+        } while ( (copied_to_caller < buf_size) && ((pState->status == TINFL_STATUS_NEEDS_MORE_INPUT) || (pState->status == TINFL_STATUS_HAS_MORE_OUTPUT)) );
+    }
+
+    /* Return how many bytes were copied into user buffer */
+    return copied_to_caller;
+}
+
+mz_bool mz_zip_reader_extract_iter_free(mz_zip_reader_extract_iter_state* pState)
+{
+    int status;
+
+    /* Argument sanity check */
+    if ((!pState) || (!pState->pZip) || (!pState->pZip->m_pState))
+        return MZ_FALSE;
+
+    /* Was decompression completed and requested? */
+    if ((pState->status == TINFL_STATUS_DONE) && (!(pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA)))
+    {
+        /* Make sure the entire file was decompressed, and check its CRC. */
+        if (pState->out_buf_ofs != pState->file_stat.m_uncomp_size)
+        {
+            mz_zip_set_error(pState->pZip, MZ_ZIP_UNEXPECTED_DECOMPRESSED_SIZE);
+            pState->status = TINFL_STATUS_FAILED;
+        }
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+        else if (pState->file_crc32 != pState->file_stat.m_crc32)
+        {
+            mz_zip_set_error(pState->pZip, MZ_ZIP_DECOMPRESSION_FAILED);
+            pState->status = TINFL_STATUS_FAILED;
+        }
+#endif
+    }
+
+    /* Free buffers */
+    if (!pState->pZip->m_pState->m_pMem)
+        pState->pZip->m_pFree(pState->pZip->m_pAlloc_opaque, pState->pRead_buf);
+    if (pState->pWrite_buf)
+        pState->pZip->m_pFree(pState->pZip->m_pAlloc_opaque, pState->pWrite_buf);
+
+    /* Save status */
+    status = pState->status;
+
+    /* Free context */
+    pState->pZip->m_pFree(pState->pZip->m_pAlloc_opaque, pState);
+
+    return status == TINFL_STATUS_DONE;
+}
+
 #ifndef MINIZ_NO_STDIO
 static size_t mz_zip_file_write_callback(void *pOpaque, mz_uint64 ofs, const void *pBuf, size_t n)
 {
