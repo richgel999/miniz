@@ -348,8 +348,11 @@ mz_bool mz_zip_end(mz_zip_archive *pZip);
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 
 /* Inits a ZIP archive writer. */
+/*Set pZip->m_pWrite (and pZip->m_pIO_opaque) before calling mz_zip_writer_init or mz_zip_writer_init_v2*/
+/*The output is streamable, i.e. file_ofs in mz_file_write_func always increases only by n*/
 mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size);
 mz_bool mz_zip_writer_init_v2(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags);
+
 mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size);
 mz_bool mz_zip_writer_init_heap_v2(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags);
 
