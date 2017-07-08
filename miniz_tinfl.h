@@ -117,6 +117,8 @@ typedef struct
 
 #if MINIZ_HAS_64BIT_REGISTERS
 #define TINFL_USE_64BIT_BITBUF 1
+#else
+#define TINFL_USE_64BIT_BITBUF 0
 #endif
 
 #if TINFL_USE_64BIT_BITBUF
