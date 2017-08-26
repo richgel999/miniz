@@ -1,4 +1,4 @@
-PROJECT(miniz)
+PROJECT(miniz C)
 cmake_minimum_required(VERSION 2.8)
 if(CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
