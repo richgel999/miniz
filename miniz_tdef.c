@@ -1334,6 +1334,8 @@ tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_fun
     d->m_pSrc = NULL;
     d->m_src_buf_left = 0;
     d->m_out_buf_ofs = 0;
+    if (!(flags & TDEFL_NONDETERMINISTIC_PARSING_FLAG))
+        MZ_CLEAR_OBJ(d->m_dict);
     memset(&d->m_huff_count[0][0], 0, sizeof(d->m_huff_count[0][0]) * TDEFL_MAX_HUFF_SYMBOLS_0);
     memset(&d->m_huff_count[1][0], 0, sizeof(d->m_huff_count[1][0]) * TDEFL_MAX_HUFF_SYMBOLS_1);
     return TDEFL_STATUS_OKAY;
