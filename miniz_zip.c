@@ -649,6 +649,62 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
     cdir_size = MZ_READ_LE32(pBuf + MZ_ZIP_ECDH_CDIR_SIZE_OFS);
     cdir_ofs = MZ_READ_LE32(pBuf + MZ_ZIP_ECDH_CDIR_OFS_OFS);
 
+    // ZIP files may contain more files, than "Total number of central directory records" in the EOCD can hold.
+    // Thus iterate through central directory for the real number of files. Sanity checks will be done later nevertheless.
+    // TODO: This is slow...
+    if( !pZip->m_pState->m_zip64 )
+    {
+        mz_uint8 buf[MZ_ZIP_CENTRAL_DIR_HEADER_SIZE], *p = buf;
+        mz_uint32 total_files = 0;
+        mz_bool ok = MZ_FALSE;
+        mz_uint32 ofs = 0;
+
+        while( ofs < cdir_size )
+        {
+            mz_uint32 bytes_to_read = MZ_MIN(cdir_size - ofs, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE);
+
+            if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs + ofs, buf, bytes_to_read ) != bytes_to_read)
+                return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
+
+            switch( MZ_READ_LE32(p) )
+            {
+                case MZ_ZIP_CENTRAL_DIR_HEADER_SIG:
+                    if( MZ_READ_LE16(p + MZ_ZIP_CDH_DISK_START_OFS) == 0 )
+                        total_files++;
+                    else
+                        p = NULL;
+                    break;
+
+                case MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG:
+                    if( bytes_to_read == MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE )
+                        ok = MZ_TRUE;
+                    p = NULL;
+                    break;
+
+                default:
+                    p = NULL;
+                    break;
+            }
+
+            if(p)
+            {
+                mz_uint32 total_header_size = MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + 
+                                              MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS) + 
+                                              MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS) + 
+                                              MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS);
+                ofs += total_header_size;
+
+                if( ofs == cdir_size )
+                    ok = MZ_TRUE;
+            }
+        }
+
+        if(ok)
+        {
+            pZip->m_total_files = cdir_entries_on_this_disk = total_files;
+        }
+    }
+
     if (pZip->m_pState->m_zip64)
     {
         mz_uint32 zip64_total_num_of_disks = MZ_READ_LE32(pZip64_locator + MZ_ZIP64_ECDL_TOTAL_NUMBER_OF_DISKS_OFS);
