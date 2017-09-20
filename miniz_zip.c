@@ -649,57 +649,95 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
     cdir_size = MZ_READ_LE32(pBuf + MZ_ZIP_ECDH_CDIR_SIZE_OFS);
     cdir_ofs = MZ_READ_LE32(pBuf + MZ_ZIP_ECDH_CDIR_OFS_OFS);
 
-    // ZIP files may contain more files, than "Total number of central directory records" in the EOCD can hold.
-    // Thus iterate through central directory for the real number of files. Sanity checks will be done later nevertheless.
-    // TODO: This is slow...
+    /* 
+    ZIP files may contain more files, than "Total number of central directory records" in the EOCD can hold.
+    Thus iterate through central directory for the truthful number of files. Sanity checks will be done later nevertheless.
+    */
     if( !pZip->m_pState->m_zip64 )
     {
-        mz_uint8 buf[MZ_ZIP_CENTRAL_DIR_HEADER_SIZE], *p = buf;
+        mz_uint8 *buf_ptr = pBuf;
+        mz_uint32 buf_remain = 0;
         mz_uint32 total_files = 0;
-        mz_bool ok = MZ_FALSE;
         mz_uint32 ofs = 0;
+        mz_bool done = MZ_FALSE;
+        
+        MZ_ASSERT( sizeof(buf_u32) > MZ_ZIP_CENTRAL_DIR_HEADER_SIZE );
 
-        while( ofs < cdir_size )
+        while( buf_ptr && ofs < cdir_size && done != MZ_TRUE )
         {
-            mz_uint32 bytes_to_read = MZ_MIN(cdir_size - ofs, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE);
+            mz_uint32 cdh_signature = 0;
+            mz_uint32 cdh_size = 0;
+            mz_bool need_data = MZ_FALSE;
 
-            if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs + ofs, buf, bytes_to_read ) != bytes_to_read)
-                return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
-
-            switch( MZ_READ_LE32(p) )
+            /* Try to get the current header size */
+            if( buf_remain > sizeof(mz_uint32) )
             {
-                case MZ_ZIP_CENTRAL_DIR_HEADER_SIG:
-                    if( MZ_READ_LE16(p + MZ_ZIP_CDH_DISK_START_OFS) == 0 )
-                        total_files++;
-                    else
-                        p = NULL;
-                    break;
+                cdh_signature = MZ_READ_LE32(buf_ptr);
 
-                case MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG:
-                    if( bytes_to_read == MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE )
-                        ok = MZ_TRUE;
-                    p = NULL;
-                    break;
+                switch( cdh_signature )
+                {
+                    case MZ_ZIP_CENTRAL_DIR_HEADER_SIG:
+                        if( buf_remain >= MZ_ZIP_CENTRAL_DIR_HEADER_SIZE )
+                        {
+                            if( MZ_READ_LE16(buf_ptr + MZ_ZIP_CDH_DISK_START_OFS) == 0 )
+                            {
+                                cdh_size = MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + 
+                                           MZ_READ_LE16(buf_ptr + MZ_ZIP_CDH_FILENAME_LEN_OFS) + 
+                                           MZ_READ_LE16(buf_ptr + MZ_ZIP_CDH_EXTRA_LEN_OFS) + 
+                                           MZ_READ_LE16(buf_ptr + MZ_ZIP_CDH_COMMENT_LEN_OFS);
+                                total_files++;
+                            }
+                            else buf_ptr = NULL;  /* fail */
+                        }
+                        break;
 
-                default:
-                    p = NULL;
-                    break;
+                    case MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG:
+                        if( cdir_size - ofs >= MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE )
+                        {
+                            done = MZ_TRUE;
+                        }
+                        else buf_ptr = NULL;  /* fail */
+                        break;
+
+                    default:
+                        buf_ptr = NULL;  // fail
+                        break;
+                }
             }
 
-            if(p)
+            if( buf_ptr && done != MZ_TRUE )
             {
-                mz_uint32 total_header_size = MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + 
-                                              MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS) + 
-                                              MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS) + 
-                                              MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS);
-                ofs += total_header_size;
+                if( !cdh_size )
+                    need_data = MZ_TRUE;
+                else
+                {
+                    ofs += cdh_size;
+                    if( cdh_size < buf_remain )
+                    {
+                        buf_ptr += cdh_size;
+                        buf_remain -= cdh_size;
+                    }
+                    else need_data = MZ_TRUE;
+                }
 
-                if( ofs == cdir_size )
-                    ok = MZ_TRUE;
+                if( need_data )
+                {
+                    mz_uint32 bytes_to_read = MZ_MIN( sizeof(buf_u32), cdir_size - ofs );
+
+                    if( bytes_to_read )
+                    {
+                        if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs + ofs, pBuf, bytes_to_read ) != bytes_to_read )
+                            return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
+
+                        buf_ptr = pBuf;
+                        buf_remain = bytes_to_read;
+                    }
+                    else done = (total_files > 0) ? MZ_TRUE : MZ_FALSE;
+                }
             }
         }
 
-        if(ok)
+        if( done )
         {
             pZip->m_total_files = cdir_entries_on_this_disk = total_files;
         }
