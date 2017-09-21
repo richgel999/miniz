@@ -700,7 +700,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
                         break;
 
                     default:
-                        buf_ptr = NULL;  // fail
+                        buf_ptr = NULL;  /* fail */
                         break;
                 }
             }
