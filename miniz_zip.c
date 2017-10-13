@@ -62,6 +62,12 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 #define MZ_FWRITE fwrite
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
+#ifdef WIN32
+#define MZ_FTRUNCATE64(f, size) _chsize(fileno(f), size)
+#else
+#include <unistd.h>
+#define MZ_FTRUNCATE64(f, size) ftruncate(fileno(f), size)
+#endif
 #define MZ_FILE_STAT_STRUCT _stat
 #define MZ_FILE_STAT _stat
 #define MZ_FFLUSH fflush
@@ -2625,6 +2631,16 @@ static mz_bool mz_zip_writer_end_internal(mz_zip_archive *pZip, mz_bool set_last
 #ifndef MINIZ_NO_STDIO
     if (pState->m_pFile)
     {
+        MZ_FSEEK64(pState->m_pFile, 0, SEEK_END);
+        mz_uint64 file_size = MZ_FTELL64(pState->m_pFile);
+        if (pZip->m_archive_size < file_size)
+        {
+            if (MZ_FTRUNCATE64(pState->m_pFile, pZip->m_archive_size) < 0)
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
+            }
+        }
+
         if (pZip->m_zip_type == MZ_ZIP_TYPE_FILE)
         {
             if (MZ_FCLOSE(pState->m_pFile) == EOF)
@@ -3196,9 +3212,9 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     {
         /* Bail early if the archive would obviously become too large */
         if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size 
-			+ MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len + 
-			pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + user_extra_data_central_len
-			+ MZ_ZIP_DATA_DESCRIPTER_SIZE32) > 0xFFFFFFFF)
+            + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len + 
+            pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + user_extra_data_central_len
+            + MZ_ZIP_DATA_DESCRIPTER_SIZE32) > 0xFFFFFFFF)
         {
             pState->m_zip64 = MZ_TRUE;
             /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */
@@ -3466,8 +3482,8 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
     {
         /* Bail early if the archive would obviously become too large */
         if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE 
-			+ archive_name_size + comment_size + user_extra_data_len + pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + 1024
-			+ MZ_ZIP_DATA_DESCRIPTER_SIZE32 + user_extra_data_central_len) > 0xFFFFFFFF)
+            + archive_name_size + comment_size + user_extra_data_len + pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + 1024
+            + MZ_ZIP_DATA_DESCRIPTER_SIZE32 + user_extra_data_central_len) > 0xFFFFFFFF)
         {
             pState->m_zip64 = MZ_TRUE;
             /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */
@@ -4016,10 +4032,10 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *
         {
             /* src is zip64, dest must be zip64 */
 
-            /* name			uint32_t's */
-            /* id				1 (optional in zip64?) */
-            /* crc			1 */
-            /* comp_size	2 */
+            /* name            uint32_t's */
+            /* id                1 (optional in zip64?) */
+            /* crc            1 */
+            /* comp_size    2 */
             /* uncomp_size 2 */
             if (pSource_zip->m_pRead(pSource_zip->m_pIO_opaque, cur_src_file_ofs, pBuf, (sizeof(mz_uint32) * 6)) != (sizeof(mz_uint32) * 6))
             {
@@ -4431,6 +4447,118 @@ void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char 
 {
     return mz_zip_extract_archive_file_to_heap_v2(pZip_filename, pArchive_name, NULL, pSize, flags, NULL);
 }
+
+
+mz_bool mz_zip_remove_archive_file_in_place(const char *pZip_filename, const char *pArchive_name, mz_uint level_and_flags, mz_zip_error *pErr)
+{
+    mz_bool status = MZ_TRUE, created_new_archive = MZ_FALSE;
+    mz_zip_archive zip_archive;
+    mz_zip_error actual_err = MZ_ZIP_NO_ERROR;
+
+    mz_zip_zero_struct(&zip_archive);
+    if ((int)level_and_flags < 0)
+        level_and_flags = MZ_DEFAULT_LEVEL;
+
+    if ((!pZip_filename) || (!pArchive_name) || ((level_and_flags & 0xF) > MZ_UBER_COMPRESSION))
+    {
+        if (pErr)
+            *pErr = MZ_ZIP_INVALID_PARAMETER;
+        return MZ_FALSE;
+    }
+
+    if (!mz_zip_writer_validate_archive_name(pArchive_name))
+    {
+        if (pErr)
+            *pErr = MZ_ZIP_INVALID_FILENAME;
+        return MZ_FALSE;
+    }
+
+    if (!mz_zip_reader_init_file_v2(&zip_archive, pZip_filename, level_and_flags | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0))
+    {
+        if (pErr)
+            *pErr = zip_archive.m_last_error;
+        return MZ_FALSE;
+    }
+
+    if (!mz_zip_writer_init_from_reader_v2(&zip_archive, pZip_filename, level_and_flags))
+    {
+        if (pErr)
+            *pErr = zip_archive.m_last_error;
+
+        mz_zip_reader_end_internal(&zip_archive, MZ_FALSE);
+
+        return MZ_FALSE;
+    }
+
+    int index = mz_zip_reader_locate_file(&zip_archive, pArchive_name, NULL, level_and_flags);
+
+    // if index < 0, it means the file isn't in the archive. Then, we're not removing anything, and we keep going without any error.
+    if (index >= 0)
+    {
+        mz_zip_archive_file_stat stat1;
+        mz_int64 stat2_ofs, shift;
+        mz_zip_reader_file_stat(&zip_archive, index, &stat1);
+
+        if (index == zip_archive.m_total_files - 1)
+        {
+            stat2_ofs = zip_archive.m_pState->m_central_dir.m_size;
+        }
+        else
+        {
+            mz_zip_archive_file_stat stat2;
+            mz_zip_reader_file_stat(&zip_archive, index+1, &stat2);
+            stat2_ofs = stat2.m_central_dir_ofs;
+        }
+        shift = stat2_ofs - stat1.m_central_dir_ofs;
+
+        zip_archive.m_total_files--;
+        //zip_archive.m_archive_size -= shift;
+        memmove(
+                    (char*)zip_archive.m_pState->m_central_dir_offsets.m_p + index * sizeof(mz_uint32),
+                    (char*)zip_archive.m_pState->m_central_dir_offsets.m_p + (index + 1) * sizeof(mz_uint32),
+                    (zip_archive.m_pState->m_central_dir_offsets.m_size - index - 1) * sizeof(mz_uint32)
+                    );
+        zip_archive.m_pState->m_central_dir_offsets.m_size--;
+
+        memmove(
+                    (char*)zip_archive.m_pState->m_central_dir.m_p + stat1.m_central_dir_ofs,
+                    (char*)zip_archive.m_pState->m_central_dir.m_p + stat2_ofs,
+                    zip_archive.m_pState->m_central_dir.m_size - stat2_ofs
+                    );
+        zip_archive.m_pState->m_central_dir.m_size -= shift;
+    }
+
+    /* Always finalize, even if adding failed for some reason, so we have a valid central directory. (This may not always succeed, but we can try.) */
+    if (!mz_zip_writer_finalize_archive(&zip_archive))
+    {
+        if (!actual_err)
+            actual_err = zip_archive.m_last_error;
+
+        status = MZ_FALSE;
+    }
+
+    if (!mz_zip_writer_end_internal(&zip_archive, status))
+    {
+        if (!actual_err)
+            actual_err = zip_archive.m_last_error;
+
+        status = MZ_FALSE;
+    }
+
+    if ((!status) && (created_new_archive))
+    {
+        /* It's a new archive and something went wrong, so just delete it. */
+        int ignoredStatus = MZ_DELETE_FILE(pZip_filename);
+        (void)ignoredStatus;
+    }
+
+    if (pErr)
+        *pErr = actual_err;
+
+    return status;
+}
+
+
 
 #endif /* #ifndef MINIZ_NO_STDIO */
 
