@@ -428,6 +428,12 @@ mz_bool mz_zip_add_mem_to_archive_file_in_place_v2(const char *pZip_filename, co
 void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint flags);
 void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr);
 
+/* Remove a single file from an archive. 
+ * If the file is present multiple times within the archive, only the first occurence will be removed.
+ */
+mz_bool mz_zip_remove_archive_file_in_place(const char *pZip_filename, const char *pArchive_name, mz_uint level_and_flags, mz_zip_error *pErr);
+
+
 #endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS */
 
 #ifdef __cplusplus
