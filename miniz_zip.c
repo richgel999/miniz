@@ -978,7 +978,10 @@ mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename, 
     /* TODO: Better sanity check archive_size and the # of actual remaining bytes */
 
     if (file_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
+    {
+	MZ_FCLOSE(pFile);
         return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
+    }
 
     if (!mz_zip_reader_init_internal(pZip, flags))
     {
