@@ -3131,14 +3131,15 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
     mz_uint16 bit_flags = 0;
 
+    if ((int)level_and_flags < 0)
+        level_and_flags = MZ_DEFAULT_LEVEL;
+
     if (uncomp_size || (buf_size && !(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA)))
         bit_flags |= MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR;
 
     if (!(level_and_flags & MZ_ZIP_FLAG_ASCII_FILENAME))
         bit_flags |= MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8;
 
-    if ((int)level_and_flags < 0)
-        level_and_flags = MZ_DEFAULT_LEVEL;
     level = level_and_flags & 0xF;
     store_data_uncompressed = ((!level) || (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA));
 
