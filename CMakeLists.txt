@@ -38,3 +38,10 @@ endif()
 
 # add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
 # target_link_libraries(miniz_tester miniz)
+
+install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+    ARCHIVE  DESTINATION lib
+    LIBRARY DESTINATION lib
+    )
+file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+install(FILES ${INSTALL_HEADERS} DESTINATION include/${PROJECT_NAME})
