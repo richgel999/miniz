@@ -235,7 +235,7 @@ enum
 };
 
 #define MZ_VERSION "10.0.2"
-#define MZ_VERNUM 0xA011
+#define MZ_VERNUM 0xA020
 #define MZ_VER_MAJOR 10
 #define MZ_VER_MINOR 0
 #define MZ_VER_REVISION 2
