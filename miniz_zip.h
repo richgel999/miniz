@@ -237,13 +237,6 @@ MZ_FILE *mz_zip_get_cfile(mz_zip_archive *pZip);
 /* Reads n bytes of raw archive data, starting at file offset file_ofs, to pBuf. */
 size_t mz_zip_read_archive_data(mz_zip_archive *pZip, mz_uint64 file_ofs, void *pBuf, size_t n);
 
-/* Attempts to locates a file in the archive's central directory. */
-/* Valid flags: MZ_ZIP_FLAG_CASE_SENSITIVE, MZ_ZIP_FLAG_IGNORE_PATH */
-/* Returns -1 if the file cannot be found. */
-int mz_zip_locate_file(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags);
-/* Returns MZ_FALSE if the file cannot be found. */
-mz_bool mz_zip_locate_file_v2(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags, mz_uint32 *pIndex);
-
 /* All mz_zip funcs set the m_last_error field in the mz_zip_archive struct. These functions retrieve/manipulate this field. */
 /* Note that the m_last_error functionality is not thread safe. */
 mz_zip_error mz_zip_set_last_error(mz_zip_archive *pZip, mz_zip_error err_num);
