@@ -1,5 +1,33 @@
 ## Changelog
 
+### 2.0.8
+
+ - Remove unimplemented functions (mz_zip_locate_file and mz_zip_locate_file_v2)
+ - Add license, changelog, readme and example files to release zip
+
+### 2.0.7
+
+ - Removed need in C++ compiler in cmake build
+ - Fixed loads of uninitilized value errors found with Valgrind by memsetting m_dict to 0 in tdefl_init.
+ - Fix resource leak in mz_zip_reader_init_file_v2
+ - Fix assert with mz_zip_writer_add_mem* w/MZ_DEFAULT_COMPRESSION
+ - cmake build: install library and headers
+ - Remove _LARGEFILE64_SOURCE requirement from apple defines for large files
+
+### 2.0.6
+
+ - Improve MZ_ZIP_FLAG_WRITE_ZIP64 documentation
+ - Remove check for cur_archive_file_ofs > UINT_MAX, because cur_archive_file_ofs is not used after this point
+ - Add cmake debug configuration
+ - Fix PNG height when creating png files
+ - Add "iterative" file extraction method based on mz_zip_reader_extract_to_callback.
+ - Option to use memcpy for unaligned data access
+ - Define processor/arch macros as zero if not set to one
+
+### 2.0.4/2.0.5
+
+ - Fix compilation with the various omission compile definitions
+
 ### 2.0.3
 
 - Fix GCC/clang compile warnings
