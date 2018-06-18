@@ -540,18 +540,19 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     }
                 }
 #endif
-                do
+                while(counter>2)
                 {
                     pOut_buf_cur[0] = pSrc[0];
                     pOut_buf_cur[1] = pSrc[1];
                     pOut_buf_cur[2] = pSrc[2];
                     pOut_buf_cur += 3;
                     pSrc += 3;
-                } while ((int)(counter -= 3) > 2);
-                if ((int)counter > 0)
+					counter -= 3;
+                }
+                if (counter > 0)
                 {
                     pOut_buf_cur[0] = pSrc[0];
-                    if ((int)counter > 1)
+                    if (counter > 1)
                         pOut_buf_cur[1] = pSrc[1];
                     pOut_buf_cur += counter;
                 }
