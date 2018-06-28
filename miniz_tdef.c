@@ -740,15 +740,15 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
 static inline mz_uint16 TDEFL_READ_UNALIGNED_WORD(const mz_uint8* p)
 {
-	mz_uint16 ret;
-	memcpy(&ret, p, sizeof(mz_uint16));
-	return ret;
+    mz_uint16 ret;
+    memcpy(&ret, p, sizeof(mz_uint16));
+    return ret;
 }
 static inline mz_uint16 TDEFL_READ_UNALIGNED_WORD2(const mz_uint16* p)
 {
-	mz_uint16 ret;
-	memcpy(&ret, p, sizeof(mz_uint16));
-	return ret;
+    mz_uint16 ret;
+    memcpy(&ret, p, sizeof(mz_uint16));
+    return ret;
 }
 #else
 #define TDEFL_READ_UNALIGNED_WORD(p) *(const mz_uint16 *)(p)
