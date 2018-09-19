@@ -4,6 +4,8 @@
 
  - Remove unimplemented functions (mz_zip_locate_file and mz_zip_locate_file_v2)
  - Add license, changelog, readme and example files to release zip
+ - Fix heap overflow to user buffer in tinfl_status tinfl_decompress
+ - Fix corrupt archive if uncompressed file smaller than 4 byte and file is added by mz_zip_writer_add_mem*
 
 ### 2.0.7
 
