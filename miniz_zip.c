@@ -3255,7 +3255,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
 
     MZ_CLEAR_OBJ(local_dir_header);
 
-    if (!store_data_uncompressed || (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
+    if ((!store_data_uncompressed && buf_size >= 4) || (level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
     {
         method = MZ_DEFLATED;
     }
