@@ -2377,7 +2377,7 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
     /* I've seen zips in the wild with the data descriptor bit set, but proper local header values and bogus data descriptors */
     if ((has_data_descriptor) && (!local_header_comp_size) && (!local_header_crc32))
     {
-        mz_uint8 descriptor_buf[32];
+        mz_uint32 descriptor_buf[(32 / sizeof(mz_uint32))];
         mz_bool has_id;
         const mz_uint8 *pSrc;
         mz_uint32 file_crc32;
@@ -2391,8 +2391,8 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
             goto handle_failure;
         }
 
-        has_id = (MZ_READ_LE32(descriptor_buf) == MZ_ZIP_DATA_DESCRIPTOR_ID);
-        pSrc = has_id ? (descriptor_buf + sizeof(mz_uint32)) : descriptor_buf;
+        has_id = (mz_bool)(MZ_READ_LE32(descriptor_buf) == MZ_ZIP_DATA_DESCRIPTOR_ID);
+        pSrc = ((has_id) ? (mz_uint8*)(descriptor_buf + sizeof(mz_uint32)) : (mz_uint8*)descriptor_buf);
 
         file_crc32 = MZ_READ_LE32(pSrc);
 

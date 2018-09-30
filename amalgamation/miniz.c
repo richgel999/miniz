@@ -1379,6 +1379,10 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
     mz_uint dist, pos = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK, match_len = *pMatch_len, probe_pos = pos, next_probe_pos, probe_len;
     mz_uint num_probes_left = d->m_max_probes[match_len >= 32];
     const mz_uint16 *s = (const mz_uint16 *)(d->m_dict + pos), *p, *q;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
     mz_uint16 c01 = TDEFL_READ_UNALIGNED_WORD(&d->m_dict[pos + match_len - 1]), s01 = TDEFL_READ_UNALIGNED_WORD2(s);
     MZ_ASSERT(max_match_len <= TDEFL_MAX_MATCH_LEN);
     if (max_match_len <= match_len)
@@ -1423,9 +1427,10 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
             *pMatch_dist = dist;
             if ((*pMatch_len = match_len = MZ_MIN(max_match_len, probe_len)) == max_match_len)
                 break;
-            c01 = TDEFL_READ_UNALIGNED_WORD(&d->m_dict[pos + match_len - 1]);
+            c01 = TDEFL_READ_UNALIGNED_WORD(&d->m_dict[pos + match_len - 1U]);
         }
     }
+#pragma GCC diagnostic pop
 }
 #else
 static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist, mz_uint max_match_len, mz_uint *pMatch_dist, mz_uint *pMatch_len)
@@ -1513,8 +1518,12 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
             mz_uint probe_pos = d->m_hash[hash];
             d->m_hash[hash] = (mz_uint16)lookahead_pos;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
             if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <= dict_size) && ((*(const mz_uint32 *)(d->m_dict + (probe_pos &= TDEFL_LZ_DICT_SIZE_MASK)) & 0xFFFFFF) == first_trigram))
             {
+#pragma GCC diagnostic pop
                 const mz_uint16 *p = (const mz_uint16 *)pCur_dict;
                 const mz_uint16 *q = (const mz_uint16 *)(d->m_dict + probe_pos);
                 mz_uint32 probe_len = 32;
@@ -5310,7 +5319,7 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
     /* I've seen zips in the wild with the data descriptor bit set, but proper local header values and bogus data descriptors */
     if ((has_data_descriptor) && (!local_header_comp_size) && (!local_header_crc32))
     {
-        mz_uint8 descriptor_buf[32];
+        mz_uint32 descriptor_buf[(32 / sizeof(mz_uint32))];
         mz_bool has_id;
         const mz_uint8 *pSrc;
         mz_uint32 file_crc32;
@@ -5324,8 +5333,8 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
             goto handle_failure;
         }
 
-        has_id = (MZ_READ_LE32(descriptor_buf) == MZ_ZIP_DATA_DESCRIPTOR_ID);
-        pSrc = has_id ? (descriptor_buf + sizeof(mz_uint32)) : descriptor_buf;
+        has_id = (mz_bool)(MZ_READ_LE32(descriptor_buf) == MZ_ZIP_DATA_DESCRIPTOR_ID);
+        pSrc = ((has_id) ? (mz_uint8*)(descriptor_buf + sizeof(mz_uint32)) : (mz_uint8*)descriptor_buf);
 
         file_crc32 = MZ_READ_LE32(pSrc);
 
