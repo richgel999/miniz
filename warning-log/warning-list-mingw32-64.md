@@ -1,3 +1,4 @@
+````
 /home/admin/main_daemon/miniz/miniz_tinfl.c:101:33: warning: conversion to 'tinfl_bit_buf_t' from 'int' may change the sign of the result [-Wsign-conversion]
          b = (mz_uint32)(bit_buf & ((1 << (n)) - 1));      \
                                  ^
@@ -565,4 +566,4 @@ Scanning dependencies of target example6
                   ^
 Linking C executable ../../bin/example6.exe
 [100%] Built target example6
-Press any key to continue...
+````
