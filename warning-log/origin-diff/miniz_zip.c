@@ -24,8 +24,6 @@
  * THE SOFTWARE.
  *
  **************************************************************************/
-
-#include "miniz-warning-off.h"
 #include "miniz_zip.h"
 
 #ifndef MINIZ_NO_ARCHIVE_APIS
@@ -42,9 +40,6 @@ extern "C" {
 #include <sys/stat.h>
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
-#   if defined(__MINGW64__)
-errno_t freopen_s(FILE**, const char*, const char*, FILE*);
-#   endif
 static FILE *mz_fopen(const char *pFilename, const char *pMode)
 {
     FILE *pFile = NULL;
@@ -59,52 +54,38 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
     return pFile;
 }
 #ifndef MINIZ_NO_TIME
-#  include <sys/utime.h>
+#include <sys/utime.h>
 #endif
-
 #define MZ_FOPEN mz_fopen
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
 #define MZ_FTELL64 _ftelli64
-#define MZ_FSEEK64(A,B,C) _fseeki64(A,(__int64)B,C)
+#define MZ_FSEEK64 _fseeki64
 #define MZ_FILE_STAT_STRUCT _stat
 #define MZ_FILE_STAT _stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
-
 #elif defined(__MINGW32__)
-
 #ifndef MINIZ_NO_TIME
-#  include <sys/utime.h>
+#include <sys/utime.h>
 #endif
-
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
-
-//#define MZ_FTELL64 _ftelli64
-//#define MZ_FSEEK64 _fseeki64
-
 #define MZ_FTELL64 ftello64
-off64_t ftello64(FILE*);
-#define MZ_FSEEK64(A,B,C) fseeko64(A,(off64_t)B,(int)C)
-int fseeko64(FILE*, off64_t, int);
-
+#define MZ_FSEEK64 fseeko64
 #define MZ_FILE_STAT_STRUCT _stat
 #define MZ_FILE_STAT _stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
-
 #elif defined(__TINYC__)
-
 #ifndef MINIZ_NO_TIME
-#  include <sys/utime.h>
+#include <sys/utime.h>
 #endif
-
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -116,13 +97,10 @@ int fseeko64(FILE*, off64_t, int);
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
-
 #elif defined(__GNUC__) && _LARGEFILE64_SOURCE
-
 #ifndef MINIZ_NO_TIME
-#  include <utime.h>
+#include <utime.h>
 #endif
-
 #define MZ_FOPEN(f, m) fopen64(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -134,13 +112,10 @@ int fseeko64(FILE*, off64_t, int);
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
 #define MZ_DELETE_FILE remove
-
 #elif defined(__APPLE__)
-
 #ifndef MINIZ_NO_TIME
-#  include <utime.h>
+#include <utime.h>
 #endif
-
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -154,11 +129,7 @@ int fseeko64(FILE*, off64_t, int);
 #define MZ_DELETE_FILE remove
 
 #else
-
-#if !defined(__NO_WARN_PRAGMA)
-#  pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
-#endif
-
+#pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
@@ -166,15 +137,13 @@ int fseeko64(FILE*, off64_t, int);
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
-
-#  ifdef __STRICT_ANSI__
-#    define MZ_FTELL64 ftell
-#    define MZ_FSEEK64(A,B,C) fseek(A,(long int)B,C)
-#  else
-#    define MZ_FTELL64 ftello
-#    define MZ_FSEEK64(A,B,C) fseeko(A,(off_t)B,C)
-#  endif
-
+#ifdef __STRICT_ANSI__
+#define MZ_FTELL64 ftell
+#define MZ_FSEEK64 fseek
+#else
+#define MZ_FTELL64 ftello
+#define MZ_FSEEK64 fseeko
+#endif
 #define MZ_FILE_STAT_STRUCT stat
 #define MZ_FILE_STAT stat
 #define MZ_FFLUSH fflush
@@ -309,7 +278,7 @@ struct mz_zip_internal_state_tag
 #define MZ_ZIP_ARRAY_SET_ELEMENT_SIZE(array_ptr, element_size) (array_ptr)->m_element_size = element_size
 
 #if defined(DEBUG) || defined(_DEBUG) || defined(NDEBUG)
-static MZ_FORCEINLINE mz_uint mz_zip_array_range_check(__attribute__((unused)) const mz_zip_array *pArray, mz_uint index)
+static MZ_FORCEINLINE mz_uint mz_zip_array_range_check(const mz_zip_array *pArray, mz_uint index)
 {
     MZ_ASSERT(index < pArray->m_size);
     return index;
@@ -504,7 +473,7 @@ static MZ_FORCEINLINE mz_bool mz_zip_reader_filename_less(const mz_zip_array *pC
     pE = pL + MZ_MIN(l_len, r_len);
     while (pL < pE)
     {
-        if ((l = (mz_uint8)(MZ_TOLOWER(*pL))) != (r = (mz_uint8)(MZ_TOLOWER(*pR))))
+        if ((l = MZ_TOLOWER(*pL)) != (r = MZ_TOLOWER(*pR)))
             break;
         pL++;
         pR++;
@@ -588,9 +557,9 @@ static mz_bool mz_zip_reader_locate_header_sig(mz_zip_archive *pZip, mz_uint32 r
     cur_file_ofs = MZ_MAX((mz_int64)pZip->m_archive_size - (mz_int64)sizeof(buf_u32), 0);
     for (;;)
     {
-        int i, n = (int)MZ_MIN(sizeof(buf_u32), pZip->m_archive_size - (mz_uint64)cur_file_ofs);
+        int i, n = (int)MZ_MIN(sizeof(buf_u32), pZip->m_archive_size - cur_file_ofs);
 
-        if (pZip->m_pRead(pZip->m_pIO_opaque, (mz_uint64)cur_file_ofs, pBuf, (size_t)n) != (mz_uint)n)
+        if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pBuf, n) != (mz_uint)n)
             return MZ_FALSE;
 
         for (i = n - 4; i >= 0; --i)
@@ -598,7 +567,7 @@ static mz_bool mz_zip_reader_locate_header_sig(mz_zip_archive *pZip, mz_uint32 r
             mz_uint s = MZ_READ_LE32(pBuf + i);
             if (s == record_sig)
             {
-                if ((pZip->m_archive_size - (mz_uint64)(cur_file_ofs + i)) >= record_size)
+                if ((pZip->m_archive_size - (cur_file_ofs + i)) >= record_size)
                     break;
             }
         }
@@ -610,10 +579,10 @@ static mz_bool mz_zip_reader_locate_header_sig(mz_zip_archive *pZip, mz_uint32 r
         }
 
         /* Give up if we've searched the entire file, or we've gone back "too far" (~64kb) */
-        if ((!cur_file_ofs) || ((pZip->m_archive_size - (mz_uint64)cur_file_ofs) >= (MZ_UINT16_MAX + record_size)))
+        if ((!cur_file_ofs) || ((pZip->m_archive_size - cur_file_ofs) >= (MZ_UINT16_MAX + record_size)))
             return MZ_FALSE;
 
-        cur_file_ofs = MZ_MAX(cur_file_ofs - (mz_int64)(sizeof(buf_u32) - 3U), 0);
+        cur_file_ofs = MZ_MAX(cur_file_ofs - (sizeof(buf_u32) - 3), 0);
     }
 
     *pOfs = cur_file_ofs;
@@ -646,7 +615,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
         return mz_zip_set_error(pZip, MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
 
     /* Read and verify the end of central directory record. */
-    if (pZip->m_pRead(pZip->m_pIO_opaque, (mz_uint64)cur_file_ofs, pBuf, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) != MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
+    if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pBuf, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) != MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
         return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
 
     if (MZ_READ_LE32(pBuf + MZ_ZIP_ECDH_SIG_OFS) != MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG)
@@ -654,7 +623,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
 
     if (cur_file_ofs >= (MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE + MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE))
     {
-        if (pZip->m_pRead(pZip->m_pIO_opaque, (mz_uint64)(cur_file_ofs - MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE), pZip64_locator, MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE) == MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE)
+        if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs - MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE, pZip64_locator, MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE) == MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE)
         {
             if (MZ_READ_LE32(pZip64_locator + MZ_ZIP64_ECDL_SIG_OFS) == MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIG)
             {
@@ -804,7 +773,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
                         }
 
                         pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
-                        extra_size_remaining = (mz_uint32)(extra_size_remaining - sizeof(mz_uint16) * 2U - field_data_size);
+                        extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                     } while (extra_size_remaining);
                 }
             }
@@ -830,7 +799,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
             if (bit_flags & MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_LOCAL_DIR_IS_MASKED)
                 return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_ENCRYPTION);
 
-            if ((total_header_size = (mz_uint)MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS) + MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS) + MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS)) > n)
+            if ((total_header_size = MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS) + MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS) + MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS)) > n)
                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
             n -= total_header_size;
@@ -971,12 +940,7 @@ static size_t mz_zip_file_read_func(void *pOpaque, mz_uint64 file_ofs, void *pBu
 
     file_ofs += pZip->m_pState->m_file_archive_start_ofs;
 
-    if (
-        ((mz_int64)file_ofs < 0) ||
-        (
-         ((cur_ofs != (mz_int64)file_ofs)) &&
-         (MZ_FSEEK64(pZip->m_pState->m_pFile, file_ofs, SEEK_SET)))
-        )
+    if (((mz_int64)file_ofs < 0) || (((cur_ofs != (mz_int64)file_ofs)) && (MZ_FSEEK64(pZip->m_pState->m_pFile, (mz_int64)file_ofs, SEEK_SET))))
         return 0;
 
     return MZ_FREAD(pBuf, 1, n, pZip->m_pState->m_pFile);
@@ -1008,7 +972,7 @@ mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename, 
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_SEEK_FAILED);
         }
 
-        file_size = (mz_uint64)MZ_FTELL64(pFile);
+        file_size = MZ_FTELL64(pFile);
     }
 
     /* TODO: Better sanity check archive_size and the # of actual remaining bytes */
@@ -1048,14 +1012,14 @@ mz_bool mz_zip_reader_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint64
     if ((!pZip) || (!pFile))
         return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
 
-    cur_file_ofs = (mz_uint64)MZ_FTELL64(pFile);
+    cur_file_ofs = MZ_FTELL64(pFile);
 
     if (!archive_size)
     {
         if (MZ_FSEEK64(pFile, 0, SEEK_END))
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_SEEK_FAILED);
 
-        archive_size = (mz_uint64)MZ_FTELL64(pFile) - cur_file_ofs;
+        archive_size = MZ_FTELL64(pFile) - cur_file_ofs;
 
         if (archive_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
             return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
@@ -1186,19 +1150,17 @@ static mz_bool mz_zip_file_stat_internal(mz_zip_archive *pZip, mz_uint file_inde
     /* Extract fields from the central directory record. */
     pStat->m_file_index = file_index;
     pStat->m_central_dir_ofs = MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, file_index);
-    pStat->m_version_made_by = (mz_uint16)(MZ_READ_LE16(p + MZ_ZIP_CDH_VERSION_MADE_BY_OFS));
-    pStat->m_version_needed = (mz_uint16)(MZ_READ_LE16(p + MZ_ZIP_CDH_VERSION_NEEDED_OFS));
-    pStat->m_bit_flag = (mz_uint16)(MZ_READ_LE16(p + MZ_ZIP_CDH_BIT_FLAG_OFS));
-    pStat->m_method = (mz_uint16)(MZ_READ_LE16(p + MZ_ZIP_CDH_METHOD_OFS));
+    pStat->m_version_made_by = MZ_READ_LE16(p + MZ_ZIP_CDH_VERSION_MADE_BY_OFS);
+    pStat->m_version_needed = MZ_READ_LE16(p + MZ_ZIP_CDH_VERSION_NEEDED_OFS);
+    pStat->m_bit_flag = MZ_READ_LE16(p + MZ_ZIP_CDH_BIT_FLAG_OFS);
+    pStat->m_method = MZ_READ_LE16(p + MZ_ZIP_CDH_METHOD_OFS);
 #ifndef MINIZ_NO_TIME
-    pStat->m_time = mz_zip_dos_to_time_t(
-                       (int)MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_TIME_OFS),
-                            (int)MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_DATE_OFS));
+    pStat->m_time = mz_zip_dos_to_time_t(MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_TIME_OFS), MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_DATE_OFS));
 #endif
     pStat->m_crc32 = MZ_READ_LE32(p + MZ_ZIP_CDH_CRC32_OFS);
     pStat->m_comp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_COMPRESSED_SIZE_OFS);
     pStat->m_uncomp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS);
-    pStat->m_internal_attr = (mz_uint16)(MZ_READ_LE16(p + MZ_ZIP_CDH_INTERNAL_ATTR_OFS));
+    pStat->m_internal_attr = MZ_READ_LE16(p + MZ_ZIP_CDH_INTERNAL_ATTR_OFS);
     pStat->m_external_attr = MZ_READ_LE32(p + MZ_ZIP_CDH_EXTERNAL_ATTR_OFS);
     pStat->m_local_header_ofs = MZ_READ_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS);
 
@@ -1259,7 +1221,7 @@ static mz_bool mz_zip_file_stat_internal(mz_zip_archive *pZip, mz_uint file_inde
 
                         pStat->m_uncomp_size = MZ_READ_LE64(pField_data);
                         pField_data += sizeof(mz_uint64);
-                        field_data_remaining -= (mz_uint32)sizeof(mz_uint64);
+                        field_data_remaining -= sizeof(mz_uint64);
                     }
 
                     if (pStat->m_comp_size == MZ_UINT32_MAX)
@@ -1269,7 +1231,7 @@ static mz_bool mz_zip_file_stat_internal(mz_zip_archive *pZip, mz_uint file_inde
 
                         pStat->m_comp_size = MZ_READ_LE64(pField_data);
                         pField_data += sizeof(mz_uint64);
-                        field_data_remaining -= (mz_uint32)sizeof(mz_uint64);
+                        field_data_remaining -= sizeof(mz_uint64);
                     }
 
                     if (pStat->m_local_header_ofs == MZ_UINT32_MAX)
@@ -1279,14 +1241,14 @@ static mz_bool mz_zip_file_stat_internal(mz_zip_archive *pZip, mz_uint file_inde
 
                         pStat->m_local_header_ofs = MZ_READ_LE64(pField_data);
                         pField_data += sizeof(mz_uint64);
-                        field_data_remaining -= (mz_uint32)sizeof(mz_uint64);
+                        field_data_remaining -= sizeof(mz_uint64);
                     }
 
                     break;
                 }
 
                 pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
-                extra_size_remaining = (mz_uint32)(extra_size_remaining - sizeof(mz_uint16) * 2U - field_data_size);
+                extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
             } while (extra_size_remaining);
         }
     }
@@ -1314,7 +1276,7 @@ static MZ_FORCEINLINE int mz_zip_filename_compare(const mz_zip_array *pCentral_d
     pE = pL + MZ_MIN(l_len, r_len);
     while (pL < pE)
     {
-        if ((l = (mz_uint8)(MZ_TOLOWER(*pL))) != (r = (mz_uint8)(MZ_TOLOWER(*pR))))
+        if ((l = MZ_TOLOWER(*pL)) != (r = MZ_TOLOWER(*pR)))
             break;
         pL++;
         pR++;
@@ -1415,7 +1377,7 @@ mz_bool mz_zip_reader_locate_file_v2(mz_zip_archive *pZip, const char *pName, co
         }
         if ((flags & MZ_ZIP_FLAG_IGNORE_PATH) && (filename_len))
         {
-            int ofs = (int)(filename_len - 1U);
+            int ofs = filename_len - 1;
             do
             {
                 if ((pFilename[ofs] == '/') || (pFilename[ofs] == '\\') || (pFilename[ofs] == ':'))
@@ -1423,7 +1385,7 @@ mz_bool mz_zip_reader_locate_file_v2(mz_zip_archive *pZip, const char *pName, co
             } while (--ofs >= 0);
             ofs++;
             pFilename += ofs;
-            filename_len -= (mz_uint)ofs;
+            filename_len -= ofs;
         }
         if ((filename_len == name_len) && (mz_zip_string_equal(pName, pFilename, filename_len, flags)))
         {
@@ -1477,7 +1439,7 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file
     if (MZ_READ_LE32(pLocal_header) != MZ_ZIP_LOCAL_DIR_HEADER_SIG)
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
-    cur_file_ofs += (mz_uint64)(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS));
+    cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
     if ((cur_file_ofs + file_stat.m_comp_size) > pZip->m_archive_size)
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
@@ -1688,7 +1650,7 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_ind
     if (MZ_READ_LE32(pLocal_header) != MZ_ZIP_LOCAL_DIR_HEADER_SIG)
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
-    cur_file_ofs += (mz_uint64)(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS));
+    cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
     if ((cur_file_ofs + file_stat.m_comp_size) > pZip->m_archive_size)
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
@@ -1780,7 +1742,7 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_ind
             do
             {
                 mz_uint8 *pWrite_buf_cur = (mz_uint8 *)pWrite_buf + (out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
-                size_t in_buf_size, out_buf_size = (size_t)(TINFL_LZ_DICT_SIZE - (out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1)));
+                size_t in_buf_size, out_buf_size = TINFL_LZ_DICT_SIZE - (out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
                 if ((!read_buf_avail) && (!pZip->m_pState->m_pMem))
                 {
                     read_buf_avail = MZ_MIN(read_buf_size, comp_remaining);
@@ -1930,7 +1892,7 @@ mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive 
         return NULL;
     }
 
-    pState->cur_file_ofs += (mz_uint64)(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS));
+    pState->cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) + MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
     if ((pState->cur_file_ofs + pState->file_stat.m_comp_size) > pZip->m_archive_size)
     {
         mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
@@ -2009,7 +1971,7 @@ size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState,
     if ((pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method))
     {
         /* The file is stored or the caller has requested the compressed data, calc amount to return. */
-        copied_to_caller = MZ_MIN( buf_size, (size_t)pState->comp_remaining );
+        copied_to_caller = MZ_MIN( buf_size, pState->comp_remaining );
 
         /* Zip is in memory....or requires reading from a file? */
         if (pState->pZip->m_pState->m_pMem)
@@ -2049,7 +2011,7 @@ size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState,
             mz_uint8 *pWrite_buf_cur = (mz_uint8 *)pState->pWrite_buf + (pState->out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
 
             /* Calc max output size - given current output pos and block size */
-            size_t in_buf_size, out_buf_size = (size_t)(TINFL_LZ_DICT_SIZE - (pState->out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1)));
+            size_t in_buf_size, out_buf_size = TINFL_LZ_DICT_SIZE - (pState->out_buf_ofs & (TINFL_LZ_DICT_SIZE - 1));
 
             if (!pState->out_blk_remain)
             {
@@ -2346,7 +2308,7 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
 
             field_id = MZ_READ_LE16(pExtra_data);
             field_data_size = MZ_READ_LE16(pExtra_data + sizeof(mz_uint16));
-            field_total_size = (mz_uint32)(field_data_size + sizeof(mz_uint16) * 2U);
+            field_total_size = field_data_size + sizeof(mz_uint16) * 2;
 
             if (field_total_size > extra_size_remaining)
                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
@@ -2782,17 +2744,11 @@ mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_
 static size_t mz_zip_file_write_func(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n)
 {
     mz_zip_archive *pZip = (mz_zip_archive *)pOpaque;
-    mz_int64 cur_ofs = (mz_int64)MZ_FTELL64(pZip->m_pState->m_pFile);
+    mz_int64 cur_ofs = MZ_FTELL64(pZip->m_pState->m_pFile);
 
     file_ofs += pZip->m_pState->m_file_archive_start_ofs;
 
-    if (
-        ((mz_int64)file_ofs < 0) ||
-        (
-         ((cur_ofs != (mz_int64)file_ofs)) &&
-          (MZ_FSEEK64(pZip->m_pState->m_pFile, file_ofs, SEEK_SET))
-         )
-        )
+    if (((mz_int64)file_ofs < 0) || (((cur_ofs != (mz_int64)file_ofs)) && (MZ_FSEEK64(pZip->m_pState->m_pFile, (mz_int64)file_ofs, SEEK_SET))))
     {
         mz_zip_set_error(pZip, MZ_ZIP_FILE_SEEK_FAILED);
         return 0;
@@ -2867,7 +2823,7 @@ mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint f
         return MZ_FALSE;
 
     pZip->m_pState->m_pFile = pFile;
-    pZip->m_pState->m_file_archive_start_ofs = (mz_uint64)MZ_FTELL64(pZip->m_pState->m_pFile);
+    pZip->m_pState->m_file_archive_start_ofs = MZ_FTELL64(pZip->m_pState->m_pFile);
     pZip->m_zip_type = MZ_ZIP_TYPE_CFILE;
 
     return MZ_TRUE;
@@ -2982,11 +2938,11 @@ typedef struct
 static mz_bool mz_zip_writer_add_put_buf_callback(const void *pBuf, int len, void *pUser)
 {
     mz_zip_writer_add_state *pState = (mz_zip_writer_add_state *)pUser;
-    if ((int)pState->m_pZip->m_pWrite(pState->m_pZip->m_pIO_opaque, pState->m_cur_archive_file_ofs, pBuf, (size_t)len) != len)
+    if ((int)pState->m_pZip->m_pWrite(pState->m_pZip->m_pIO_opaque, pState->m_cur_archive_file_ofs, pBuf, len) != len)
         return MZ_FALSE;
 
-    pState->m_cur_archive_file_ofs += (mz_uint64)len;
-    pState->m_comp_size += (mz_uint64)len;
+    pState->m_cur_archive_file_ofs += len;
+    pState->m_comp_size += len;
     return MZ_TRUE;
 }
 
@@ -3005,21 +2961,21 @@ static mz_uint32 mz_zip_writer_create_zip64_extra_data(mz_uint8 *pBuf, mz_uint64
     {
         MZ_WRITE_LE64(pDst, *pUncomp_size);
         pDst += sizeof(mz_uint64);
-        field_size += (mz_uint32)sizeof(mz_uint64);
+        field_size += sizeof(mz_uint64);
     }
 
     if (pComp_size)
     {
         MZ_WRITE_LE64(pDst, *pComp_size);
         pDst += sizeof(mz_uint64);
-        field_size += (mz_uint32)sizeof(mz_uint64);
+        field_size += sizeof(mz_uint64);
     }
 
     if (pLocal_header_ofs)
     {
         MZ_WRITE_LE64(pDst, *pLocal_header_ofs);
         pDst += sizeof(mz_uint64);
-        field_size += (mz_uint32)sizeof(mz_uint64);
+        field_size += sizeof(mz_uint64);
     }
 
     MZ_WRITE_LE16(pBuf + 2, field_size);
@@ -3092,7 +3048,7 @@ static mz_bool mz_zip_writer_add_to_central_dir(mz_zip_archive *pZip, const char
     if (((mz_uint64)pState->m_central_dir.m_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size + extra_size + user_extra_data_len + comment_size) >= MZ_UINT32_MAX)
         return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_CDIR_SIZE);
 
-    if (!mz_zip_writer_create_central_dir_header(pZip, central_dir_header, filename_size, (mz_uint16)(extra_size + user_extra_data_len), comment_size, uncomp_size, comp_size, uncomp_crc32, method, bit_flags, dos_time, dos_date, local_header_ofs, ext_attributes))
+    if (!mz_zip_writer_create_central_dir_header(pZip, central_dir_header, filename_size, extra_size + user_extra_data_len, comment_size, uncomp_size, comp_size, uncomp_crc32, method, bit_flags, dos_time, dos_date, local_header_ofs, ext_attributes))
         return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
     if ((!mz_zip_array_push_back(pZip, &pState->m_central_dir, central_dir_header, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE)) ||
@@ -3254,8 +3210,8 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     if (!pState->m_zip64)
     {
         /* Bail early if the archive would obviously become too large */
-        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size
-			+ MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len +
+        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size 
+			+ MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len + 
 			pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + user_extra_data_central_len
 			+ MZ_ZIP_DATA_DESCRIPTER_SIZE32) > 0xFFFFFFFF)
         {
@@ -3313,7 +3269,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
                                                                (uncomp_size >= MZ_UINT32_MAX) ? &comp_size : NULL, (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
         }
 
-        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, (mz_uint16)(extra_size + user_extra_data_len), 0, 0, 0, method, bit_flags, dos_time, dos_date))
+        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, extra_size + user_extra_data_len, 0, 0, 0, method, bit_flags, dos_time, dos_date))
             return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
         if (pZip->m_pWrite(pZip->m_pIO_opaque, local_dir_header_ofs, local_dir_header, sizeof(local_dir_header)) != sizeof(local_dir_header))
@@ -3340,7 +3296,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     {
         if ((comp_size > MZ_UINT32_MAX) || (cur_archive_file_ofs > MZ_UINT32_MAX))
             return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
-        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, (mz_uint16)user_extra_data_len, 0, 0, 0, method, bit_flags, dos_time, dos_date))
+        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, user_extra_data_len, 0, 0, 0, method, bit_flags, dos_time, dos_date))
             return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
         if (pZip->m_pWrite(pZip->m_pIO_opaque, local_dir_header_ofs, local_dir_header, sizeof(local_dir_header)) != sizeof(local_dir_header))
@@ -3383,9 +3339,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
         state.m_cur_archive_file_ofs = cur_archive_file_ofs;
         state.m_comp_size = 0;
 
-        if ((tdefl_init(pComp, mz_zip_writer_add_put_buf_callback, &state,
-                        (int)tdefl_create_comp_flags_from_zip_params(
-                            (int)level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY) ||
+        if ((tdefl_init(pComp, mz_zip_writer_add_put_buf_callback, &state, tdefl_create_comp_flags_from_zip_params(level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY) ||
             (tdefl_compress_buffer(pComp, pBuf, buf_size, TDEFL_FINISH) != TDEFL_STATUS_DONE))
         {
             pZip->m_pFree(pZip->m_pAlloc_opaque, pComp);
@@ -3435,7 +3389,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
                                                            (uncomp_size >= MZ_UINT32_MAX) ? &comp_size : NULL, (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
     }
 
-    if (!mz_zip_writer_add_to_central_dir(pZip, pArchive_name, (mz_uint16)archive_name_size, pExtra_data, (mz_uint16)extra_size, pComment,
+    if (!mz_zip_writer_add_to_central_dir(pZip, pArchive_name, (mz_uint16)archive_name_size, pExtra_data, extra_size, pComment,
                                           comment_size, uncomp_size, comp_size, uncomp_crc32, method, bit_flags, dos_time, dos_date, local_dir_header_ofs, ext_attributes,
                                           user_extra_data_central, user_extra_data_central_len))
         return MZ_FALSE;
@@ -3515,7 +3469,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
     if (!pState->m_zip64)
     {
         /* Bail early if the archive would obviously become too large */
-        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE
+        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE 
 			+ archive_name_size + comment_size + user_extra_data_len + pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + 1024
 			+ MZ_ZIP_DATA_DESCRIPTER_SIZE32 + user_extra_data_central_len) > 0xFFFFFFFF)
         {
@@ -3562,7 +3516,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
                                                                (uncomp_size >= MZ_UINT32_MAX) ? &comp_size : NULL, (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
         }
 
-        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, (mz_uint16)(extra_size + user_extra_data_len), 0, 0, 0, method, gen_flags, dos_time, dos_date))
+        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, extra_size + user_extra_data_len, 0, 0, 0, method, gen_flags, dos_time, dos_date))
             return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
         if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_header, sizeof(local_dir_header)) != sizeof(local_dir_header))
@@ -3586,7 +3540,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
     {
         if ((comp_size > MZ_UINT32_MAX) || (cur_archive_file_ofs > MZ_UINT32_MAX))
             return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
-        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, (mz_uint16)user_extra_data_len, 0, 0, 0, method, gen_flags, dos_time, dos_date))
+        if (!mz_zip_writer_create_local_dir_header(pZip, local_dir_header, (mz_uint16)archive_name_size, user_extra_data_len, 0, 0, 0, method, gen_flags, dos_time, dos_date))
             return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
         if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_header, sizeof(local_dir_header)) != sizeof(local_dir_header))
@@ -3650,9 +3604,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
             state.m_cur_archive_file_ofs = cur_archive_file_ofs;
             state.m_comp_size = 0;
 
-            if (tdefl_init(pComp, mz_zip_writer_add_put_buf_callback, &state,
-                           (int)tdefl_create_comp_flags_from_zip_params(
-                                (int)level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY)
+            if (tdefl_init(pComp, mz_zip_writer_add_put_buf_callback, &state, tdefl_create_comp_flags_from_zip_params(level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY)
             {
                 pZip->m_pFree(pZip->m_pAlloc_opaque, pComp);
                 pZip->m_pFree(pZip->m_pAlloc_opaque, pRead_buf);
@@ -3738,7 +3690,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
                                                            (uncomp_size >= MZ_UINT32_MAX) ? &comp_size : NULL, (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
     }
 
-    if (!mz_zip_writer_add_to_central_dir(pZip, pArchive_name, (mz_uint16)archive_name_size, pExtra_data, (mz_uint16)extra_size, pComment, comment_size,
+    if (!mz_zip_writer_add_to_central_dir(pZip, pArchive_name, (mz_uint16)archive_name_size, pExtra_data, extra_size, pComment, comment_size,
                                           uncomp_size, comp_size, uncomp_crc32, method, gen_flags, dos_time, dos_date, local_dir_header_ofs, ext_attributes,
                                           user_extra_data_central, user_extra_data_central_len))
         return MZ_FALSE;
@@ -3770,7 +3722,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, 
         return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
 
     MZ_FSEEK64(pSrc_file, 0, SEEK_END);
-    uncomp_size = (mz_uint64)MZ_FTELL64(pSrc_file);
+    uncomp_size = MZ_FTELL64(pSrc_file);
     MZ_FSEEK64(pSrc_file, 0, SEEK_SET);
 
     status = mz_zip_writer_add_cfile(pZip, pArchive_name, pSrc_file, uncomp_size, pFile_time, pComment, comment_size, level_and_flags, NULL, 0, NULL, 0);
@@ -3821,11 +3773,9 @@ static mz_bool mz_zip_writer_update_zip64_extension_block(mz_zip_array *pNew_ext
             pDst += sizeof(mz_uint32);
         }
 
-        mz_write_le16(new_ext_block + sizeof(mz_uint16),
-                      (mz_uint16)(
-                                  (unsigned int)(pDst - new_ext_block) - sizeof(mz_uint16) * 2U));
+        mz_write_le16(new_ext_block + sizeof(mz_uint16), (mz_uint16)((pDst - new_ext_block) - sizeof(mz_uint16) * 2));
 
-        if (!mz_zip_array_push_back(pZip, pNew_ext, new_ext_block, (size_t)(pDst - new_ext_block)))
+        if (!mz_zip_array_push_back(pZip, pNew_ext, new_ext_block, pDst - new_ext_block))
             return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
     }
 
@@ -3843,7 +3793,7 @@ static mz_bool mz_zip_writer_update_zip64_extension_block(mz_zip_array *pNew_ext
 
             field_id = MZ_READ_LE16(pExtra_data);
             field_data_size = MZ_READ_LE16(pExtra_data + sizeof(mz_uint16));
-            field_total_size = (field_data_size + (mz_uint32)sizeof(mz_uint16) * 2U);
+            field_total_size = field_data_size + sizeof(mz_uint16) * 2;
 
             if (field_total_size > extra_size_remaining)
                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
@@ -3976,7 +3926,7 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *
 
             field_id = MZ_READ_LE16(pExtra_data);
             field_data_size = MZ_READ_LE16(pExtra_data + sizeof(mz_uint16));
-            field_total_size = (mz_uint32)(field_data_size + sizeof(mz_uint16) * 2u);
+            field_total_size = field_data_size + sizeof(mz_uint16) * 2;
 
             if (field_total_size > extra_size_remaining)
             {
@@ -4547,8 +4497,6 @@ const char *mz_zip_get_error_string(mz_zip_error mz_err)
     {
         case MZ_ZIP_NO_ERROR:
             return "no error";
-        case MZ_ZIP_TOTAL_ERRORS:
-            return "total error";
         case MZ_ZIP_UNDEFINED_ERROR:
             return "undefined error";
         case MZ_ZIP_TOO_MANY_FILES:
@@ -4664,7 +4612,7 @@ MZ_FILE *mz_zip_get_cfile(mz_zip_archive *pZip)
 size_t mz_zip_read_archive_data(mz_zip_archive *pZip, mz_uint64 file_ofs, void *pBuf, size_t n)
 {
     if ((!pZip) || (!pZip->m_pState) || (!pBuf) || (!pZip->m_pRead))
-        return (size_t)mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+        return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
     return pZip->m_pRead(pZip->m_pIO_opaque, file_ofs, pBuf, n);
 }

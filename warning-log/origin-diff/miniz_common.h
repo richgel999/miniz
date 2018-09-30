@@ -57,7 +57,7 @@ typedef struct mz_dummy_time_t_tag
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MZ_CLEAR_OBJ(obj) memset(&(obj), 0, sizeof(obj))
 
-#if defined(MINIZ_USE_UNALIGNED_LOADS_AND_STORES) && MINIZ_LITTLE_ENDIAN
+#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
 #define MZ_READ_LE16(p) *((const mz_uint16 *)(p))
 #define MZ_READ_LE32(p) *((const mz_uint32 *)(p))
 #else
@@ -69,7 +69,6 @@ typedef struct mz_dummy_time_t_tag
 
 #ifdef _MSC_VER
 #define MZ_FORCEINLINE __forceinline
-#define __attribute__(x)
 #elif defined(__GNUC__)
 #define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
 #else

@@ -45,8 +45,7 @@ typedef struct tinfl_decompressor_tag tinfl_decompressor;
 /* non-C language bindings to tinfl_ API don't need to worry about */
 /* structure size and allocation mechanism. */
 
-tinfl_decompressor *tinfl_decompressor_alloc(void);
-
+tinfl_decompressor *tinfl_decompressor_alloc();
 void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
 
 /* Max size of LZ dictionary. */
@@ -116,13 +115,13 @@ typedef struct
     mz_int16 m_look_up[TINFL_FAST_LOOKUP_SIZE], m_tree[TINFL_MAX_HUFF_SYMBOLS_0 * 2];
 } tinfl_huff_table;
 
-#if defined(MINIZ_HAS_64BIT_REGISTERS)
+#if MINIZ_HAS_64BIT_REGISTERS
 #define TINFL_USE_64BIT_BITBUF 1
 #else
 #define TINFL_USE_64BIT_BITBUF 0
 #endif
 
-#if defined(TINFL_USE_64BIT_BITBUF)
+#if TINFL_USE_64BIT_BITBUF
 typedef mz_uint64 tinfl_bit_buf_t;
 #define TINFL_BITBUF_SIZE (64)
 #else

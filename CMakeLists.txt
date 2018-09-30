@@ -1,5 +1,5 @@
 PROJECT(miniz C)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 if(CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
   # differentiation between debug and release builds.
@@ -40,6 +40,30 @@ target_link_libraries(example6 miniz)
 if(${UNIX})
     target_link_libraries(example6 m)
 endif()
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wconversion")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wsign-conversion")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-aliasing")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wswitch-default")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat-extra-args")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wpointer-arith")
+
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -Wl,--gc-sections")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,--print-gc-sections")
+
+endif()
+
 
 # add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
 # target_link_libraries(miniz_tester miniz)
