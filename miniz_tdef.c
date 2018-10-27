@@ -853,6 +853,16 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 #endif /* #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES */
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#ifdef MINIZ_UNALIGNED_USE_MEMCPY
+static inline mz_uint32 TDEFL_READ_UNALIGNED_WORD32(const mz_uint8* p)
+{
+	mz_uint32 ret;
+	memcpy(&ret, p, sizeof(mz_uint32));
+	return ret;
+}
+#else
+#define TDEFL_READ_UNALIGNED_WORD32(p) *(const mz_uint32 *)(p)
+#endif
 static mz_bool tdefl_compress_fast(tdefl_compressor *d)
 {
     /* Faster, minimally featured LZRW1-style match+parse loop with better register utilization. Intended for applications where raw throughput is valued more highly than ratio. */
@@ -887,12 +897,12 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
         {
             mz_uint cur_match_dist, cur_match_len = 1;
             mz_uint8 *pCur_dict = d->m_dict + cur_pos;
-            mz_uint first_trigram = (*(const mz_uint32 *)pCur_dict) & 0xFFFFFF;
+            mz_uint first_trigram = TDEFL_READ_UNALIGNED_WORD32(pCur_dict) & 0xFFFFFF;
             mz_uint hash = (first_trigram ^ (first_trigram >> (24 - (TDEFL_LZ_HASH_BITS - 8)))) & TDEFL_LEVEL1_HASH_SIZE_MASK;
             mz_uint probe_pos = d->m_hash[hash];
             d->m_hash[hash] = (mz_uint16)lookahead_pos;
 
-            if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <= dict_size) && ((*(const mz_uint32 *)(d->m_dict + (probe_pos &= TDEFL_LZ_DICT_SIZE_MASK)) & 0xFFFFFF) == first_trigram))
+            if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <= dict_size) && ((TDEFL_READ_UNALIGNED_WORD32(d->m_dict + (probe_pos &= TDEFL_LZ_DICT_SIZE_MASK)) & 0xFFFFFF) == first_trigram))
             {
                 const mz_uint16 *p = (const mz_uint16 *)pCur_dict;
                 const mz_uint16 *q = (const mz_uint16 *)(d->m_dict + probe_pos);
@@ -922,7 +932,11 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
                     cur_match_dist--;
 
                     pLZ_code_buf[0] = (mz_uint8)(cur_match_len - TDEFL_MIN_MATCH_LEN);
+#ifdef MINIZ_UNALIGNED_USE_MEMCPY
+					memcpy(&pLZ_code_buf[1], &cur_match_dist, sizeof(cur_match_dist));
+#else
                     *(mz_uint16 *)(&pLZ_code_buf[1]) = (mz_uint16)cur_match_dist;
+#endif
                     pLZ_code_buf += 3;
                     *pLZ_flags = (mz_uint8)((*pLZ_flags >> 1) | 0x80);
 
