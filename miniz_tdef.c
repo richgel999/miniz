@@ -738,13 +738,13 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
-static inline mz_uint16 TDEFL_READ_UNALIGNED_WORD(const mz_uint8* p)
+static mz_uint16 TDEFL_READ_UNALIGNED_WORD(const mz_uint8* p)
 {
 	mz_uint16 ret;
 	memcpy(&ret, p, sizeof(mz_uint16));
 	return ret;
 }
-static inline mz_uint16 TDEFL_READ_UNALIGNED_WORD2(const mz_uint16* p)
+static mz_uint16 TDEFL_READ_UNALIGNED_WORD2(const mz_uint16* p)
 {
 	mz_uint16 ret;
 	memcpy(&ret, p, sizeof(mz_uint16));
@@ -854,7 +854,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
-static inline mz_uint32 TDEFL_READ_UNALIGNED_WORD32(const mz_uint8* p)
+static mz_uint32 TDEFL_READ_UNALIGNED_WORD32(const mz_uint8* p)
 {
 	mz_uint32 ret;
 	memcpy(&ret, p, sizeof(mz_uint32));
