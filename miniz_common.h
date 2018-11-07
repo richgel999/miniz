@@ -8,8 +8,8 @@
 typedef unsigned char mz_uint8;
 typedef signed short mz_int16;
 typedef unsigned short mz_uint16;
-typedef unsigned int mz_uint32;
 typedef unsigned int mz_uint;
+typedef uint32_t mz_uint32;
 typedef int64_t mz_int64;
 typedef uint64_t mz_uint64;
 typedef int mz_bool;

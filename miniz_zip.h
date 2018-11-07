@@ -181,7 +181,7 @@ typedef struct
 
     int status;
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
-    mz_uint file_crc32;
+    mz_uint32 file_crc32;
 #endif
     mz_uint64 read_buf_size, read_buf_ofs, read_buf_avail, comp_remaining, out_buf_ofs, cur_file_ofs;
     mz_zip_archive_file_stat file_stat;
@@ -228,7 +228,7 @@ mz_zip_mode mz_zip_get_mode(mz_zip_archive *pZip);
 mz_zip_type mz_zip_get_type(mz_zip_archive *pZip);
 
 /* Returns the total number of files in the archive. */
-mz_uint mz_zip_reader_get_num_files(mz_zip_archive *pZip);
+mz_uint32 mz_zip_reader_get_num_files(mz_zip_archive *pZip);
 
 mz_uint64 mz_zip_get_archive_size(mz_zip_archive *pZip);
 mz_uint64 mz_zip_get_archive_file_start_offset(mz_zip_archive *pZip);
@@ -246,17 +246,17 @@ mz_zip_error mz_zip_get_last_error(mz_zip_archive *pZip);
 const char *mz_zip_get_error_string(mz_zip_error mz_err);
 
 /* MZ_TRUE if the archive file entry is a directory entry. */
-mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint file_index);
+mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint32 file_index);
 
 /* MZ_TRUE if the file is encrypted/strong encrypted. */
-mz_bool mz_zip_reader_is_file_encrypted(mz_zip_archive *pZip, mz_uint file_index);
+mz_bool mz_zip_reader_is_file_encrypted(mz_zip_archive *pZip, mz_uint32 file_index);
 
 /* MZ_TRUE if the compression method is supported, and the file is not encrypted, and the file is not a compressed patch file. */
-mz_bool mz_zip_reader_is_file_supported(mz_zip_archive *pZip, mz_uint file_index);
+mz_bool mz_zip_reader_is_file_supported(mz_zip_archive *pZip, mz_uint32 file_index);
 
 /* Retrieves the filename of an archive file entry. */
 /* Returns the number of bytes written to pFilename, or if filename_buf_size is 0 this function returns the number of bytes needed to fully store the filename. */
-mz_uint mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint file_index, char *pFilename, mz_uint filename_buf_size);
+mz_uint32 mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint32 file_index, char *pFilename, mz_uint32 filename_buf_size);
 
 /* Attempts to locates a file in the archive's central directory. */
 /* Valid flags: MZ_ZIP_FLAG_CASE_SENSITIVE, MZ_ZIP_FLAG_IGNORE_PATH */
@@ -265,7 +265,7 @@ int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const cha
 int mz_zip_reader_locate_file_v2(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags, mz_uint32 *file_index);
 
 /* Returns detailed information about an archive file entry. */
-mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index, mz_zip_archive_file_stat *pStat);
+mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint32 file_index, mz_zip_archive_file_stat *pStat);
 
 /* MZ_TRUE if the file is in zip64 format. */
 /* A file is considered zip64 if it contained a zip64 end of central directory marker, or if it contained any zip64 extended file information fields in the central directory. */
@@ -277,25 +277,25 @@ size_t mz_zip_get_central_dir_size(mz_zip_archive *pZip);
 
 /* Extracts a archive file to a memory buffer using no memory allocation. */
 /* There must be at least enough room on the stack to store the inflator's state (~34KB or so). */
-mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
+mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint32 file_index, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
 mz_bool mz_zip_reader_extract_file_to_mem_no_alloc(mz_zip_archive *pZip, const char *pFilename, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
 
 /* Extracts a archive file to a memory buffer. */
-mz_bool mz_zip_reader_extract_to_mem(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags);
+mz_bool mz_zip_reader_extract_to_mem(mz_zip_archive *pZip, mz_uint32 file_index, void *pBuf, size_t buf_size, mz_uint flags);
 mz_bool mz_zip_reader_extract_file_to_mem(mz_zip_archive *pZip, const char *pFilename, void *pBuf, size_t buf_size, mz_uint flags);
 
 /* Extracts a archive file to a dynamically allocated heap buffer. */
 /* The memory will be allocated via the mz_zip_archive's alloc/realloc functions. */
 /* Returns NULL and sets the last error on failure. */
-void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, size_t *pSize, mz_uint flags);
+void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint32 file_index, size_t *pSize, mz_uint flags);
 void *mz_zip_reader_extract_file_to_heap(mz_zip_archive *pZip, const char *pFilename, size_t *pSize, mz_uint flags);
 
 /* Extracts a archive file using a callback function to output the file's data. */
-mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_index, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
+mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint32 file_index, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
 mz_bool mz_zip_reader_extract_file_to_callback(mz_zip_archive *pZip, const char *pFilename, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
 
 /* Extract a file iteratively */
-mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint32 file_index, mz_uint flags);
 mz_zip_reader_extract_iter_state* mz_zip_reader_extract_file_iter_new(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
 size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState, void* pvBuf, size_t buf_size);
 mz_bool mz_zip_reader_extract_iter_free(mz_zip_reader_extract_iter_state* pState);
@@ -303,18 +303,18 @@ mz_bool mz_zip_reader_extract_iter_free(mz_zip_reader_extract_iter_state* pState
 #ifndef MINIZ_NO_STDIO
 /* Extracts a archive file to a disk file and sets its last accessed and modified times. */
 /* This function only extracts files, not archive directory records. */
-mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
+mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint32 file_index, const char *pDst_filename, mz_uint flags);
 mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags);
 
 /* Extracts a archive file starting at the current position in the destination FILE stream. */
-mz_bool mz_zip_reader_extract_to_cfile(mz_zip_archive *pZip, mz_uint file_index, MZ_FILE *File, mz_uint flags);
+mz_bool mz_zip_reader_extract_to_cfile(mz_zip_archive *pZip, mz_uint32 file_index, MZ_FILE *File, mz_uint flags);
 mz_bool mz_zip_reader_extract_file_to_cfile(mz_zip_archive *pZip, const char *pArchive_filename, MZ_FILE *pFile, mz_uint flags);
 #endif
 
 #if 0
 /* TODO */
 	typedef void *mz_zip_streaming_extract_state_ptr;
-	mz_zip_streaming_extract_state_ptr mz_zip_streaming_extract_begin(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+	mz_zip_streaming_extract_state_ptr mz_zip_streaming_extract_begin(mz_zip_archive *pZip, mz_uint32 file_index, mz_uint flags);
 	uint64_t mz_zip_streaming_extract_get_size(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
 	uint64_t mz_zip_streaming_extract_get_cur_ofs(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
 	mz_bool mz_zip_streaming_extract_seek(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState, uint64_t new_ofs);
@@ -324,7 +324,7 @@ mz_bool mz_zip_reader_extract_file_to_cfile(mz_zip_archive *pZip, const char *pA
 
 /* This function compares the archive's local headers, the optional local zip64 extended information block, and the optional descriptor following the compressed data vs. the data in the central directory. */
 /* It also validates that each file can be successfully uncompressed unless the MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY is specified. */
-mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint32 file_index, mz_uint flags);
 
 /* Validates an entire archive by calling mz_zip_validate_file() on each file. */
 mz_bool mz_zip_validate_archive(mz_zip_archive *pZip, mz_uint flags);
@@ -375,8 +375,8 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip, const char *pArchive_name
                                  mz_uint64 uncomp_size, mz_uint32 uncomp_crc32);
 
 mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
-                                    mz_uint64 uncomp_size, mz_uint32 uncomp_crc32, MZ_TIME_T *last_modified, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
-                                    const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+                                    mz_uint64 uncomp_size, mz_uint32 uncomp_crc32, MZ_TIME_T *last_modified, const char *user_extra_data_local, mz_uint32 user_extra_data_local_len,
+                                    const char *user_extra_data_central, mz_uint32 user_extra_data_central_len);
 
 #ifndef MINIZ_NO_STDIO
 /* Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive. */
@@ -385,13 +385,13 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, 
 
 /* Like mz_zip_writer_add_file(), except the file data is read from the specified FILE stream. */
 mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 size_to_add,
-                                const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
-                                const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+                                const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint32 user_extra_data_local_len,
+                                const char *user_extra_data_central, mz_uint32 user_extra_data_central_len);
 #endif
 
 /* Adds a file to an archive by fully cloning the data from another archive. */
 /* This function fully clones the source file's compressed data (no recompression), along with its full filename, extra data (it may add or modify the zip64 local header extra data field), and the optional descriptor following the compressed data. */
-mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *pSource_zip, mz_uint src_file_index);
+mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *pSource_zip, mz_uint32 src_file_index);
 
 /* Finalizes the archive by writing the central directory records followed by the end of central directory record. */
 /* After an archive is finalized, the only valid call on the mz_zip_archive struct is mz_zip_writer_end(). */

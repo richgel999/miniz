@@ -256,14 +256,14 @@ int mz_deflate(mz_streamp pStream, int flush)
         out_bytes = pStream->avail_out;
 
         defl_status = tdefl_compress((tdefl_compressor *)pStream->state, pStream->next_in, &in_bytes, pStream->next_out, &out_bytes, (tdefl_flush)flush);
-        pStream->next_in += (mz_uint)in_bytes;
-        pStream->avail_in -= (mz_uint)in_bytes;
-        pStream->total_in += (mz_uint)in_bytes;
+        pStream->next_in += (mz_uint32)in_bytes;
+        pStream->avail_in -= (mz_uint32)in_bytes;
+        pStream->total_in += (mz_uint32)in_bytes;
         pStream->adler = tdefl_get_adler32((tdefl_compressor *)pStream->state);
 
-        pStream->next_out += (mz_uint)out_bytes;
-        pStream->avail_out -= (mz_uint)out_bytes;
-        pStream->total_out += (mz_uint)out_bytes;
+        pStream->next_out += (mz_uint32)out_bytes;
+        pStream->avail_out -= (mz_uint32)out_bytes;
+        pStream->total_out += (mz_uint32)out_bytes;
 
         if (defl_status < 0)
         {
@@ -350,7 +350,8 @@ mz_ulong mz_compressBound(mz_ulong source_len)
 typedef struct
 {
     tinfl_decompressor m_decomp;
-    mz_uint m_dict_ofs, m_dict_avail, m_first_call, m_has_flushed;
+    mz_uint32 m_dict_ofs, m_dict_avail;
+    mz_uint m_first_call, m_has_flushed;
     int m_window_bits;
     mz_uint8 m_dict[TINFL_LZ_DICT_SIZE];
     tinfl_status m_last_status;
@@ -400,7 +401,8 @@ int mz_inflateInit(mz_streamp pStream)
 int mz_inflate(mz_streamp pStream, int flush)
 {
     inflate_state *pState;
-    mz_uint n, first_call, decomp_flags = TINFL_FLAG_COMPUTE_ADLER32;
+    mz_uint32 n, first_call;
+    mz_uint decomp_flags = TINFL_FLAG_COMPUTE_ADLER32;
     size_t in_bytes, out_bytes, orig_avail_in;
     tinfl_status status;
 
@@ -433,13 +435,13 @@ int mz_inflate(mz_streamp pStream, int flush)
         out_bytes = pStream->avail_out;
         status = tinfl_decompress(&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out, &out_bytes, decomp_flags);
         pState->m_last_status = status;
-        pStream->next_in += (mz_uint)in_bytes;
-        pStream->avail_in -= (mz_uint)in_bytes;
-        pStream->total_in += (mz_uint)in_bytes;
+        pStream->next_in += (mz_uint32)in_bytes;
+        pStream->avail_in -= (mz_uint32)in_bytes;
+        pStream->total_in += (mz_uint32)in_bytes;
         pStream->adler = tinfl_get_adler32(&pState->m_decomp);
-        pStream->next_out += (mz_uint)out_bytes;
-        pStream->avail_out -= (mz_uint)out_bytes;
-        pStream->total_out += (mz_uint)out_bytes;
+        pStream->next_out += (mz_uint32)out_bytes;
+        pStream->avail_out -= (mz_uint32)out_bytes;
+        pStream->total_out += (mz_uint32)out_bytes;
 
         if (status < 0)
             return MZ_DATA_ERROR;
@@ -474,12 +476,12 @@ int mz_inflate(mz_streamp pStream, int flush)
         status = tinfl_decompress(&pState->m_decomp, pStream->next_in, &in_bytes, pState->m_dict, pState->m_dict + pState->m_dict_ofs, &out_bytes, decomp_flags);
         pState->m_last_status = status;
 
-        pStream->next_in += (mz_uint)in_bytes;
-        pStream->avail_in -= (mz_uint)in_bytes;
-        pStream->total_in += (mz_uint)in_bytes;
+        pStream->next_in += (mz_uint32)in_bytes;
+        pStream->avail_in -= (mz_uint32)in_bytes;
+        pStream->total_in += (mz_uint32)in_bytes;
         pStream->adler = tinfl_get_adler32(&pState->m_decomp);
 
-        pState->m_dict_avail = (mz_uint)out_bytes;
+        pState->m_dict_avail = (mz_uint32)out_bytes;
 
         n = MZ_MIN(pState->m_dict_avail, pStream->avail_out);
         memcpy(pStream->next_out, pState->m_dict + pState->m_dict_ofs, n);
@@ -561,7 +563,7 @@ const char *mz_error(int err)
         {
           { MZ_OK, "" }, { MZ_STREAM_END, "stream end" }, { MZ_NEED_DICT, "need dictionary" }, { MZ_ERRNO, "file error" }, { MZ_STREAM_ERROR, "stream error" }, { MZ_DATA_ERROR, "data error" }, { MZ_MEM_ERROR, "out of memory" }, { MZ_BUF_ERROR, "buf error" }, { MZ_VERSION_ERROR, "version error" }, { MZ_PARAM_ERROR, "parameter error" }
         };
-    mz_uint i;
+    mz_uint32 i;
     for (i = 0; i < sizeof(s_error_descs) / sizeof(s_error_descs[0]); ++i)
         if (s_error_descs[i].m_err == err)
             return s_error_descs[i].m_pDesc;
