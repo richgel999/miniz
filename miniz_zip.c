@@ -748,21 +748,47 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
 
                 if (extra_size_remaining)
                 {
-                    const mz_uint8 *pExtra_data = p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size;
+					const mz_uint8 *pExtra_data;
+					void* buf = NULL;
+
+					if (MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size + ext_data_size > n)
+					{
+						buf = MZ_MALLOC(ext_data_size);
+						if(buf==NULL)
+							return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+
+						if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size, buf, ext_data_size) != ext_data_size)
+						{
+							MZ_FREE(buf);
+							return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
+						}
+
+						pExtra_data = buf;
+					}
+					else
+					{
+						pExtra_data = p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size;
+					}
 
                     do
                     {
                         mz_uint32 field_id;
                         mz_uint32 field_data_size;
 
-                        if (extra_size_remaining < (sizeof(mz_uint16) * 2))
-                            return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+						if (extra_size_remaining < (sizeof(mz_uint16) * 2))
+						{
+							MZ_FREE(buf);
+							return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+						}
 
                         field_id = MZ_READ_LE16(pExtra_data);
                         field_data_size = MZ_READ_LE16(pExtra_data + sizeof(mz_uint16));
 
-                        if ((field_data_size + sizeof(mz_uint16) * 2) > extra_size_remaining)
-                            return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+						if ((field_data_size + sizeof(mz_uint16) * 2) > extra_size_remaining)
+						{
+							MZ_FREE(buf);
+							return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+						}
 
                         if (field_id == MZ_ZIP64_EXTENDED_INFORMATION_FIELD_HEADER_ID)
                         {
@@ -775,6 +801,8 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
                         pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
                         extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                     } while (extra_size_remaining);
+
+					MZ_FREE(buf);
                 }
             }
 
