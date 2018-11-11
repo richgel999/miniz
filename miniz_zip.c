@@ -3400,8 +3400,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     return MZ_TRUE;
 }
 
-#ifndef MINIZ_NO_STDIO
-mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 size_to_add, const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
+mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pArchive_name, mz_file_read_func read_callback, void* callback_opaque, mz_uint64 size_to_add, const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
                                 const char *user_extra_data, mz_uint user_extra_data_len, const char *user_extra_data_central, mz_uint user_extra_data_central_len)
 {
     mz_uint16 gen_flags = MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR;
@@ -3414,6 +3413,7 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
     mz_uint32 extra_size = 0;
     mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
     mz_zip_internal_state *pState;
+	mz_uint64 file_ofs = 0;
 
     if (!(level_and_flags & MZ_ZIP_FLAG_ASCII_FILENAME))
         gen_flags |= MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8;
@@ -3578,11 +3578,12 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
             while (uncomp_remaining)
             {
                 mz_uint n = (mz_uint)MZ_MIN((mz_uint64)MZ_ZIP_MAX_IO_BUF_SIZE, uncomp_remaining);
-                if ((MZ_FREAD(pRead_buf, 1, n, pSrc_file) != n) || (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, pRead_buf, n) != n))
+                if ((read_callback(callback_opaque, file_ofs, pRead_buf, n) != n) || (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, pRead_buf, n) != n))
                 {
                     pZip->m_pFree(pZip->m_pAlloc_opaque, pRead_buf);
                     return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
                 }
+				file_ofs += n;
                 uncomp_crc32 = (mz_uint32)mz_crc32(uncomp_crc32, (const mz_uint8 *)pRead_buf, n);
                 uncomp_remaining -= n;
                 cur_archive_file_ofs += n;
@@ -3617,12 +3618,13 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
                 tdefl_status status;
                 tdefl_flush flush = TDEFL_NO_FLUSH;
 
-                if (MZ_FREAD(pRead_buf, 1, in_buf_size, pSrc_file) != in_buf_size)
+                if (read_callback(callback_opaque, file_ofs, pRead_buf, in_buf_size)!= in_buf_size)
                 {
                     mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
                     break;
                 }
 
+				file_ofs += in_buf_size;
                 uncomp_crc32 = (mz_uint32)mz_crc32(uncomp_crc32, (const mz_uint8 *)pRead_buf, in_buf_size);
                 uncomp_remaining -= in_buf_size;
 
@@ -3699,6 +3701,26 @@ mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name,
     pZip->m_archive_size = cur_archive_file_ofs;
 
     return MZ_TRUE;
+}
+
+#ifndef MINIZ_NO_STDIO
+
+static size_t mz_file_read_func_stdio(void *pOpaque, mz_uint64 file_ofs, void *pBuf, size_t n)
+{
+	MZ_FILE *pSrc_file = (MZ_FILE *)pOpaque;
+	mz_int64 cur_ofs = MZ_FTELL64(pSrc_file);
+
+	if (((mz_int64)file_ofs < 0) || (((cur_ofs != (mz_int64)file_ofs)) && (MZ_FSEEK64(pSrc_file, (mz_int64)file_ofs, SEEK_SET))))
+		return 0;
+
+	return MZ_FREAD(pBuf, 1, n, pSrc_file);
+}
+
+mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 size_to_add, const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
+	const char *user_extra_data, mz_uint user_extra_data_len, const char *user_extra_data_central, mz_uint user_extra_data_central_len)
+{
+	return mz_zip_writer_add_read_buf_callback(pZip, pArchive_name, mz_file_read_func_stdio, pSrc_file, size_to_add, pFile_time, pComment, comment_size, level_and_flags,
+		user_extra_data, user_extra_data_len, user_extra_data_central, user_extra_data_central_len);
 }
 
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags)

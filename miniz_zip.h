@@ -378,6 +378,12 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
                                     mz_uint64 uncomp_size, mz_uint32 uncomp_crc32, MZ_TIME_T *last_modified, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
                                     const char *user_extra_data_central, mz_uint user_extra_data_central_len);
 
+/* Adds the contents of a file to an archive. This function also records the disk file's modified time into the archive. */
+/* File data is supplied via a read callback function. User mz_zip_writer_add_(c)file to add a file directly.*/
+mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pArchive_name, mz_file_read_func read_callback, void* callback_opaque, mz_uint64 size_to_add,
+	const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
+	const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+
 #ifndef MINIZ_NO_STDIO
 /* Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive. */
 /* level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION. */
