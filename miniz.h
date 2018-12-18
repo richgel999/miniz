@@ -24,7 +24,7 @@
      zlib replacement in many apps:
         The z_stream struct, optional memory allocation callbacks
         deflateInit/deflateInit2/deflate/deflateReset/deflateEnd/deflateBound
-        inflateInit/inflateInit2/inflate/inflateEnd
+        inflateInit/inflateInit2/inflate/inflateReset/inflateEnd
         compress, compress2, compressBound, uncompress
         CRC-32, Adler-32 - Using modern, minimal code size, CPU cache friendly routines.
         Supports raw deflate streams or standard zlib streams with adler-32 checking.
@@ -362,6 +362,9 @@ int mz_inflateInit(mz_streamp pStream);
 /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
 int mz_inflateInit2(mz_streamp pStream, int window_bits);
 
+/* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */
+int mz_inflateReset(mz_streamp pStream);
+
 /* Decompresses the input stream to the output, consuming only as much of the input as needed, and writing as much to the output as possible. */
 /* Parameters: */
 /*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
@@ -445,6 +448,7 @@ typedef void *const voidpc;
 #define compressBound mz_compressBound
 #define inflateInit mz_inflateInit
 #define inflateInit2 mz_inflateInit2
+#define inflateReset mz_inflateReset
 #define inflate mz_inflate
 #define inflateEnd mz_inflateEnd
 #define uncompress mz_uncompress
