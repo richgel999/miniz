@@ -720,6 +720,7 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
     return result;
 }
 
+#ifndef MINIZ_NO_MALLOC
 tinfl_decompressor *tinfl_decompressor_alloc()
 {
     tinfl_decompressor *pDecomp = (tinfl_decompressor *)MZ_MALLOC(sizeof(tinfl_decompressor));
@@ -732,6 +733,7 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 {
     MZ_FREE(pDecomp);
 }
+#endif
 
 #ifdef __cplusplus
 }
