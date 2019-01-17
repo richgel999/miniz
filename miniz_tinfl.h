@@ -41,12 +41,13 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
 struct tinfl_decompressor_tag;
 typedef struct tinfl_decompressor_tag tinfl_decompressor;
 
+#ifndef MINIZ_NO_MALLOC
 /* Allocate the tinfl_decompressor structure in C so that */
 /* non-C language bindings to tinfl_ API don't need to worry about */
 /* structure size and allocation mechanism. */
-
-tinfl_decompressor *tinfl_decompressor_alloc();
+tinfl_decompressor *tinfl_decompressor_alloc(void);
 void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
+#endif
 
 /* Max size of LZ dictionary. */
 #define TINFL_LZ_DICT_SIZE 32768
