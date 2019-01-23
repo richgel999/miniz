@@ -62,8 +62,8 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 #define MZ_FWRITE fwrite
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
-#define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
+#define MZ_FILE_STAT_STRUCT _stat64
+#define MZ_FILE_STAT _stat64
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
