@@ -23,7 +23,7 @@ do
 	sed -i "s/#include \"$i.h\"//g" $OUTPUT_PREFIX.c
 done
 
-WARNINGS="-Wall -Wextra -Wswitch-enum -Wc++-compat"
+WARNINGS="-Wall -Wextra -Wswitch-enum -Wc++-compat -Wcast-align"
 
 echo "int main() { return 0; }" > main.c
 echo "Test compile with GCC..."
