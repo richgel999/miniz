@@ -551,7 +551,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     pOut_buf_cur[2] = pSrc[2];
                     pOut_buf_cur += 3;
                     pSrc += 3;
-					counter -= 3;
+                    counter -= 3;
                 }
                 if (counter > 0)
                 {
