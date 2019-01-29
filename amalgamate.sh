@@ -25,18 +25,18 @@ done
 
 echo "int main() { return 0; }" > main.c
 echo "Test compile with GCC..."
-gcc -pedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
+gcc -pedantic -Wall -Wextra main.c $OUTPUT_PREFIX.c -o test.out
 echo "Test compile with GCC ANSI..."
-gcc -ansi -pedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out
+gcc -ansi -pedantic -Wall -Wextra main.c $OUTPUT_PREFIX.c -o test.out
 if command -v clang
 then
 		echo "Test compile with clang..."
-        clang -Wall -Wpedantic -fsanitize=unsigned-integer-overflow main.c $OUTPUT_PREFIX.c -o test.out
+        clang -Wall -Wextra -Wpedantic -fsanitize=unsigned-integer-overflow main.c $OUTPUT_PREFIX.c -o test.out
 fi
 for def in MINIZ_NO_STDIO MINIZ_NO_TIME MINIZ_NO_ARCHIVE_APIS MINIZ_NO_ARCHIVE_WRITING_APIS MINIZ_NO_ZLIB_APIS MINIZ_NO_ZLIB_COMPATIBLE_NAMES MINIZ_NO_MALLOC
 do
 	echo "Test compile with GCC and define $def..."
-	gcc -ansi -pedantic -Wall main.c $OUTPUT_PREFIX.c -o test.out -D${def}
+	gcc -ansi -pedantic -Wall -Wextra main.c $OUTPUT_PREFIX.c -o test.out -D${def}
 done
 rm test.out
 rm main.c
