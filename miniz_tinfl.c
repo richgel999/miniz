@@ -96,7 +96,7 @@ extern "C" {
         {                                    \
             TINFL_NEED_BITS(state_index, n); \
         }                                    \
-        b = bit_buf & ((1 << (n)) - 1);      \
+        b = (mz_uint32)(bit_buf & ((1 << (n)) - 1));    \
         bit_buf >>= (n);                     \
         num_bits -= (n);                     \
     }                                        \
@@ -706,7 +706,7 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
         tinfl_status status = tinfl_decompress(&decomp, (const mz_uint8 *)pIn_buf + in_buf_ofs, &in_buf_size, pDict, pDict + dict_ofs, &dst_buf_size,
                                                (flags & ~(TINFL_FLAG_HAS_MORE_INPUT | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)));
         in_buf_ofs += in_buf_size;
-        if ((dst_buf_size) && (!(*pPut_buf_func)(pDict + dict_ofs, (int)dst_buf_size, pPut_buf_user)))
+        if ((dst_buf_size) && (!(*pPut_buf_func)(pDict + dict_ofs, dst_buf_size, pPut_buf_user)))
             break;
         if (status != TINFL_STATUS_HAS_MORE_OUTPUT)
         {

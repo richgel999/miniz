@@ -145,7 +145,7 @@ static void tdefl_calculate_minimum_redundancy(tdefl_sym_freq *A, int n)
         A[0].m_key = 1;
         return;
     }
-    A[0].m_key += A[1].m_key;
+    A[0].m_key = (mz_uint16)(A[0].m_key + A[1].m_key);
     root = 0;
     leaf = 2;
     for (next = 1; next < n - 1; next++)
@@ -167,7 +167,7 @@ static void tdefl_calculate_minimum_redundancy(tdefl_sym_freq *A, int n)
     }
     A[n - 2].m_key = 0;
     for (next = n - 3; next >= 0; next--)
-        A[next].m_key = A[A[next].m_key].m_key + 1;
+        A[next].m_key = (mz_uint16)(A[A[next].m_key].m_key + 1);
     avbl = 1;
     used = dpth = 0;
     root = n - 2;
@@ -1387,7 +1387,7 @@ typedef struct
     mz_bool m_expandable;
 } tdefl_output_buffer;
 
-static mz_bool tdefl_output_buffer_putter(const void *pBuf, int len, void *pUser)
+static mz_bool tdefl_output_buffer_putter(const void *pBuf, size_t len, void *pUser)
 {
     tdefl_output_buffer *p = (tdefl_output_buffer *)pUser;
     size_t new_size = p->m_size + len;
@@ -1443,9 +1443,9 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
 static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500 };
 
 /* level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files). */
-mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
+int tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
 {
-    mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
+    int comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
     if (window_bits > 0)
         comp_flags |= TDEFL_WRITE_ZLIB_HEADER;
 

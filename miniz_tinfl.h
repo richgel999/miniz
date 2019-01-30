@@ -35,7 +35,7 @@ size_t tinfl_decompress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const voi
 
 /* tinfl_decompress_mem_to_callback() decompresses a block in memory to an internal 32KB buffer, and a user provided callback function will be called to flush the buffer. */
 /* Returns 1 on success or 0 on failure. */
-typedef int (*tinfl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
+typedef int (*tinfl_put_buf_func_ptr)(const void *pBuf, size_t len, void *pUser);
 int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, tinfl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
 
 struct tinfl_decompressor_tag;

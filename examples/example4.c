@@ -11,7 +11,7 @@ typedef unsigned int uint;
 #define my_max(a,b) (((a) > (b)) ? (a) : (b))
 #define my_min(a,b) (((a) < (b)) ? (a) : (b))
 
-static int tinfl_put_buf_func(const void* pBuf, int len, void *pUser)
+static int tinfl_put_buf_func(const void* pBuf, size_t len, void *pUser)
 {
   return len == (int)fwrite(pBuf, 1, len, (FILE*)pUser);
 }

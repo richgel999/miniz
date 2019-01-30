@@ -68,7 +68,7 @@ void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int 
 void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out);
 
 /* Output stream interface. The compressor uses this interface to write compressed data. It'll typically be called TDEFL_OUT_BUF_SIZE at a time. */
-typedef mz_bool (*tdefl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
+typedef mz_bool (*tdefl_put_buf_func_ptr)(const void *pBuf, size_t len, void *pUser);
 
 /* tdefl_compress_mem_to_output() compresses a block to an output stream. The above helpers use this function internally. */
 mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
@@ -175,7 +175,7 @@ mz_uint32 tdefl_get_adler32(tdefl_compressor *d);
 /* level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files) */
 /* window_bits may be -15 (raw deflate) or 15 (zlib) */
 /* strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED */
-mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
+int tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
 
 #ifndef MINIZ_NO_MALLOC
 /* Allocate the tdefl_compressor structure in C so that */
