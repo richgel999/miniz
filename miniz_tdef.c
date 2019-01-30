@@ -1320,7 +1320,7 @@ tdefl_status tdefl_compress_buffer(tdefl_compressor *d, const void *pIn_buf, siz
     return tdefl_compress(d, pIn_buf, &in_buf_size, NULL, NULL, flush);
 }
 
-tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags)
+tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, mz_uint flags)
 {
     d->m_pPut_buf_func = pPut_buf_func;
     d->m_pPut_buf_user = pPut_buf_user;
@@ -1365,7 +1365,7 @@ mz_uint32 tdefl_get_adler32(tdefl_compressor *d)
     return d->m_adler32;
 }
 
-mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags)
+mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, mz_uint flags)
 {
     tdefl_compressor *pComp;
     mz_bool succeeded;
@@ -1412,7 +1412,7 @@ static mz_bool tdefl_output_buffer_putter(const void *pBuf, size_t len, void *pU
     return MZ_TRUE;
 }
 
-void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, int flags)
+void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, mz_uint flags)
 {
     tdefl_output_buffer out_buf;
     MZ_CLEAR_OBJ(out_buf);
@@ -1427,7 +1427,7 @@ void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_
     return out_buf.m_pBuf;
 }
 
-size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, int flags)
+size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, mz_uint flags)
 {
     tdefl_output_buffer out_buf;
     MZ_CLEAR_OBJ(out_buf);
@@ -1443,9 +1443,9 @@ size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void 
 static const mz_uint s_tdefl_num_probes[11] = { 0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500 };
 
 /* level may actually range from [0,10] (10 is a "hidden" max level, where we want a bit more compression and it's fine if throughput to fall off a cliff on some files). */
-int tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
+mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
 {
-    int comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
+    mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
     if (window_bits > 0)
         comp_flags |= TDEFL_WRITE_ZLIB_HEADER;
 

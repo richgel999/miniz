@@ -48,11 +48,11 @@ enum
 /*  Function returns a pointer to the compressed data, or NULL on failure. */
 /*  *pOut_len will be set to the compressed data's size, which could be larger than src_buf_len on uncompressible data. */
 /*  The caller must free() the returned block when it's no longer needed. */
-void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, int flags);
+void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, mz_uint flags);
 
 /* tdefl_compress_mem_to_mem() compresses a block in memory to another block in memory. */
 /* Returns 0 on failure. */
-size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, int flags);
+size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, mz_uint flags);
 
 /* Compresses an image to a compressed PNG file in memory. */
 /* On entry: */
@@ -71,7 +71,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
 typedef mz_bool (*tdefl_put_buf_func_ptr)(const void *pBuf, size_t len, void *pUser);
 
 /* tdefl_compress_mem_to_output() compresses a block to an output stream. The above helpers use this function internally. */
-mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
+mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, mz_uint flags);
 
 enum
 {
@@ -159,7 +159,7 @@ typedef struct
 /* pBut_buf_func: If NULL, output data will be supplied to the specified callback. In this case, the user should call the tdefl_compress_buffer() API for compression. */
 /* If pBut_buf_func is NULL the user should always call the tdefl_compress() API. */
 /* flags: See the above enums (TDEFL_HUFFMAN_ONLY, TDEFL_WRITE_ZLIB_HEADER, etc.) */
-tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
+tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, mz_uint flags);
 
 /* Compresses a block of data, consuming as much of the specified input buffer as possible, and writing as much compressed data to the specified output buffer as possible. */
 tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pIn_buf_size, void *pOut_buf, size_t *pOut_buf_size, tdefl_flush flush);
@@ -175,7 +175,7 @@ mz_uint32 tdefl_get_adler32(tdefl_compressor *d);
 /* level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files) */
 /* window_bits may be -15 (raw deflate) or 15 (zlib) */
 /* strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED */
-int tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
+mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
 
 #ifndef MINIZ_NO_MALLOC
 /* Allocate the tdefl_compressor structure in C so that */
