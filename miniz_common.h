@@ -5,17 +5,17 @@
 #include <string.h>
 
 /* ------------------- Types and macros */
-typedef unsigned char mz_uint8;
-typedef signed short mz_int16;
-typedef unsigned short mz_uint16;
-typedef unsigned int mz_uint32;
-typedef unsigned int mz_uint;
+typedef uint8_t mz_uint8;
+typedef int16_t mz_int16;
+typedef uint16_t mz_uint16;
+typedef uint32_t mz_uint32;
+typedef uint32_t mz_uint;
 typedef int64_t mz_int64;
 typedef uint64_t mz_uint64;
-typedef int mz_bool;
+typedef uint8_t mz_bool;
 
 #define MZ_FALSE (0)
-#define MZ_TRUE (1)
+#define MZ_TRUE  (1)
 
 /* Works around MSVC's spammy "warning C4127: conditional expression is constant" message. */
 #ifdef _MSC_VER
