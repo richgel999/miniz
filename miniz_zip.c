@@ -2000,7 +2000,7 @@ size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state* pState,
     if ((pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method))
     {
         /* The file is stored or the caller has requested the compressed data, calc amount to return. */
-        copied_to_caller = MZ_MIN( buf_size, pState->comp_remaining );
+        copied_to_caller = (size_t)MZ_MIN( buf_size, pState->comp_remaining );
 
         /* Zip is in memory....or requires reading from a file? */
         if (pState->pZip->m_pState->m_pMem)
