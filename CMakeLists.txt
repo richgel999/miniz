@@ -13,6 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(miniz_SOURCE miniz.c miniz_zip.c miniz_tinfl.c miniz_tdef.c)
 
 add_library(miniz ${miniz_SOURCE})
+target_include_directories(miniz PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(EXAMPLE1_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/example1.c")
 set(EXAMPLE2_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/example2.c")
@@ -24,7 +25,6 @@ set(MINIZ_TESTER_SRC_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/miniz_tester.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/timer.cpp")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(example1 ${EXAMPLE1_SRC_LIST})
 target_link_libraries(example1 miniz)
 add_executable(example2 ${EXAMPLE2_SRC_LIST})
