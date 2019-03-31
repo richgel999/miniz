@@ -1,5 +1,20 @@
 ## Changelog
 
+### 2.1.0
+
+ - More instances of memcpy instead of cast and use memcpy per default
+ - Remove inline for c90 support
+ - New function to read files via callback functions when adding them
+ - Fix out of bounds read while reading Zip64 extended information
+ - guard memcpy when n == 0 because buffer may be NULL
+ - Implement inflateReset() function
+ - Move comp/decomp alloc/free  prototypes under guarding #ifndef MZ_NO_MALLOC
+ - Fix large file support under Windows
+ - Don't warn if _LARGEFILE64_SOURCE is not defined to 1
+ - Fixes for MSVC warnings
+ - Remove check that path of file added to archive contains ':' or '\'
+ - Add !defined check on MINIZ_USE_ALIGNED_LOADS_AND_STORES
+
 ### 2.0.8
 
  - Remove unimplemented functions (mz_zip_locate_file and mz_zip_locate_file_v2)
