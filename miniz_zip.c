@@ -764,7 +764,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
 							return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
 						}
 
-						pExtra_data = buf;
+						pExtra_data = (mz_uint8*)buf;
 					}
 					else
 					{
