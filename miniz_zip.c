@@ -736,6 +736,10 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flag
         cdir_ofs = MZ_READ_LE64(pZip64_end_of_central_dir + MZ_ZIP64_ECDH_CDIR_OFS_OFS);
     }
 
+    /* Calculate the offset and compare to written offset to get size of data offset at front. */
+    if (pZip->m_pState->m_file_archive_start_ofs == 0)
+      pZip->m_pState->m_file_archive_start_ofs = cur_file_ofs - cdir_size - cdir_ofs;
+
     if (pZip->m_total_files != cdir_entries_on_this_disk)
         return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_MULTIDISK);
 
