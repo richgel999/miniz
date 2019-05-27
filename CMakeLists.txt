@@ -1,5 +1,8 @@
 PROJECT(miniz C)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.4)
+
+set(Upstream_VERSION 2.1.0)
+
 if(CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
   # differentiation between debug and release builds.
@@ -11,6 +14,7 @@ endif ()
 option(BUILD_EXAMPLES "Build examples" ON)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
+option(BUILD_SHARED_LIBS "Build shared library instead of static" ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
@@ -65,13 +69,65 @@ if(AMALGAMATE_SOURCES)
   endif(BUILD_HEADER_ONLY)
   set(INSTALL_HEADERS ${CMAKE_BINARY_DIR}/amalgamation/miniz.h)
 else(AMALGAMATE_SOURCES)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   set(miniz_SOURCE miniz.c miniz_zip.c miniz_tinfl.c miniz_tdef.c)
   add_library(${PROJECT_NAME} ${miniz_SOURCE})
-  target_include_directories(${PROJECT_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>
+
+  set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${Upstream_VERSION})
+  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION 2)
+  set_property(TARGET ${PROJECT_NAME} PROPERTY
+    INTERFACE_${PROJECT_NAME}_MAJOR_VERSION 2)
+  set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+    COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
   )
+
+  # target_include_directories(${PROJECT_NAME} PUBLIC
+  #   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  #   $<INSTALL_INTERFACE:include>
+  # )
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+
+  install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+    RUNTIME  DESTINATION bin
+    ARCHIVE  DESTINATION lib
+    LIBRARY  DESTINATION lib
+    INCLUDES DESTINATION include
+    )
+
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION ${Upstream_VERSION}
+    COMPATIBILITY AnyNewerVersion
+  )
+
+  export(EXPORT ${PROJECT_NAME}Targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${PROJECT_NAME}::
+  )
+  configure_file(Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+    @ONLY
+  )
+
+  set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+  install(EXPORT ${PROJECT_NAME}Targets
+    FILE
+      ${PROJECT_NAME}Targets.cmake
+    NAMESPACE
+      ${PROJECT_NAME}::
+    DESTINATION
+      ${ConfigPackageLocation}
+  )
+  install(
+    FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION
+      ${ConfigPackageLocation}
+    COMPONENT
+      Devel
+  )
 endif(AMALGAMATE_SOURCES)
 
 if(BUILD_EXAMPLES)
@@ -108,3 +164,4 @@ endif(BUILD_EXAMPLES)
 set(INCLUDE_INSTALL_DIR "include")
 
 install(FILES ${INSTALL_HEADERS} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME})
+
