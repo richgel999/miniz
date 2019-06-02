@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "miniz_export.h"
+
 /* ------------------- Types and macros */
 typedef unsigned char mz_uint8;
 typedef signed short mz_int16;
@@ -79,9 +81,9 @@ typedef struct mz_dummy_time_t_tag
 extern "C" {
 #endif
 
-extern void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
-extern void miniz_def_free_func(void *opaque, void *address);
-extern void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size);
+extern MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
+extern MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address);
+extern MINIZ_EXPORT void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size);
 
 #define MZ_UINT16_MAX (0xFFFFU)
 #define MZ_UINT32_MAX (0xFFFFFFFFU)

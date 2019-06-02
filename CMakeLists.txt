@@ -42,10 +42,11 @@ if(AMALGAMATE_SOURCES)
 
   file(READ ${CMAKE_BINARY_DIR}/amalgamation/miniz.h AMAL_MINIZ_H)
   file(READ ${CMAKE_BINARY_DIR}/amalgamation/miniz.c AMAL_MINIZ_C)
-  foreach(REPLACE_STRING miniz;miniz_common;miniz_tdef;miniz_tinfl;miniz_zip)
+  foreach(REPLACE_STRING miniz;miniz_common;miniz_tdef;miniz_tinfl;miniz_zip;miniz_export)
     string(REPLACE "#include \"${REPLACE_STRING}.h\"" "" AMAL_MINIZ_H "${AMAL_MINIZ_H}")
     string(REPLACE "#include \"${REPLACE_STRING}.h\"" "" AMAL_MINIZ_C "${AMAL_MINIZ_C}")
   endforeach()
+  string(CONCAT AMAL_MINIZ_H "#define MINIZ_EXPORT\n" "${AMAL_MINIZ_H}")
   if(BUILD_HEADER_ONLY)
     string(CONCAT AMAL_MINIZ_H "${AMAL_MINIZ_H}" "\n#ifndef MINIZ_HEADER_FILE_ONLY\n"
              "${AMAL_MINIZ_C}" "\n#endif // MINIZ_HEADER_FILE_ONLY\n")
@@ -61,17 +62,26 @@ if(AMALGAMATE_SOURCES)
     file(WRITE ${CMAKE_BINARY_DIR}/amalgamation/miniz.c "${AMAL_MINIZ_C}")
     set(miniz_SOURCE ${CMAKE_BINARY_DIR}/amalgamation/miniz.h
                      ${CMAKE_BINARY_DIR}/amalgamation/miniz.c)
-    add_library(${PROJECT_NAME} ${miniz_SOURCE})
+    add_library(${PROJECT_NAME} STATIC ${miniz_SOURCE})
     target_include_directories(${PROJECT_NAME} PUBLIC
       $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/amalgamation>
       $<INSTALL_INTERFACE:include>
     )
   endif(BUILD_HEADER_ONLY)
+
   set(INSTALL_HEADERS ${CMAKE_BINARY_DIR}/amalgamation/miniz.h)
 else(AMALGAMATE_SOURCES)
-  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+  include(GenerateExportHeader)
   set(miniz_SOURCE miniz.c miniz_zip.c miniz_tinfl.c miniz_tdef.c)
   add_library(${PROJECT_NAME} ${miniz_SOURCE})
+  generate_export_header(${PROJECT_NAME})
+
+  if(NOT BUILD_SHARED_LIBS)
+    string(TOUPPER ${PROJECT_NAME} PROJECT_UPPER)
+    set_target_properties(${PROJECT_NAME}
+        PROPERTIES INTERFACE_COMPILE_DEFINITIONS ${PROJECT_UPPER}_STATIC_DEFINE)
+  endif()
 
   set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${Upstream_VERSION})
   set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION 2)
@@ -81,11 +91,14 @@ else(AMALGAMATE_SOURCES)
     COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
   )
 
-  # target_include_directories(${PROJECT_NAME} PUBLIC
-  #   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  #   $<INSTALL_INTERFACE:include>
-  # )
+  target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    $<INSTALL_INTERFACE:include>
+  )
+
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+  list(APPEND INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_export.h)
 
   install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
     RUNTIME  DESTINATION bin
