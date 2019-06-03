@@ -1,5 +1,12 @@
-PROJECT(miniz C)
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.0)
+
+if(CMAKE_MINOR_VERSION LESS 12)
+  project(miniz)
+  # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
+else()
+  project(miniz C)
+endif()
+
 
 set(Upstream_VERSION 2.1.0)
 
@@ -81,6 +88,8 @@ else(AMALGAMATE_SOURCES)
     string(TOUPPER ${PROJECT_NAME} PROJECT_UPPER)
     set_target_properties(${PROJECT_NAME}
         PROPERTIES INTERFACE_COMPILE_DEFINITIONS ${PROJECT_UPPER}_STATIC_DEFINE)
+  else()
+    set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
   endif()
 
   set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${Upstream_VERSION})

@@ -112,10 +112,7 @@
 */
 #pragma once
 
-#include "miniz_common.h"
-#include "miniz_tdef.h"
-#include "miniz_tinfl.h"
-#include "miniz_zip.h"
+#include "miniz_export.h"
 
 /* Defines to completely disable specific portions of miniz.c: 
    If all macros here are defined the only functionality remaining will be CRC-32, adler-32, tinfl, and tdefl. */
@@ -476,3 +473,8 @@ typedef void *const voidpc;
 #ifdef __cplusplus
 }
 #endif
+
+#include "miniz_common.h"
+#include "miniz_tdef.h"
+#include "miniz_tinfl.h"
+#include "miniz_zip.h"
