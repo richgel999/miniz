@@ -8,7 +8,11 @@ else()
 endif()
 
 
-set(Upstream_VERSION 2.1.0)
+set(MINIZ_API_VERSION 2)
+set(MINIZ_MINOR_VERSION 1)
+set(MINIZ_PATCH_VERSION 0)
+set(MINIZ_VERSION 
+    ${MINIZ_API_VERSION}.${MINIZ_MINOR_VERSION}.${MINIZ_PATCH_VERSION})
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
@@ -59,7 +63,12 @@ if(AMALGAMATE_SOURCES)
              "${AMAL_MINIZ_C}" "\n#endif // MINIZ_HEADER_FILE_ONLY\n")
     file(WRITE ${CMAKE_BINARY_DIR}/amalgamation/miniz.h "${AMAL_MINIZ_H}")
     add_library(${PROJECT_NAME} INTERFACE)
-    set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+    
+    target_compile_definitions(${PROJECT_NAME} 
+        INTERFACE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
+    
+    set_property(TARGET ${PROJECT_NAME} APPEND 
+      PROPERTY INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/amalgamation>
       $<INSTALL_INTERFACE:include>
     )
@@ -92,65 +101,73 @@ else(AMALGAMATE_SOURCES)
     set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
   endif()
 
-  set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${Upstream_VERSION})
-  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION 2)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY
-    INTERFACE_${PROJECT_NAME}_MAJOR_VERSION 2)
-  set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
-    COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
-  )
-
+  set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${MINIZ_VERSION})
+  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION ${MINIZ_API_VERSION})
+  
   target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<INSTALL_INTERFACE:include>
   )
-
+  
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
-  list(APPEND INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_export.h)
+  list(APPEND 
+       INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_export.h)
 
-  install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
-    RUNTIME  DESTINATION bin
-    ARCHIVE  DESTINATION lib
-    LIBRARY  DESTINATION lib
-    INCLUDES DESTINATION include
-    )
-
-  include(CMakePackageConfigHelpers)
-  write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${Upstream_VERSION}
-    COMPATIBILITY AnyNewerVersion
-  )
-
-  export(EXPORT ${PROJECT_NAME}Targets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
-    NAMESPACE ${PROJECT_NAME}::
-  )
-  configure_file(Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-    @ONLY
-  )
-
-  set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
-  install(EXPORT ${PROJECT_NAME}Targets
-    FILE
-      ${PROJECT_NAME}Targets.cmake
-    NAMESPACE
-      ${PROJECT_NAME}::
-    DESTINATION
-      ${ConfigPackageLocation}
-  )
-  install(
-    FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION
-      ${ConfigPackageLocation}
-    COMPONENT
-      Devel
-  )
 endif(AMALGAMATE_SOURCES)
+
+if(NOT BUILD_HEADER_ONLY)
+  target_compile_definitions(${PROJECT_NAME} 
+    PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
+endif()
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY
+  INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${MINIZ_API_VERSION})
+set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+  COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
+)
+
+install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+  RUNTIME  DESTINATION bin
+  ARCHIVE  DESTINATION lib
+  LIBRARY  DESTINATION lib
+  INCLUDES DESTINATION include
+  )
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+  VERSION ${MINIZ_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT ${PROJECT_NAME}Targets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+  NAMESPACE ${PROJECT_NAME}::
+)
+configure_file(Config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+  @ONLY
+)
+
+set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+install(EXPORT ${PROJECT_NAME}Targets
+  FILE
+    ${PROJECT_NAME}Targets.cmake
+  NAMESPACE
+    ${PROJECT_NAME}::
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+install(
+  FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+  DESTINATION
+    ${ConfigPackageLocation}
+  COMPONENT
+    Devel
+)
 
 if(BUILD_EXAMPLES)
   set(EXAMPLE1_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/example1.c")
