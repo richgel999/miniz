@@ -64,8 +64,11 @@ if(AMALGAMATE_SOURCES)
     file(WRITE ${CMAKE_BINARY_DIR}/amalgamation/miniz.h "${AMAL_MINIZ_H}")
     add_library(${PROJECT_NAME} INTERFACE)
     
-    target_compile_definitions(${PROJECT_NAME} 
-        INTERFACE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
+    # Might not be a good idea to force this on the library user
+    # as it could bloat the global namespace
+    # https://github.com/libevent/libevent/issues/460
+    # target_compile_definitions(${PROJECT_NAME} 
+    #     INTERFACE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
     
     set_property(TARGET ${PROJECT_NAME} APPEND 
       PROPERTY INTERFACE_INCLUDE_DIRECTORIES
@@ -131,7 +134,8 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
   RUNTIME  DESTINATION bin
   ARCHIVE  DESTINATION lib
   LIBRARY  DESTINATION lib
-  INCLUDES DESTINATION include
+  # users can use <miniz.h> or <miniz/miniz.h>
+  INCLUDES DESTINATION include include/${PROJECT_NAME}
   )
 
 include(CMakePackageConfigHelpers)
