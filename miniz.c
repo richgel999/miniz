@@ -552,19 +552,18 @@ int mz_inflateEnd(mz_streamp pStream)
     }
     return MZ_OK;
 }
-
-int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len)
+int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len)
 {
     mz_stream stream;
     int status;
     memset(&stream, 0, sizeof(stream));
 
     /* In case mz_ulong is 64-bits (argh I hate longs). */
-    if ((source_len | *pDest_len) > 0xFFFFFFFFU)
+    if ((*pSource_len | *pDest_len) > 0xFFFFFFFFU)
         return MZ_PARAM_ERROR;
 
     stream.next_in = pSource;
-    stream.avail_in = (mz_uint32)source_len;
+    stream.avail_in = (mz_uint32)*pSource_len;
     stream.next_out = pDest;
     stream.avail_out = (mz_uint32)*pDest_len;
 
@@ -573,6 +572,7 @@ int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char
         return status;
 
     status = mz_inflate(&stream, MZ_FINISH);
+    *pSource_len = *pSource_len - stream.avail_in;
     if (status != MZ_STREAM_END)
     {
         mz_inflateEnd(&stream);
@@ -581,6 +581,11 @@ int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char
     *pDest_len = stream.total_out;
 
     return mz_inflateEnd(&stream);
+}
+
+int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len)
+{
+    return mz_uncompress2(pDest, pDest_len, pSource, &source_len);
 }
 
 const char *mz_error(int err)

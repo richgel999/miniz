@@ -388,6 +388,7 @@ MINIZ_EXPORT int mz_inflateEnd(mz_streamp pStream);
 /* Single-call decompression. */
 /* Returns MZ_OK on success, or one of the error codes from mz_inflate() on failure. */
 MINIZ_EXPORT int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
+MINIZ_EXPORT int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
 
 /* Returns a string description of the specified error code, or NULL if the error code is invalid. */
 MINIZ_EXPORT const char *mz_error(int err);
@@ -453,6 +454,7 @@ typedef void *const voidpc;
 #define inflate mz_inflate
 #define inflateEnd mz_inflateEnd
 #define uncompress mz_uncompress
+#define uncompress2 mz_uncompress2
 #define crc32 mz_crc32
 #define adler32 mz_adler32
 #define MAX_WBITS 15
