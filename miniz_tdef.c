@@ -1094,7 +1094,7 @@ static mz_bool tdefl_compress_normal(tdefl_compressor *d)
             mz_uint dst_pos = (d->m_lookahead_pos + d->m_lookahead_size) & TDEFL_LZ_DICT_SIZE_MASK, ins_pos = d->m_lookahead_pos + d->m_lookahead_size - 2;
             mz_uint hash = (d->m_dict[ins_pos & TDEFL_LZ_DICT_SIZE_MASK] << TDEFL_LZ_HASH_SHIFT) ^ d->m_dict[(ins_pos + 1) & TDEFL_LZ_DICT_SIZE_MASK];
             mz_uint num_bytes_to_process = (mz_uint)MZ_MIN(src_buf_left, TDEFL_MAX_MATCH_LEN - d->m_lookahead_size);
-            const mz_uint8 *pSrc_end = pSrc + num_bytes_to_process;
+            const mz_uint8 *pSrc_end = pSrc ? pSrc + num_bytes_to_process : NULL;
             src_buf_left -= num_bytes_to_process;
             d->m_lookahead_size += num_bytes_to_process;
             while (pSrc != pSrc_end)
