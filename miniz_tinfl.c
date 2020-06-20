@@ -121,7 +121,7 @@ extern "C" {
             code_len = TINFL_FAST_LOOKUP_BITS;                                 \
             do                                                                 \
             {                                                                  \
-                temp = (pHuff)->m_tree[~temp + ((bit_buf >> code_len++) & 1)]; \
+                temp = (pHuff)->m_pTree[~temp + ((bit_buf >> code_len++) & 1)];\
             } while ((temp < 0) && (num_bits >= (code_len + 1)));              \
             if (temp >= 0)                                                     \
                 break;                                                         \
@@ -162,7 +162,7 @@ extern "C" {
             code_len = TINFL_FAST_LOOKUP_BITS;                                                                                      \
             do                                                                                                                      \
             {                                                                                                                       \
-                temp = (pHuff)->m_tree[~temp + ((bit_buf >> code_len++) & 1)];                                                      \
+                temp = (pHuff)->m_pTree[~temp + ((bit_buf >> code_len++) & 1)];                                                      \
             } while (temp < 0);                                                                                                     \
         }                                                                                                                           \
         sym = temp;                                                                                                                 \
@@ -271,11 +271,11 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
         {
             if (r->m_type == 1)
             {
-                mz_uint8 *p = r->m_tables[0].m_code_size;
+                mz_uint8 *p = r->m_code_size_0;
                 mz_uint i;
                 r->m_table_sizes[0] = 288;
                 r->m_table_sizes[1] = 32;
-                TINFL_MEMSET(r->m_tables[1].m_code_size, 5, 32);
+                TINFL_MEMSET(r->m_code_size_1, 5, 32);
                 for (i = 0; i <= 143; ++i)
                     *p++ = 8;
                 for (; i <= 255; ++i)
@@ -292,12 +292,12 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
                     r->m_table_sizes[counter] += s_min_table_sizes[counter];
                 }
-                MZ_CLEAR_OBJ(r->m_tables[2].m_code_size);
+                MZ_CLEAR_OBJ(r->m_code_size_2);
                 for (counter = 0; counter < r->m_table_sizes[2]; counter++)
                 {
                     mz_uint s;
                     TINFL_GET_BITS(14, s, 3);
-                    r->m_tables[2].m_code_size[s_length_dezigzag[counter]] = (mz_uint8)s;
+                    r->m_code_size_2[s_length_dezigzag[counter]] = (mz_uint8)s;
                 }
                 r->m_table_sizes[2] = 19;
             }
@@ -309,9 +309,9 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 pTable = &r->m_tables[r->m_type];
                 MZ_CLEAR_OBJ(total_syms);
                 MZ_CLEAR_OBJ(pTable->m_look_up);
-                MZ_CLEAR_OBJ(pTable->m_tree);
+                TINFL_MEMSET(pTable->m_pTree, 0, r->m_table_sizes[r->m_type] * sizeof(pTable->m_pTree[0]) * 2);
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
-                    total_syms[pTable->m_code_size[i]]++;
+                    total_syms[pTable->m_pCode_size[i]]++;
                 used_syms = 0, total = 0;
                 next_code[0] = next_code[1] = 0;
                 for (i = 1; i <= 15; ++i)
@@ -325,7 +325,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 }
                 for (tree_next = -1, sym_index = 0; sym_index < r->m_table_sizes[r->m_type]; ++sym_index)
                 {
-                    mz_uint rev_code = 0, l, cur_code, code_size = pTable->m_code_size[sym_index];
+                    mz_uint rev_code = 0, l, cur_code, code_size = pTable->m_pCode_size[sym_index];
                     if (!code_size)
                         continue;
                     cur_code = next_code[code_size]++;
@@ -351,17 +351,17 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     for (j = code_size; j > (TINFL_FAST_LOOKUP_BITS + 1); j--)
                     {
                         tree_cur -= ((rev_code >>= 1) & 1);
-                        if (!pTable->m_tree[-tree_cur - 1])
+                        if (!pTable->m_pTree[-tree_cur - 1])
                         {
-                            pTable->m_tree[-tree_cur - 1] = (mz_int16)tree_next;
+                            pTable->m_pTree[-tree_cur - 1] = (mz_int16)tree_next;
                             tree_cur = tree_next;
                             tree_next -= 2;
                         }
                         else
-                            tree_cur = pTable->m_tree[-tree_cur - 1];
+                            tree_cur = pTable->m_pTree[-tree_cur - 1];
                     }
                     tree_cur -= ((rev_code >>= 1) & 1);
-                    pTable->m_tree[-tree_cur - 1] = (mz_int16)sym_index;
+                    pTable->m_pTree[-tree_cur - 1] = (mz_int16)sym_index;
                 }
                 if (r->m_type == 2)
                 {
@@ -388,8 +388,8 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     {
                         TINFL_CR_RETURN_FOREVER(21, TINFL_STATUS_FAILED);
                     }
-                    TINFL_MEMCPY(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
-                    TINFL_MEMCPY(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
+                    TINFL_MEMCPY(r->m_tables[0].m_pCode_size, r->m_len_codes, r->m_table_sizes[0]);
+                    TINFL_MEMCPY(r->m_tables[1].m_pCode_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
                 }
             }
             for (;;)
@@ -434,7 +434,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                             code_len = TINFL_FAST_LOOKUP_BITS;
                             do
                             {
-                                sym2 = r->m_tables[0].m_tree[~sym2 + ((bit_buf >> code_len++) & 1)];
+                                sym2 = r->m_tree_0[~sym2 + ((bit_buf >> code_len++) & 1)];
                             } while (sym2 < 0);
                         }
                         counter = sym2;
@@ -458,7 +458,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                             code_len = TINFL_FAST_LOOKUP_BITS;
                             do
                             {
-                                sym2 = r->m_tables[0].m_tree[~sym2 + ((bit_buf >> code_len++) & 1)];
+                                sym2 = r->m_tree_0[~sym2 + ((bit_buf >> code_len++) & 1)];
                             } while (sym2 < 0);
                         }
                         bit_buf >>= code_len;
