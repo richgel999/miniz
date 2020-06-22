@@ -388,8 +388,8 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     {
                         TINFL_CR_RETURN_FOREVER(21, TINFL_STATUS_FAILED);
                     }
-                    TINFL_MEMCPY(r->m_tables[0].m_pCode_size, r->m_len_codes, r->m_table_sizes[0]);
-                    TINFL_MEMCPY(r->m_tables[1].m_pCode_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
+                    TINFL_MEMCPY(r->m_code_size_0, r->m_len_codes, r->m_table_sizes[0]);
+                    TINFL_MEMCPY(r->m_code_size_1, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
                 }
             }
             for (;;)
