@@ -109,6 +109,7 @@ extern "C" {
 #define TINFL_HUFF_BITBUF_FILL(state_index, pHuff)                             \
     do                                                                         \
     {                                                                          \
+        mz_int16 *pTree;                                                       \
         temp = (pHuff)->m_look_up[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];     \
         if (temp >= 0)                                                         \
         {                                                                      \
@@ -118,10 +119,11 @@ extern "C" {
         }                                                                      \
         else if (num_bits > TINFL_FAST_LOOKUP_BITS)                            \
         {                                                                      \
+            pTree = (pHuff)->m_pTree;                                          \
             code_len = TINFL_FAST_LOOKUP_BITS;                                 \
             do                                                                 \
             {                                                                  \
-                temp = (pHuff)->m_pTree[~temp + ((bit_buf >> code_len++) & 1)];\
+                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];           \
             } while ((temp < 0) && (num_bits >= (code_len + 1)));              \
             if (temp >= 0)                                                     \
                 break;                                                         \
@@ -142,6 +144,7 @@ extern "C" {
     {                                                                                                                               \
         int temp;                                                                                                                   \
         mz_uint code_len, c;                                                                                                        \
+        mz_int16 *pTree;                                                                                                            \
         if (num_bits < 15)                                                                                                          \
         {                                                                                                                           \
             if ((pIn_buf_end - pIn_buf_cur) < 2)                                                                                    \
@@ -159,10 +162,11 @@ extern "C" {
             code_len = temp >> 9, temp &= 511;                                                                                      \
         else                                                                                                                        \
         {                                                                                                                           \
+            pTree = (pHuff)->m_pTree;                                                                                               \
             code_len = TINFL_FAST_LOOKUP_BITS;                                                                                      \
             do                                                                                                                      \
             {                                                                                                                       \
-                temp = (pHuff)->m_pTree[~temp + ((bit_buf >> code_len++) & 1)];                                                      \
+                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];                                                                \
             } while (temp < 0);                                                                                                     \
         }                                                                                                                           \
         sym = temp;                                                                                                                 \
@@ -305,13 +309,17 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
             {
                 int tree_next, tree_cur;
                 tinfl_huff_table *pTable;
+                mz_int16 *pTree;
+                mz_uint8 *pCode_size;
                 mz_uint i, j, used_syms, total, sym_index, next_code[17], total_syms[16];
                 pTable = &r->m_tables[r->m_type];
+                pTree = pTable->m_pTree;
+                pCode_size = pTable->m_pCode_size;
                 MZ_CLEAR_OBJ(total_syms);
                 MZ_CLEAR_OBJ(pTable->m_look_up);
-                TINFL_MEMSET(pTable->m_pTree, 0, r->m_table_sizes[r->m_type] * sizeof(pTable->m_pTree[0]) * 2);
+                TINFL_MEMSET(pTree, 0, r->m_table_sizes[r->m_type] * sizeof(pTree[0]) * 2);
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
-                    total_syms[pTable->m_pCode_size[i]]++;
+                    total_syms[pCode_size[i]]++;
                 used_syms = 0, total = 0;
                 next_code[0] = next_code[1] = 0;
                 for (i = 1; i <= 15; ++i)
@@ -325,7 +333,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 }
                 for (tree_next = -1, sym_index = 0; sym_index < r->m_table_sizes[r->m_type]; ++sym_index)
                 {
-                    mz_uint rev_code = 0, l, cur_code, code_size = pTable->m_pCode_size[sym_index];
+                    mz_uint rev_code = 0, l, cur_code, code_size = pCode_size[sym_index];
                     if (!code_size)
                         continue;
                     cur_code = next_code[code_size]++;
@@ -351,17 +359,17 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     for (j = code_size; j > (TINFL_FAST_LOOKUP_BITS + 1); j--)
                     {
                         tree_cur -= ((rev_code >>= 1) & 1);
-                        if (!pTable->m_pTree[-tree_cur - 1])
+                        if (!pTree[-tree_cur - 1])
                         {
-                            pTable->m_pTree[-tree_cur - 1] = (mz_int16)tree_next;
+                            pTree[-tree_cur - 1] = (mz_int16)tree_next;
                             tree_cur = tree_next;
                             tree_next -= 2;
                         }
                         else
-                            tree_cur = pTable->m_pTree[-tree_cur - 1];
+                            tree_cur = pTree[-tree_cur - 1];
                     }
                     tree_cur -= ((rev_code >>= 1) & 1);
-                    pTable->m_pTree[-tree_cur - 1] = (mz_int16)sym_index;
+                    pTree[-tree_cur - 1] = (mz_int16)sym_index;
                 }
                 if (r->m_type == 2)
                 {
