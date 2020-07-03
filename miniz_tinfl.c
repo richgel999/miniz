@@ -580,7 +580,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
         --pIn_buf_cur;
         num_bits -= 8;
     }
-    bit_buf &= (tinfl_bit_buf_t)((((mz_uint64)1) << num_bits) - (mz_uint64)1);
+    bit_buf &= ~(~(tinfl_bit_buf_t)0 << num_bits);
     MZ_ASSERT(!num_bits); /* if this assert fires then we've read beyond the end of non-deflate/zlib streams with following data (such as gzip streams). */
 
     if (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER)
@@ -612,7 +612,7 @@ common_exit:
         }
     }
     r->m_num_bits = num_bits;
-    r->m_bit_buf = bit_buf & (tinfl_bit_buf_t)((((mz_uint64)1) << num_bits) - (mz_uint64)1);
+    r->m_bit_buf = bit_buf & ~(~(tinfl_bit_buf_t)0 << num_bits);
     r->m_dist = dist;
     r->m_counter = counter;
     r->m_num_extra = num_extra;
