@@ -23,6 +23,7 @@ CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif ()
 
 option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_FUZZERS "Build fuzz targets" OFF)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
 option(BUILD_SHARED_LIBS "Build shared library instead of static" ON)
@@ -201,6 +202,23 @@ if(BUILD_EXAMPLES)
   # add_executable(miniz_tester ${MINIZ_TESTER_SRC_LIST})
   # target_link_libraries(miniz_tester miniz)
 endif(BUILD_EXAMPLES)
+
+if(BUILD_FUZZERS)
+  set(FUZZ_MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_main.c")
+
+  set(CHECKSUM_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/checksum_fuzzer.c")
+  set(FLUSH_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/flush_fuzzer.c")
+  set(UNCOMPRESS_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/uncompress_fuzzer.c")
+
+  add_executable(checksum_fuzzer ${CHECKSUM_FUZZER_SRC_LIST})
+  target_link_libraries(checksum_fuzzer miniz)
+
+  add_executable(flush_fuzzer ${FLUSH_FUZZER_SRC_LIST})
+  target_link_libraries(flush_fuzzer miniz)
+
+  add_executable(uncompress_fuzzer ${UNCOMPRESS_FUZZER_SRC_LIST})
+  target_link_libraries(uncompress_fuzzer miniz)
+endif()
 
 set(INCLUDE_INSTALL_DIR "include")
 
