@@ -4,6 +4,8 @@
 
 /* Fuzz target entry point for building without libFuzzer */
 
+int LLVMFuzzerTestOneInput(const uint8_t *d, size_t size);
+
 int main(int argc, char **argv)
 {
     FILE *f;
