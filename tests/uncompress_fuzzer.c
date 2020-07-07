@@ -10,7 +10,7 @@
 
 static unsigned char buffer[256 * 1024] = { 0 };
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     unsigned long int buffer_length = sizeof(buffer);
 
