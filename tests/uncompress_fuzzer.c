@@ -14,7 +14,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     unsigned long int buffer_length = sizeof(buffer);
 
-    if (Z_OK != uncompress(buffer, &buffer_length, data, size))) return 0;
+    if (Z_OK != uncompress(buffer, &buffer_length, data, size)) return 0;
     
     return 0;
 }
