@@ -121,6 +121,13 @@ endif(AMALGAMATE_SOURCES)
 if(NOT BUILD_HEADER_ONLY)
   target_compile_definitions(${PROJECT_NAME} 
     PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
+
+  # pkg-config file
+  configure_file(miniz.pc.in ${CMAKE_BINARY_DIR}/miniz.pc @ONLY)
+
+  install(FILES
+    ${CMAKE_BINARY_DIR}/miniz.pc
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY
