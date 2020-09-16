@@ -7,6 +7,7 @@ else()
   project(miniz C)
 endif()
 
+include(GNUInstallDirs)
 
 set(MINIZ_API_VERSION 2)
 set(MINIZ_MINOR_VERSION 1)
@@ -121,6 +122,13 @@ endif(AMALGAMATE_SOURCES)
 if(NOT BUILD_HEADER_ONLY)
   target_compile_definitions(${PROJECT_NAME} 
     PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
+
+  # pkg-config file
+  configure_file(miniz.pc.in ${CMAKE_BINARY_DIR}/miniz.pc @ONLY)
+
+  install(FILES
+    ${CMAKE_BINARY_DIR}/miniz.pc
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY
@@ -130,11 +138,11 @@ set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
 )
 
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
-  RUNTIME  DESTINATION bin
-  ARCHIVE  DESTINATION lib
-  LIBRARY  DESTINATION lib
+  RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+  ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
   # users can use <miniz.h> or <miniz/miniz.h>
-  INCLUDES DESTINATION include include/${PROJECT_NAME}
+  INCLUDES DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 
 include(CMakePackageConfigHelpers)
@@ -153,7 +161,7 @@ configure_file(Config.cmake.in
   @ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 install(EXPORT ${PROJECT_NAME}Targets
   FILE
     ${PROJECT_NAME}Targets.cmake
@@ -222,6 +230,6 @@ endif()
 
 set(INCLUDE_INSTALL_DIR "include")
 
-install(FILES ${INSTALL_HEADERS} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME})
+install(FILES ${INSTALL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
 
