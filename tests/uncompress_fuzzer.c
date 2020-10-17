@@ -8,13 +8,23 @@
 
 #include "miniz.h"
 
-static unsigned char buffer[256 * 1024] = { 0 };
-
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    unsigned long int buffer_length = sizeof(buffer);
+    unsigned long int buffer_length = 1;
+    unsigned char *buffer = NULL;
+    int z_status = 0;
 
-    if (Z_OK != uncompress(buffer, &buffer_length, data, size)) return 0;
-    
+    if (size > 0)
+        buffer_length *= data[0];
+    if (size > 1)
+        buffer_length *= data[1];
+
+    buffer = (unsigned char *)malloc(buffer_length);
+
+    z_status = uncompress(buffer, &buffer_length, data, size);
+    free(buffer);
+
+    if (Z_OK != z_status)
+        return 0;
     return 0;
 }
