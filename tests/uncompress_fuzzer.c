@@ -10,21 +10,18 @@
 
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    unsigned long int buffer_length;
+    unsigned long int buffer_length = 1;
     unsigned char *buffer = NULL;
     int z_status = 0;
 
-    if(size > 4) return 0;
-
-    uint32_t n;
-    memcpy(&n, data, 4);
-    buffer_length = n;
-
-    if(buffer_length > (1024 * 256)) return 0;
+    if (size > 0)
+        buffer_length *= data[0];
+    if (size > 1)
+        buffer_length *= data[1];
 
     buffer = (unsigned char *)malloc(buffer_length);
 
-    z_status = uncompress(buffer, &buffer_length, data + 4, size - 4);
+    z_status = uncompress(buffer, &buffer_length, data, size);
     free(buffer);
 
     if (Z_OK != z_status)
