@@ -33,3 +33,10 @@ for f in $(find $SRC -name '*_fuzzer.c'); do
     rm -f /tmp/$b.o
     ln -sf $OUT/seed_corpus.zip $OUT/${b}_seed_corpus.zip
 done
+
+
+# Add .zip input file for the zip fuzzer
+rm -f $OUT/zip_fuzzer_seed_corpus.zip
+zip $OUT/zip_fuzzer_seed_corpus.zip $OUT/seed_corpus.zip
+
+cp tests/zip.dict $OUT/zip_fuzzer.dict
