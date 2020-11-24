@@ -217,6 +217,11 @@ if(BUILD_FUZZERS)
   set(CHECKSUM_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/checksum_fuzzer.c")
   set(FLUSH_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/flush_fuzzer.c")
   set(UNCOMPRESS_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/uncompress_fuzzer.c")
+  set(UNCOMPRESS2_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/uncompress2_fuzzer.c")
+  set(COMPRESS_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/compress_fuzzer.c")
+  set(SMALL_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/small_fuzzer.c")
+  set(LARGE_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/large_fuzzer.c")
+  set(ZIP_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/zip_fuzzer.c")
 
   add_executable(checksum_fuzzer ${CHECKSUM_FUZZER_SRC_LIST})
   target_link_libraries(checksum_fuzzer miniz)
@@ -226,6 +231,21 @@ if(BUILD_FUZZERS)
 
   add_executable(uncompress_fuzzer ${UNCOMPRESS_FUZZER_SRC_LIST})
   target_link_libraries(uncompress_fuzzer miniz)
+
+  add_executable(uncompress2_fuzzer ${UNCOMPRESS2_FUZZER_SRC_LIST})
+  target_link_libraries(uncompress2_fuzzer miniz)
+
+  add_executable(compress_fuzzer ${COMPRESS_FUZZER_SRC_LIST})
+  target_link_libraries(compress_fuzzer miniz)
+
+  add_executable(small_fuzzer ${SMALL_FUZZER_SRC_LIST})
+  target_link_libraries(small_fuzzer miniz)
+
+  add_executable(large_fuzzer ${LARGE_FUZZER_SRC_LIST})
+  target_link_libraries(large_fuzzer miniz)
+
+  add_executable(zip_fuzzer ${ZIP_FUZZER_SRC_LIST})
+  target_link_libraries(zip_fuzzer miniz)
 endif()
 
 set(INCLUDE_INSTALL_DIR "include")

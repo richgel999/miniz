@@ -32,7 +32,7 @@ void test_flush(unsigned char *compr, size_t *comprLen)
 
     c_stream.zalloc = zalloc;
     c_stream.zfree = zfree;
-    c_stream.opaque = (void *)0;
+    c_stream.opaque = NULL;
 
     err = deflateInit(&c_stream, Z_DEFAULT_COMPRESSION);
     CHECK_ERR(err, "deflateInit");
