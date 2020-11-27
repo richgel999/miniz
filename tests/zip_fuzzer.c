@@ -33,7 +33,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if(mz_zip_reader_is_file_a_directory(&zip, i)) continue;
 
         mz_zip_validate_file(&zip, i, MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY);
-        mz_zip_validate_file(&zip, i, 0);
 
         if(mz_zip_reader_is_file_encrypted(&zip, i)) continue;
 
