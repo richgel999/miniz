@@ -2301,7 +2301,10 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
     if (!mz_zip_array_resize(pZip, &file_data_array, MZ_MAX(local_header_filename_len, local_header_extra_len), MZ_FALSE))
-        return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+    {
+        mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+        goto handle_failure;
+    }
 
     if (local_header_filename_len)
     {
@@ -2335,14 +2338,20 @@ mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint f
             mz_uint32 field_id, field_data_size, field_total_size;
 
             if (extra_size_remaining < (sizeof(mz_uint16) * 2))
-                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+                goto handle_failure;
+            }
 
             field_id = MZ_READ_LE16(pExtra_data);
             field_data_size = MZ_READ_LE16(pExtra_data + sizeof(mz_uint16));
             field_total_size = field_data_size + sizeof(mz_uint16) * 2;
 
             if (field_total_size > extra_size_remaining)
-                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+                goto handle_failure;
+            }
 
             if (field_id == MZ_ZIP64_EXTENDED_INFORMATION_FIELD_HEADER_ID)
             {
