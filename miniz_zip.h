@@ -97,7 +97,10 @@ typedef enum {
     MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY = 0x2000,     /* validate the local headers, but don't decompress the entire file and check the crc32 */
     MZ_ZIP_FLAG_WRITE_ZIP64 = 0x4000,               /* always use the zip64 file format, instead of the original zip file format with automatic switch to zip64. Use as flags parameter with mz_zip_writer_init*_v2 */
     MZ_ZIP_FLAG_WRITE_ALLOW_READING = 0x8000,
-    MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000
+    MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000,
+    /*After adding a compressed file, seek back
+    to local file header and set the correct sizes*/
+    MZ_ZIP_FLAG_WRITE_HEADER_SET_SIZE = 0x20000
 } mz_zip_flags;
 
 typedef enum {
@@ -383,6 +386,7 @@ MINIZ_EXPORT mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const cha
 MINIZ_EXPORT mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pArchive_name, mz_file_read_func read_callback, void* callback_opaque, mz_uint64 max_size,
 	const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
 	const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+
 
 #ifndef MINIZ_NO_STDIO
 /* Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive. */
