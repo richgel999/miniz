@@ -14,7 +14,7 @@ else()
 endif()
 
 set(MINIZ_API_VERSION 2)
-set(MINIZ_MINOR_VERSION 1)
+set(MINIZ_MINOR_VERSION 2)
 set(MINIZ_PATCH_VERSION 0)
 set(MINIZ_VERSION 
     ${MINIZ_API_VERSION}.${MINIZ_MINOR_VERSION}.${MINIZ_PATCH_VERSION})
@@ -100,6 +100,31 @@ if(AMALGAMATE_SOURCES)
   endif(BUILD_HEADER_ONLY)
 
   set(INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/miniz.h)
+  
+  file(GLOB_RECURSE ZIP_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/amalgamation" "${CMAKE_CURRENT_BINARY_DIR}/amalgamation/*")
+  file(GLOB_RECURSE ZIP_FILES2 RELATIVE "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/examples/*")
+  list(APPEND ZIP_FILES ${ZIP_FILES2})
+  list(APPEND ZIP_FILES "ChangeLog.md")
+  list(APPEND ZIP_FILES "readme.md")
+  list(APPEND ZIP_FILES "LICENSE")
+  set(ZIP_OUT_FN "${CMAKE_CURRENT_BINARY_DIR}/miniz-${MINIZ_VERSION}.zip")
+  message(STATUS "Zip files: ${ZIP_FILES}")
+  add_custom_command(
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/examples
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/ChangeLog.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/ChangeLog.md
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/readme.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/readme.md
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/LICENSE
+		COMMAND ${CMAKE_COMMAND} -E tar "cf" "${ZIP_OUT_FN}" --format=zip -- ${ZIP_FILES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/amalgamation"
+        OUTPUT  "${ZIP_OUT_FN}"
+        DEPENDS ${ZIP_FILES}
+        COMMENT "Zipping to ${CMAKE_CURRENT_BINARY_DIR}/miniz.zip."
+    )
+	
+	add_custom_target(
+	  create_zip ALL
+	  DEPENDS "${ZIP_OUT_FN}"
+	)
 else(AMALGAMATE_SOURCES)
   include(GenerateExportHeader)
   set(miniz_SOURCE miniz.c miniz_zip.c miniz_tinfl.c miniz_tdef.c)
