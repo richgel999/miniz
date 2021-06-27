@@ -43,7 +43,7 @@ static void hsv_to_rgb(int hue, int min, int max, rgb_t *p)
 
   switch((int)h) {
   case 0: p->r = c; p->g = X; return;
-  case 1:	p->r = X; p->g = c; return;
+  case 1:   p->r = X; p->g = c; return;
   case 2: p->g = c; p->b = X; return;
   case 3: p->g = X; p->b = c; return;
   case 4: p->r = X; p->b = c; return;

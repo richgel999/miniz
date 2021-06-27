@@ -739,15 +739,15 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
 static mz_uint16 TDEFL_READ_UNALIGNED_WORD(const mz_uint8* p)
 {
-	mz_uint16 ret;
-	memcpy(&ret, p, sizeof(mz_uint16));
-	return ret;
+    mz_uint16 ret;
+    memcpy(&ret, p, sizeof(mz_uint16));
+    return ret;
 }
 static mz_uint16 TDEFL_READ_UNALIGNED_WORD2(const mz_uint16* p)
 {
-	mz_uint16 ret;
-	memcpy(&ret, p, sizeof(mz_uint16));
-	return ret;
+    mz_uint16 ret;
+    memcpy(&ret, p, sizeof(mz_uint16));
+    return ret;
 }
 #else
 #define TDEFL_READ_UNALIGNED_WORD(p) *(const mz_uint16 *)(p)
@@ -855,9 +855,9 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
 static mz_uint32 TDEFL_READ_UNALIGNED_WORD32(const mz_uint8* p)
 {
-	mz_uint32 ret;
-	memcpy(&ret, p, sizeof(mz_uint32));
-	return ret;
+    mz_uint32 ret;
+    memcpy(&ret, p, sizeof(mz_uint32));
+    return ret;
 }
 #else
 #define TDEFL_READ_UNALIGNED_WORD32(p) *(const mz_uint32 *)(p)
@@ -932,7 +932,7 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d)
 
                     pLZ_code_buf[0] = (mz_uint8)(cur_match_len - TDEFL_MIN_MATCH_LEN);
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
-					memcpy(&pLZ_code_buf[1], &cur_match_dist, sizeof(cur_match_dist));
+                    memcpy(&pLZ_code_buf[1], &cur_match_dist, sizeof(cur_match_dist));
 #else
                     *(mz_uint16 *)(&pLZ_code_buf[1]) = (mz_uint16)cur_match_dist;
 #endif
