@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.0)
 
+# determine whether this is a standalone project or included by other projects
+set (MINIZ_STANDALONE_PROJECT ON)
+if(DEFINED PROJECT_NAME)
+  set(MINIZ_STANDALONE_PROJECT OFF)
+endif()
+
 if(CMAKE_MINOR_VERSION LESS 12)
   project(miniz)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
   project(miniz C)
 endif()
-
-# determine whether this is a standalone project or included by other projects
-set(MINIZ_STANDALONE_PROJECT OFF)
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(MINIZ_STANDALONE_PROJECT ON)
-endif ()
 
 set(MINIZ_API_VERSION 2)
 set(MINIZ_MINOR_VERSION 1)
