@@ -1074,9 +1074,7 @@ static MZ_FORCEINLINE void tdefl_record_match(tdefl_compressor *d, mz_uint match
     s0 = s_tdefl_small_dist_sym[match_dist & 511];
     s1 = s_tdefl_large_dist_sym[(match_dist >> 8) & 127];
     d->m_huff_count[1][(match_dist < 512) ? s0 : s1]++;
-
-    if (match_len >= TDEFL_MIN_MATCH_LEN)
-        d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
+    d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
 }
 
 static mz_bool tdefl_compress_normal(tdefl_compressor *d)
