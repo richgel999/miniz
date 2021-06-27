@@ -1,5 +1,25 @@
 ## Changelog
 
+### 2.2.0
+
+ - Fix examples with amalgamation
+ - Modified cmake script to support shared library mode and find_package
+ - Fix for misleading doc comment on `mz_zip_reader_init_cfile` function
+ - Add include location tolerance and stop forcing `_GNU_SOURCE`
+ - Fix: mz_zip_reader_locate_file_v2 returns an mz_bool
+ - Fix large file system checks
+ - Add #elif to enable an external mz_crc32() to be linked in
+ - Write with dynamic size (size of file/data to be added not known before adding)
+ - Added uncompress2 for zlib compatibility
+ - Add support for building as a Meson subproject
+ - Added OSSFuzz support; Integrate with CIFuzz
+ - Add pkg-config file
+ - Fixed use-of-uninitialized value msan error when copying dist bytes with no output bytes written.
+ - mz_zip_validate_file(): fix memory leak on errors
+ - Fixed MSAN use-of-uninitialized in tinfl_decompress when invalid dist is decoded. In this instance dist was 31 which s_dist_base translates as 0
+ - Add flag to set (compressed) size in local file header
+ - avoid use of uninitialized value in tdefl_record_literal
+
 ### 2.1.0
 
  - More instances of memcpy instead of cast and use memcpy per default
