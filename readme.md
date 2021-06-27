@@ -31,4 +31,4 @@ Thanks to Bruce Dawson for reporting a problem with the level_and_flags archive 
 
 ## Patents
 
-I was recently asked if miniz avoids patent issues. miniz purposely uses the same core algorithms as the ones used by zlib. The compressor uses vanilla hash chaining as described [here](http://www.gzip.org/zlib/rfc-deflate.html#algorithm). Also see the [gzip FAQ](http://www.gzip.org/#faq11). In my opinion, if miniz falls prey to a patent attack then zlib/gzip are likely to be at serious risk too.
+I was recently asked if miniz avoids patent issues. miniz purposely uses the same core algorithms as the ones used by zlib. The compressor uses vanilla hash chaining as described [here](https://datatracker.ietf.org/doc/html/rfc1951#section-4). Also see the [gzip FAQ](https://web.archive.org/web/20160308045258/http://www.gzip.org/#faq11). In my opinion, if miniz falls prey to a patent attack then zlib/gzip are likely to be at serious risk too.
