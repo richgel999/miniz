@@ -14,7 +14,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
         uses: actions/checkout@v2
-		    with:
+        with:
           path: source
         
       - name: Install dependencies
