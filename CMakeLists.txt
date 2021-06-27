@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.0)
 
+# determine whether this is a standalone project or included by other projects
+set (MINIZ_STANDALONE_PROJECT ON)
+if(DEFINED PROJECT_NAME)
+  set(MINIZ_STANDALONE_PROJECT OFF)
+endif()
+
 if(CMAKE_MINOR_VERSION LESS 12)
   project(miniz)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
   project(miniz C)
 endif()
-
-include(GNUInstallDirs)
 
 set(MINIZ_API_VERSION 2)
 set(MINIZ_MINOR_VERSION 1)
@@ -23,13 +27,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif ()
 
-option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_EXAMPLES "Build examples" ${MINIZ_STANDALONE_PROJECT})
 option(BUILD_FUZZERS "Build fuzz targets" OFF)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
 option(BUILD_SHARED_LIBS "Build shared library instead of static" ON)
+option(INSTALL_PROJECT "Install project" ${MINIZ_STANDALONE_PROJECT})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
+if(INSTALL_PROJECT)
+  include(GNUInstallDirs)
+endif()
 
 if(BUILD_HEADER_ONLY)
   set(AMALGAMATE_SOURCES ON CACHE BOOL "Build a header-only version" FORCE)
@@ -124,11 +133,13 @@ if(NOT BUILD_HEADER_ONLY)
     PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
 
   # pkg-config file
-  configure_file(miniz.pc.in ${CMAKE_BINARY_DIR}/miniz.pc @ONLY)
+  configure_file(miniz.pc.in ${CMAKE_CURRENT_BINARY_DIR}/miniz.pc @ONLY)
 
-  install(FILES
-    ${CMAKE_BINARY_DIR}/miniz.pc
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+  if(INSTALL_PROJECT)
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/miniz.pc
+      DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+  endif()
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY
@@ -137,48 +148,50 @@ set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
   COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
 )
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
-  RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-  ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  # users can use <miniz.h> or <miniz/miniz.h>
-  INCLUDES DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-)
+if(INSTALL_PROJECT)
+  install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+    RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    # users can use <miniz.h> or <miniz/miniz.h>
+    INCLUDES DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-  VERSION ${MINIZ_VERSION}
-  COMPATIBILITY AnyNewerVersion
-)
-
-export(EXPORT ${PROJECT_NAME}Targets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
-  NAMESPACE ${PROJECT_NAME}::
-)
-configure_file(Config.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-  @ONLY
-)
-
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-install(EXPORT ${PROJECT_NAME}Targets
-  FILE
-    ${PROJECT_NAME}Targets.cmake
-  NAMESPACE
-    ${PROJECT_NAME}::
-  DESTINATION
-    ${ConfigPackageLocation}
-)
-install(
-  FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-  DESTINATION
-    ${ConfigPackageLocation}
-  COMPONENT
-    Devel
-)
+    VERSION ${MINIZ_VERSION}
+    COMPATIBILITY AnyNewerVersion
+  )
+
+  export(EXPORT ${PROJECT_NAME}Targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE ${PROJECT_NAME}::
+  )
+  configure_file(Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+    @ONLY
+  )
+
+  set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+  install(EXPORT ${PROJECT_NAME}Targets
+    FILE
+      ${PROJECT_NAME}Targets.cmake
+    NAMESPACE
+      ${PROJECT_NAME}::
+    DESTINATION
+      ${ConfigPackageLocation}
+  )
+  install(
+    FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION
+      ${ConfigPackageLocation}
+    COMPONENT
+      Devel
+  )
+endif()
 
 if(BUILD_EXAMPLES)
   set(EXAMPLE1_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/examples/example1.c")
@@ -250,6 +263,7 @@ endif()
 
 set(INCLUDE_INSTALL_DIR "include")
 
-install(FILES ${INSTALL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
-
+if(INSTALL_PROJECT)
+  install(FILES ${INSTALL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+endif()
 
