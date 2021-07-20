@@ -25,6 +25,7 @@ typedef struct
 
 static void hsv_to_rgb(int hue, int min, int max, rgb_t *p)
 {
+  double h, c, X;
   const int invert = 0;
   const int saturation = 1;
   const int color_rotate = 0;
@@ -35,9 +36,9 @@ static void hsv_to_rgb(int hue, int min, int max, rgb_t *p)
     p->r = p->g = p->b = 255 * (max - hue) / (max - min);
     return;
   }
-  double h = fmod(color_rotate + 1e-4 + 4.0 * (hue - min) / (max - min), 6);
-  double c = 255.0f * saturation;
-  double X = c * (1 - fabs(fmod(h, 2) - 1));
+  h = fmod(color_rotate + 1e-4 + 4.0 * (hue - min) / (max - min), 6);
+  c = 255.0f * saturation;
+  X = c * (1 - fabs(fmod(h, 2) - 1));
 
   p->r = p->g = p->b = 0;
 
@@ -53,8 +54,6 @@ static void hsv_to_rgb(int hue, int min, int max, rgb_t *p)
 
 int main(int argc, char *argv[])
 {
-  (void)argc, (void)argv;
-
   // Image resolution
   const int iXmax = 4096;
   const int iYmax = 4096;
@@ -88,6 +87,8 @@ int main(int argc, char *argv[])
   double Cx,Cy;
 
   int MinIter = 9999, MaxIter = 0;
+
+  (void)argc, (void)argv;
 
   for(iY = 0; iY < iYmax; iY++)
   {
