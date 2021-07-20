@@ -168,6 +168,13 @@
 #define MINIZ_LITTLE_ENDIAN 0
 #endif
 
+/* Using unaligned loads and stores causes errors when using UBSan */
+#if defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#endif
+#endif
+
 /* Set MINIZ_USE_UNALIGNED_LOADS_AND_STORES only if not set */
 #if !defined(MINIZ_USE_UNALIGNED_LOADS_AND_STORES)
 #if MINIZ_X86_OR_X64_CPU
