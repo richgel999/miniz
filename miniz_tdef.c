@@ -26,6 +26,8 @@
 
 #include "miniz.h"
 
+#ifndef MINIZ_NO_DEFLATE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1575,3 +1577,5 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/

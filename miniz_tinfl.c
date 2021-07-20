@@ -26,6 +26,8 @@
 
 #include "miniz.h"
 
+#ifndef MINIZ_NO_INFLATE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -738,3 +740,5 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
