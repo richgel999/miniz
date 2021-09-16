@@ -74,6 +74,14 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
   return err ? NULL : pFile;
 }
 
+static int mz_stat64(const char *path, struct __stat64 *buffer)
+{
+  WCHAR* wPath = mz_utf8z_to_widechar(path);
+  int res = _wstat64(wPath, buffer);
+  free(wPath);
+  return res;
+}
+
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
@@ -84,7 +92,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
 #define MZ_FILE_STAT_STRUCT _stat64
-#define MZ_FILE_STAT _stat64
+#define MZ_FILE_STAT mz_stat64 
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
