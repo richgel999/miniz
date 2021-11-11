@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
 
   int MinIter = 9999, MaxIter = 0;
 
+  (void)argc, (void)argv;
+
   for(iY = 0; iY < iYmax; iY++)
   {
     Cy = CyMin + iY * PixelHeight;
