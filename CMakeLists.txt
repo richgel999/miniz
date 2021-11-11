@@ -11,6 +11,16 @@ if(CMAKE_MINOR_VERSION LESS 12)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
   project(miniz C)
+  set(CMAKE_C_STANDARD 90)
+  set(CMAKE_VERBOSE_MAKEFILE ON)
+  # set(CMAKE_C_VISIBILITY_PRESET hidden)
+  # set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
+
+  if (MSVC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3 /WX /Zi /permissive-")
+  else ()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -Wformat=2 -Wall -Wno-overlength-strings -pedantic")
+  endif ()
 endif()
 
 set(MINIZ_API_VERSION 2)
