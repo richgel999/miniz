@@ -177,11 +177,23 @@
 
 /* Set MINIZ_LITTLE_ENDIAN only if not set */
 #if !defined(MINIZ_LITTLE_ENDIAN)
-#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 /* Set MINIZ_LITTLE_ENDIAN to 1 if the processor is little endian. */
 #define MINIZ_LITTLE_ENDIAN 1
 #else
 #define MINIZ_LITTLE_ENDIAN 0
+#endif
+
+#else
+
+#if MINIZ_X86_OR_X64_CPU
+#define MINIZ_LITTLE_ENDIAN 1
+#else
+#define MINIZ_LITTLE_ENDIAN 0
+#endif
+
 #endif
 #endif
 
