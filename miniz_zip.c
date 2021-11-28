@@ -4191,10 +4191,10 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *
             if (pZip->m_pState->m_zip64)
             {
                 /* dest is zip64, so upgrade the data descriptor */
-                const mz_uint32 *pSrc_descriptor = (const mz_uint32 *)((const mz_uint8 *)pBuf + (has_id ? sizeof(mz_uint32) : 0));
-                const mz_uint32 src_crc32 = pSrc_descriptor[0];
-                const mz_uint64 src_comp_size = pSrc_descriptor[1];
-                const mz_uint64 src_uncomp_size = pSrc_descriptor[2];
+                const mz_uint8 *pSrc_descriptor = (const mz_uint8 *)pBuf + (has_id ? sizeof(mz_uint32) : 0);
+                const mz_uint32 src_crc32 = MZ_READ_LE32(pSrc_descriptor);
+                const mz_uint64 src_comp_size = MZ_READ_LE32(pSrc_descriptor + sizeof(mz_uint32));
+                const mz_uint64 src_uncomp_size = MZ_READ_LE32(pSrc_descriptor + 2*sizeof(mz_uint32));
 
                 mz_write_le32((mz_uint8 *)pBuf, MZ_ZIP_DATA_DESCRIPTOR_ID);
                 mz_write_le32((mz_uint8 *)pBuf + sizeof(mz_uint32) * 1, src_crc32);
