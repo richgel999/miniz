@@ -2496,9 +2496,6 @@ mz_bool mz_zip_validate_archive(mz_zip_archive *pZip, mz_uint flags)
     }
     else
     {
-        if (pZip->m_total_files >= MZ_UINT32_MAX)
-            return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
-
         if (pState->m_central_dir.m_size >= MZ_UINT32_MAX)
             return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE);
     }
@@ -4330,7 +4327,7 @@ mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip)
 
     if (pState->m_zip64)
     {
-        if (((mz_uint64)pZip->m_total_files > MZ_UINT32_MAX) || (pState->m_central_dir.m_size >= MZ_UINT32_MAX))
+        if ((mz_uint64)pState->m_central_dir.m_size >= MZ_UINT32_MAX)
             return mz_zip_set_error(pZip, MZ_ZIP_TOO_MANY_FILES);
     }
     else
