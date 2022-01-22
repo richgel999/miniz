@@ -1636,7 +1636,7 @@ void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, si
         *pSize = 0;
 
     if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
-        return MZ_FALSE;
+        return NULL;
 
     alloc_size = (flags & MZ_ZIP_FLAG_COMPRESSED_DATA) ? file_stat.m_comp_size : file_stat.m_uncomp_size;
     if (((sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF))
