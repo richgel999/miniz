@@ -111,7 +111,7 @@ extern "C" {
 #define TINFL_HUFF_BITBUF_FILL(state_index, pHuff)                             \
     do                                                                         \
     {                                                                          \
-        mz_int16 *pTree;                                                       \
+        mz_int16 *pTreeFill;                                                   \
         temp = (pHuff)->m_look_up[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];     \
         if (temp >= 0)                                                         \
         {                                                                      \
@@ -121,11 +121,11 @@ extern "C" {
         }                                                                      \
         else if (num_bits > TINFL_FAST_LOOKUP_BITS)                            \
         {                                                                      \
-            pTree = (pHuff)->m_pTree;                                          \
+            pTreeFill = (pHuff)->m_pTree;                                      \
             code_len = TINFL_FAST_LOOKUP_BITS;                                 \
             do                                                                 \
             {                                                                  \
-                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];           \
+                temp = pTreeFill[~temp + ((bit_buf >> code_len++) & 1)];       \
             } while ((temp < 0) && (num_bits >= (code_len + 1)));              \
             if (temp >= 0)                                                     \
                 break;                                                         \
@@ -146,7 +146,7 @@ extern "C" {
     {                                                                                                                               \
         int temp;                                                                                                                   \
         mz_uint code_len, c;                                                                                                        \
-        mz_int16 *pTree;                                                                                                            \
+        mz_int16 *pTreeDec;                                                                                                            \
         if (num_bits < 15)                                                                                                          \
         {                                                                                                                           \
             if ((pIn_buf_end - pIn_buf_cur) < 2)                                                                                    \
@@ -164,11 +164,11 @@ extern "C" {
             code_len = temp >> 9, temp &= 511;                                                                                      \
         else                                                                                                                        \
         {                                                                                                                           \
-            pTree = (pHuff)->m_pTree;                                                                                               \
+            pTreeDec = (pHuff)->m_pTree;                                                                                               \
             code_len = TINFL_FAST_LOOKUP_BITS;                                                                                      \
             do                                                                                                                      \
             {                                                                                                                       \
-                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];                                                                \
+                temp = pTreeDec[~temp + ((bit_buf >> code_len++) & 1)];                                                                \
             } while (temp < 0);                                                                                                     \
         }                                                                                                                           \
         sym = temp;                                                                                                                 \
