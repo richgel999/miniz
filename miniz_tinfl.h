@@ -93,12 +93,6 @@ typedef enum {
     do                    \
     {                     \
         (r)->m_state = 0; \
-        (r)->m_tables[0].m_pCode_size = (r)->m_code_size_0; \
-        (r)->m_tables[0].m_pTree = (r)->m_tree_0;           \
-        (r)->m_tables[1].m_pCode_size = (r)->m_code_size_1; \
-        (r)->m_tables[1].m_pTree = (r)->m_tree_1;           \
-        (r)->m_tables[2].m_pCode_size = (r)->m_code_size_2; \
-        (r)->m_tables[2].m_pTree = (r)->m_tree_2;           \
     }                     \
     MZ_MACRO_END
 #define tinfl_get_adler32(r) (r)->m_check_adler32
@@ -117,13 +111,6 @@ enum
     TINFL_FAST_LOOKUP_BITS = 10,
     TINFL_FAST_LOOKUP_SIZE = 1 << TINFL_FAST_LOOKUP_BITS
 };
-
-typedef struct
-{
-    mz_uint8 *m_pCode_size;
-    mz_int16 *m_pTree;
-    mz_int16 m_look_up[TINFL_FAST_LOOKUP_SIZE];
-} tinfl_huff_table;
 
 #if MINIZ_HAS_64BIT_REGISTERS
 #define TINFL_USE_64BIT_BITBUF 1
@@ -144,7 +131,7 @@ struct tinfl_decompressor_tag
     mz_uint32 m_state, m_num_bits, m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32, m_dist, m_counter, m_num_extra, m_table_sizes[TINFL_MAX_HUFF_TABLES];
     tinfl_bit_buf_t m_bit_buf;
     size_t m_dist_from_out_buf_start;
-    tinfl_huff_table m_tables[TINFL_MAX_HUFF_TABLES];
+    mz_int16 m_look_up[TINFL_MAX_HUFF_TABLES][TINFL_FAST_LOOKUP_SIZE];
     mz_int16 m_tree_0[TINFL_MAX_HUFF_SYMBOLS_0 * 2];
     mz_int16 m_tree_1[TINFL_MAX_HUFF_SYMBOLS_1 * 2];
     mz_int16 m_tree_2[TINFL_MAX_HUFF_SYMBOLS_2 * 2];
