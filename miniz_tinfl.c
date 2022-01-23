@@ -26,6 +26,8 @@
 
 #include "miniz.h"
 
+#ifndef MINIZ_NO_INFLATE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -188,7 +190,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
     mz_uint32 num_bits, dist, counter, num_extra;
     tinfl_bit_buf_t bit_buf;
     const mz_uint8 *pIn_buf_cur = pIn_buf_next, *const pIn_buf_end = pIn_buf_next + *pIn_buf_size;
-    mz_uint8 *pOut_buf_cur = pOut_buf_next, *const pOut_buf_end = pOut_buf_next + *pOut_buf_size;
+    mz_uint8 *pOut_buf_cur = pOut_buf_next, *const pOut_buf_end = pOut_buf_next ? pOut_buf_next + *pOut_buf_size : NULL;
     size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
 
     /* Ensure the output buffer's size is a power of 2, unless the output buffer is large enough to hold the entire output file (in which case it doesn't matter). */
@@ -296,7 +298,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
                     r->m_table_sizes[counter] += s_min_table_sizes[counter];
                 }
-                MZ_CLEAR_OBJ(r->m_code_size_2);
+                MZ_CLEAR_ARR(r->m_code_size_2);
                 for (counter = 0; counter < r->m_table_sizes[2]; counter++)
                 {
                     mz_uint s;
@@ -315,8 +317,8 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 pTable = &r->m_tables[r->m_type];
                 pTree = pTable->m_pTree;
                 pCode_size = pTable->m_pCode_size;
-                MZ_CLEAR_OBJ(total_syms);
-                MZ_CLEAR_OBJ(pTable->m_look_up);
+                MZ_CLEAR_ARR(total_syms);
+                MZ_CLEAR_ARR(pTable->m_look_up);
                 TINFL_MEMSET(pTree, 0, r->m_table_sizes[r->m_type] * sizeof(pTree[0]) * 2);
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
                     total_syms[pCode_size[i]]++;
@@ -506,7 +508,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 }
 
                 dist_from_out_buf_start = pOut_buf_cur - pOut_buf_start;
-                if ((dist > dist_from_out_buf_start) && (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF))
+                if ((dist == 0 || dist > dist_from_out_buf_start || dist_from_out_buf_start == 0) && (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF))
                 {
                     TINFL_CR_RETURN_FOREVER(37, TINFL_STATUS_FAILED);
                 }
@@ -707,6 +709,7 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
     size_t in_buf_ofs = 0, dict_ofs = 0;
     if (!pDict)
         return TINFL_STATUS_FAILED;
+    memset(pDict,0,TINFL_LZ_DICT_SIZE);
     tinfl_init(&decomp);
     for (;;)
     {
@@ -729,7 +732,7 @@ int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, 
 }
 
 #ifndef MINIZ_NO_MALLOC
-tinfl_decompressor *tinfl_decompressor_alloc()
+tinfl_decompressor *tinfl_decompressor_alloc(void)
 {
     tinfl_decompressor *pDecomp = (tinfl_decompressor *)MZ_MALLOC(sizeof(tinfl_decompressor));
     if (pDecomp)
@@ -746,3 +749,5 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/

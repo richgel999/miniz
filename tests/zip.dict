@@ -1,0 +1,9 @@
+# Fuzzing dictionary for .zip files
+
+header_lfh="\x50\x4b\x03\x04"
+header_cd="\x50\x4b\x01\x02"
+header_eocd="\x50\x4b\x05\x06"
+header_eocd64="\x50\x4b\x06\x06"
+data_descriptor="\x50\x4b\x07\x08"
+extra_data_sig="\x50\x4b\x06\x08"
+digital_sig="\x50\x4b\x05\x05"

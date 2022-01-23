@@ -13,3 +13,9 @@ libminiz = static_library('miniz',
 
 miniz_dependency = declare_dependency(link_with: libminiz,
                                       include_directories: miniz_includes)
+                                      
+miniz_dep = miniz_dependency # Compatibility for WrapDB users
+
+if meson.version().version_compare('>= 0.54.0')
+    meson.override_dependency('miniz', miniz_dep)
+endif

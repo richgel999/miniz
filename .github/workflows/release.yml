@@ -1,0 +1,60 @@
+name: Create release
+
+# Controls when the action will run. 
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Create new release
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: source
+        
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y cmake
+          
+      - name: Configure
+        run: |
+          mkdir build
+          mkdir inst
+          cd build
+          cmake ../source -G"Unix Makefiles" -DAMALGAMATE_SOURCES=ON -DCMAKE_INSTALL_PREFIX=../inst
+          
+      - name: Build
+        run: |
+          cd build
+          make install
+        
+      - name: Get current version
+        id: relver
+        run: echo "::set-output name=relver::$(cat build/miniz.pc | grep Version | cut -d ':' -f2 | xargs)"
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.relver.outputs.relver }}
+          release_name: Release ${{ steps.relver.outputs.relver }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/miniz-${{ steps.relver.outputs.relver }}.zip
+          asset_name: miniz-${{ steps.relver.outputs.relver }}.zip
+          asset_content_type: application/zip

@@ -1,4 +1,4 @@
-/* miniz.c 2.1.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c 2.2.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
    Rich Geldreich <richgel99@gmail.com>, last updated Oct. 13, 2013
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
@@ -95,7 +95,7 @@
      possibility that the archive's central directory could be lost with this method if anything goes wrong, though.
 
      - ZIP archive support limitations:
-     No zip64 or spanning support. Extraction functions can only handle unencrypted, stored or deflated files.
+     No spanning support. Extraction functions can only handle unencrypted, stored or deflated files.
      Requires streams capable of seeking.
 
    * This is a header file library, like stb_image.c. To get only a header file, either cut and paste the
@@ -115,7 +115,7 @@
 #include "miniz_export.h"
 
 /* Defines to completely disable specific portions of miniz.c: 
-   If all macros here are defined the only functionality remaining will be CRC-32, adler-32, tinfl, and tdefl. */
+   If all macros here are defined the only functionality remaining will be CRC-32 and adler-32. */
 
 /* Define MINIZ_NO_STDIO to disable all usage and any functions which rely on stdio for file I/O. */
 /*#define MINIZ_NO_STDIO */
@@ -124,6 +124,12 @@
 /* get/set file times, and the C run-time funcs that get/set times won't be called. */
 /* The current downside is the times written to your archives will be from 1979. */
 /*#define MINIZ_NO_TIME */
+
+/* Define MINIZ_NO_DEFLATE_APIS to disable all compression API's. */
+/*#define MINIZ_NO_DEFLATE_APIS */
+
+/* Define MINIZ_NO_INFLATE_APIS to disable all decompression API's. */
+/*#define MINIZ_NO_INFLATE_APIS */
 
 /* Define MINIZ_NO_ARCHIVE_APIS to disable all ZIP archive API's. */
 /*#define MINIZ_NO_ARCHIVE_APIS */
@@ -143,6 +149,14 @@
    functions (such as tdefl_compress_mem_to_heap() and tinfl_decompress_mem_to_heap()) won't work. */
 /*#define MINIZ_NO_MALLOC */
 
+#ifdef MINIZ_NO_INFLATE_APIS
+#define MINIZ_NO_ARCHIVE_APIS
+#endif
+
+#ifdef MINIZ_NO_DEFLATE_APIS
+#define MINIZ_NO_ARCHIVE_WRITING_APIS
+#endif
+
 #if defined(__TINYC__) && (defined(__linux) || defined(__linux__))
 /* TODO: Work around "error: include file 'sys\utime.h' when compiling with tcc on Linux */
 #define MINIZ_NO_TIME
@@ -161,18 +175,40 @@
 #define MINIZ_X86_OR_X64_CPU 0
 #endif
 
-#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
+/* Set MINIZ_LITTLE_ENDIAN only if not set */
+#if !defined(MINIZ_LITTLE_ENDIAN)
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 /* Set MINIZ_LITTLE_ENDIAN to 1 if the processor is little endian. */
 #define MINIZ_LITTLE_ENDIAN 1
 #else
 #define MINIZ_LITTLE_ENDIAN 0
 #endif
 
+#else
+
+#if MINIZ_X86_OR_X64_CPU
+#define MINIZ_LITTLE_ENDIAN 1
+#else
+#define MINIZ_LITTLE_ENDIAN 0
+#endif
+
+#endif
+#endif
+
+/* Using unaligned loads and stores causes errors when using UBSan */
+#if defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#endif
+#endif
+
 /* Set MINIZ_USE_UNALIGNED_LOADS_AND_STORES only if not set */
 #if !defined(MINIZ_USE_UNALIGNED_LOADS_AND_STORES)
 #if MINIZ_X86_OR_X64_CPU
 /* Set MINIZ_USE_UNALIGNED_LOADS_AND_STORES to 1 on CPU's that permit efficient integer loads and stores from unaligned addresses. */
-#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 1
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
 #define MINIZ_UNALIGNED_USE_MEMCPY
 #else
 #define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
@@ -220,7 +256,7 @@ enum
 #define MZ_DEFLATED 8
 
 /* Heap allocation callbacks.
-Note that mz_alloc_func parameter types purpsosely differ from zlib's: items/size is size_t, not unsigned long. */
+Note that mz_alloc_func parameter types purposely differ from zlib's: items/size is size_t, not unsigned long. */
 typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
 typedef void (*mz_free_func)(void *opaque, void *address);
 typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
@@ -236,10 +272,10 @@ enum
     MZ_DEFAULT_COMPRESSION = -1
 };
 
-#define MZ_VERSION "10.1.0"
+#define MZ_VERSION "10.2.0"
 #define MZ_VERNUM 0xA100
 #define MZ_VER_MAJOR 10
-#define MZ_VER_MINOR 1
+#define MZ_VER_MINOR 2
 #define MZ_VER_REVISION 0
 #define MZ_VER_SUBREVISION 0
 
@@ -304,6 +340,8 @@ typedef mz_stream *mz_streamp;
 /* Returns the version string of miniz.c. */
 MINIZ_EXPORT const char *mz_version(void);
 
+#ifndef MINIZ_NO_DEFLATE_APIS
+
 /* mz_deflateInit() initializes a compressor with default options: */
 /* Parameters: */
 /*  pStream must point to an initialized mz_stream struct. */
@@ -356,6 +394,10 @@ MINIZ_EXPORT int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len, const u
 /* mz_compressBound() returns a (very) conservative upper bound on the amount of data that could be generated by calling mz_compress(). */
 MINIZ_EXPORT mz_ulong mz_compressBound(mz_ulong source_len);
 
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+
+#ifndef MINIZ_NO_INFLATE_APIS
+
 /* Initializes a decompressor. */
 MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
 
@@ -389,6 +431,7 @@ MINIZ_EXPORT int mz_inflateEnd(mz_streamp pStream);
 /* Returns MZ_OK on success, or one of the error codes from mz_inflate() on failure. */
 MINIZ_EXPORT int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
 MINIZ_EXPORT int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
 
 /* Returns a string description of the specified error code, or NULL if the error code is invalid. */
 MINIZ_EXPORT const char *mz_error(int err);
@@ -439,6 +482,8 @@ typedef void *const voidpc;
 #define free_func mz_free_func
 #define internal_state mz_internal_state
 #define z_stream mz_stream
+
+#ifndef MINIZ_NO_DEFLATE_APIS
 #define deflateInit mz_deflateInit
 #define deflateInit2 mz_deflateInit2
 #define deflateReset mz_deflateReset
@@ -448,6 +493,9 @@ typedef void *const voidpc;
 #define compress mz_compress
 #define compress2 mz_compress2
 #define compressBound mz_compressBound
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+
+#ifndef MINIZ_NO_INFLATE_APIS
 #define inflateInit mz_inflateInit
 #define inflateInit2 mz_inflateInit2
 #define inflateReset mz_inflateReset
@@ -455,6 +503,8 @@ typedef void *const voidpc;
 #define inflateEnd mz_inflateEnd
 #define uncompress mz_uncompress
 #define uncompress2 mz_uncompress2
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+
 #define crc32 mz_crc32
 #define adler32 mz_adler32
 #define MAX_WBITS 15

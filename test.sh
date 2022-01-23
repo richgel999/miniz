@@ -4,6 +4,11 @@ set -e
 
 . amalgamate.sh
 
+cat << "EOF" > miniz_export.h
+#ifndef MINIZ_EXPORT
+#define MINIZ_EXPORT
+#endif
+EOF
 g++ tests/miniz_tester.cpp tests/timer.cpp amalgamation/miniz.c -o miniz_tester -I. -ggdb -O2
 
 for i in 1 2 3 4 5 6

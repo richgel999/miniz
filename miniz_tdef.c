@@ -26,6 +26,8 @@
 
 #include "miniz.h"
 
+#ifndef MINIZ_NO_DEFLATE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -104,7 +106,7 @@ static tdefl_sym_freq *tdefl_radix_sort_syms(mz_uint num_syms, tdefl_sym_freq *p
 {
     mz_uint32 total_passes = 2, pass_shift, pass, i, hist[256 * 2];
     tdefl_sym_freq *pCur_syms = pSyms0, *pNew_syms = pSyms1;
-    MZ_CLEAR_OBJ(hist);
+    MZ_CLEAR_ARR(hist);
     for (i = 0; i < num_syms; i++)
     {
         mz_uint freq = pSyms0[i].m_key;
@@ -222,7 +224,7 @@ static void tdefl_optimize_huffman_table(tdefl_compressor *d, int table_num, int
 {
     int i, j, l, num_codes[1 + TDEFL_MAX_SUPPORTED_HUFF_CODESIZE];
     mz_uint next_code[TDEFL_MAX_SUPPORTED_HUFF_CODESIZE + 1];
-    MZ_CLEAR_OBJ(num_codes);
+    MZ_CLEAR_ARR(num_codes);
     if (static_table)
     {
         for (i = 0; i < table_len; i++)
@@ -248,8 +250,8 @@ static void tdefl_optimize_huffman_table(tdefl_compressor *d, int table_num, int
 
         tdefl_huffman_enforce_max_code_size(num_codes, num_used_syms, code_size_limit);
 
-        MZ_CLEAR_OBJ(d->m_huff_code_sizes[table_num]);
-        MZ_CLEAR_OBJ(d->m_huff_codes[table_num]);
+        MZ_CLEAR_ARR(d->m_huff_code_sizes[table_num]);
+        MZ_CLEAR_ARR(d->m_huff_codes[table_num]);
         for (i = 1, j = num_used_syms; i <= code_size_limit; i++)
             for (l = num_codes[i]; l > 0; l--)
                 d->m_huff_code_sizes[table_num][pSyms[--j].m_sym_index] = (mz_uint8)(i);
@@ -1074,9 +1076,7 @@ static MZ_FORCEINLINE void tdefl_record_match(tdefl_compressor *d, mz_uint match
     s0 = s_tdefl_small_dist_sym[match_dist & 511];
     s1 = s_tdefl_large_dist_sym[(match_dist >> 8) & 127];
     d->m_huff_count[1][(match_dist < 512) ? s0 : s1]++;
-
-    if (match_len >= TDEFL_MIN_MATCH_LEN)
-        d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
+    d->m_huff_count[0][s_tdefl_len_sym[match_len - TDEFL_MIN_MATCH_LEN]]++;
 }
 
 static mz_bool tdefl_compress_normal(tdefl_compressor *d)
@@ -1304,8 +1304,8 @@ tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pI
         d->m_finished = (flush == TDEFL_FINISH);
         if (flush == TDEFL_FULL_FLUSH)
         {
-            MZ_CLEAR_OBJ(d->m_hash);
-            MZ_CLEAR_OBJ(d->m_next);
+            MZ_CLEAR_ARR(d->m_hash);
+            MZ_CLEAR_ARR(d->m_next);
             d->m_dict_size = 0;
         }
     }
@@ -1328,11 +1328,12 @@ tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_fun
     d->m_greedy_parsing = (flags & TDEFL_GREEDY_PARSING_FLAG) != 0;
     d->m_max_probes[1] = 1 + (((flags & 0xFFF) >> 2) + 2) / 3;
     if (!(flags & TDEFL_NONDETERMINISTIC_PARSING_FLAG))
-        MZ_CLEAR_OBJ(d->m_hash);
+        MZ_CLEAR_ARR(d->m_hash);
     d->m_lookahead_pos = d->m_lookahead_size = d->m_dict_size = d->m_total_lz_bytes = d->m_lz_code_buf_dict_pos = d->m_bits_in = 0;
     d->m_output_flush_ofs = d->m_output_flush_remaining = d->m_finished = d->m_block_index = d->m_bit_buffer = d->m_wants_to_finish = 0;
     d->m_pLZ_code_buf = d->m_lz_code_buf + 1;
     d->m_pLZ_flags = d->m_lz_code_buf;
+    *d->m_pLZ_flags = 0;
     d->m_num_flags_left = 8;
     d->m_pOutput_buf = d->m_output_buf;
     d->m_pOutput_buf_end = d->m_output_buf;
@@ -1348,7 +1349,7 @@ tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_fun
     d->m_src_buf_left = 0;
     d->m_out_buf_ofs = 0;
     if (!(flags & TDEFL_NONDETERMINISTIC_PARSING_FLAG))
-        MZ_CLEAR_OBJ(d->m_dict);
+        MZ_CLEAR_ARR(d->m_dict);
     memset(&d->m_huff_count[0][0], 0, sizeof(d->m_huff_count[0][0]) * TDEFL_MAX_HUFF_SYMBOLS_0);
     memset(&d->m_huff_count[1][0], 0, sizeof(d->m_huff_count[1][0]) * TDEFL_MAX_HUFF_SYMBOLS_1);
     return TDEFL_STATUS_OKAY;
@@ -1558,7 +1559,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, 
 /* Allocate the tdefl_compressor and tinfl_decompressor structures in C so that */
 /* non-C language bindings to tdefL_ and tinfl_ API don't need to worry about */
 /* structure size and allocation mechanism. */
-tdefl_compressor *tdefl_compressor_alloc()
+tdefl_compressor *tdefl_compressor_alloc(void)
 {
     return (tdefl_compressor *)MZ_MALLOC(sizeof(tdefl_compressor));
 }
@@ -1576,3 +1577,5 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/

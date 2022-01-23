@@ -2,6 +2,8 @@
 #include "miniz_common.h"
 /* ------------------- Low-level Decompression API Definitions */
 
+#ifndef MINIZ_NO_INFLATE_APIS
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,3 +157,5 @@ struct tinfl_decompressor_tag
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
