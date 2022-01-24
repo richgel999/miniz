@@ -182,8 +182,8 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
     static const mz_uint8 s_length_dezigzag[19] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
     static const mz_uint16 s_min_table_sizes[3] = { 257, 1, 4 };
 
-    mz_int16 *pTrees[3] = { r->m_tree_0, r->m_tree_1, r->m_tree_2 };
-    mz_uint8 *pCode_sizes[3] = { r->m_code_size_0, r->m_code_size_1, r->m_code_size_2 };
+    mz_int16 *pTrees[3];
+    mz_uint8 *pCode_sizes[3];
 
     tinfl_status status = TINFL_STATUS_FAILED;
     mz_uint32 num_bits, dist, counter, num_extra;
@@ -198,6 +198,13 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
         *pIn_buf_size = *pOut_buf_size = 0;
         return TINFL_STATUS_BAD_PARAM;
     }
+
+    pTrees[0] = r->m_tree_0;
+    pTrees[1] = r->m_tree_1;
+    pTrees[2] = r->m_tree_2;
+    pCode_sizes[0] = r->m_code_size_0;
+    pCode_sizes[1] = r->m_code_size_1;
+    pCode_sizes[2] = r->m_code_size_2;
 
     num_bits = r->m_num_bits;
     bit_buf = r->m_bit_buf;
