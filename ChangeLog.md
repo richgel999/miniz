@@ -1,5 +1,28 @@
 ## Changelog
 
+### 3.0.0
+
+ - Reduce memory usage for inflate. This changes `struct tinfl_decompressor_tag` and therefore requires a major version bump
+ - Use _ftelli64, _fseeki64 and stat with MinGW32 and OpenWatcom
+ - Fix varios warnings with OpenWatcom compiler
+ - Avoid using unaligned memory access in UBSan builds
+ - Set MINIZ_LITTLE_ENDIAN only if not set
+ - Add MINIZ_NO_DEFLATE_APIS and MINIZ_NO_INFLATE_APIS
+ - Fix use of uninitialized memory in tinfl_decompress_mem_to_callback()
+ - Use wfopen on windows
+ - Use _wstat64 instead _stat64 on windows
+ - Use level_and_flags after MZ_DEFAULT_COMPRESSION has been handled
+ - Improve endianess detection
+ - Don't use unaligned stores and loads per default
+ - Fix function declaration if MINIZ_NO_STDIO is used
+ - Fix MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8 not being set
+ - Remove total files check (its 32-bit uint)
+ - tinfl_decompress: avoid NULL ptr arithmetic UB
+ - miniz_zip: fix mz_zip_reader_extract_to_heap to read correct sizes
+ - Eliminate 64-bit operations on 32-bit machines
+ - Disable treating warnings as error with MSVC
+ - Disable building shared lib via CMake by default
+ 
 ### 2.2.0
 
  - Fix examples with amalgamation
