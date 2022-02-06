@@ -41,7 +41,7 @@ option(BUILD_EXAMPLES "Build examples" ${MINIZ_STANDALONE_PROJECT})
 option(BUILD_FUZZERS "Build fuzz targets" OFF)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
-option(BUILD_SHARED_LIBS "Build shared library instead of static" ON)
+option(BUILD_SHARED_LIBS "Build shared library instead of static" OFF)
 option(INSTALL_PROJECT "Install project" ${MINIZ_STANDALONE_PROJECT})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
