@@ -3,6 +3,7 @@
 ### 3.0.0
 
  - Reduce memory usage for inflate. This changes `struct tinfl_decompressor_tag` and therefore requires a major version bump
+ - Add padding to structures so it continues to work if features differ. This also changes some structures
  - Use _ftelli64, _fseeki64 and stat with MinGW32 and OpenWatcom
  - Fix varios warnings with OpenWatcom compiler
  - Avoid using unaligned memory access in UBSan builds
