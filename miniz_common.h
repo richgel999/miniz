@@ -36,7 +36,8 @@ typedef int mz_bool;
 #ifdef MINIZ_NO_TIME
 typedef struct mz_dummy_time_t_tag
 {
-    int m_dummy;
+    mz_uint32 m_dummy1;
+    mz_uint32 m_dummy2;
 } mz_dummy_time_t;
 #define MZ_TIME_T mz_dummy_time_t
 #else

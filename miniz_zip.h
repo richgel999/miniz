@@ -32,10 +32,6 @@ typedef struct
     mz_uint16 m_bit_flag;
     mz_uint16 m_method;
 
-#ifndef MINIZ_NO_TIME
-    MZ_TIME_T m_time;
-#endif
-
     /* CRC-32 of uncompressed data. */
     mz_uint32 m_crc32;
 
@@ -72,6 +68,11 @@ typedef struct
     /* Guaranteed to be zero terminated, may be truncated to fit. */
     char m_comment[MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE];
 
+#ifdef MINIZ_NO_TIME
+    MZ_TIME_T m_padding;
+#else
+    MZ_TIME_T m_time;
+#endif
 } mz_zip_archive_file_stat;
 
 typedef size_t (*mz_file_read_func)(void *pOpaque, mz_uint64 file_ofs, void *pBuf, size_t n);
@@ -183,9 +184,7 @@ typedef struct
     mz_uint flags;
 
     int status;
-#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
-    mz_uint file_crc32;
-#endif
+
     mz_uint64 read_buf_size, read_buf_ofs, read_buf_avail, comp_remaining, out_buf_ofs, cur_file_ofs;
     mz_zip_archive_file_stat file_stat;
     void *pRead_buf;
@@ -194,6 +193,12 @@ typedef struct
     size_t out_blk_remain;
 
     tinfl_decompressor inflator;
+
+#ifdef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+    mz_uint padding;
+#else
+    mz_uint file_crc32;
+#endif
 
 } mz_zip_reader_extract_iter_state;
 
