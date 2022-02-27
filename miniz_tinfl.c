@@ -173,6 +173,16 @@ extern "C" {
     }                                                                                                                               \
     MZ_MACRO_END
 
+static void tinfl_clear_tree(tinfl_decompressor *r)
+{
+    if (r->m_type == 0)
+        MZ_CLEAR_ARR(r->m_tree_0);
+    else if (r->m_type == 1)
+        MZ_CLEAR_ARR(r->m_tree_1);
+    else
+        MZ_CLEAR_ARR(r->m_tree_2);
+}
+
 tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags)
 {
     static const mz_uint16 s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -325,7 +335,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                 pCode_size = pCode_sizes[r->m_type];
                 MZ_CLEAR_ARR(total_syms);
                 TINFL_MEMSET(pLookUp, 0, sizeof(r->m_look_up[0]));
-                TINFL_MEMSET(pTree, 0, r->m_table_sizes[r->m_type] * sizeof(pTree[0]) * 2);
+                tinfl_clear_tree(r);
                 for (i = 0; i < r->m_table_sizes[r->m_type]; ++i)
                     total_syms[pCode_size[i]]++;
                 used_syms = 0, total = 0;
