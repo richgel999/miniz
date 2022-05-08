@@ -602,6 +602,8 @@ static mz_bool tdefl_compress_block(tdefl_compressor *d, mz_bool static_block)
     return tdefl_compress_lz_codes(d);
 }
 
+static const mz_uint s_tdefl_num_probes[11];
+
 static int tdefl_flush_block(tdefl_compressor *d, int flush)
 {
     mz_uint saved_bit_buf, saved_bits_in;
@@ -622,8 +624,27 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
 
     if ((d->m_flags & TDEFL_WRITE_ZLIB_HEADER) && (!d->m_block_index))
     {
-        TDEFL_PUT_BITS(0x78, 8);
-        TDEFL_PUT_BITS(0x01, 8);
+        const mz_uint8 cmf = 0x78;
+        mz_uint8 flg, flevel = 3;
+        mz_uint header, i, n = sizeof(s_tdefl_num_probes) / sizeof(mz_uint);
+
+        /* Determine compression level by reversing the process in tdefl_create_comp_flags_from_zip_params() */
+        for (i = 0; i < n; i++)
+            if (s_tdefl_num_probes[i] == (d->m_flags & 0xFFF)) break;
+
+        if (i < 2)
+            flevel = 0;
+        else if (i < 6)
+            flevel = 1;
+        else if (i == 6)
+            flevel = 2;
+
+        header = cmf << 8 | (flevel << 6);
+        header += 31 - (header % 31);
+        flg = header & 0xFF;
+
+        TDEFL_PUT_BITS(cmf, 8);
+        TDEFL_PUT_BITS(flg, 8);
     }
 
     TDEFL_PUT_BITS(flush == TDEFL_FINISH, 1);
