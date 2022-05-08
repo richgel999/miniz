@@ -2,7 +2,7 @@
 
 ### 3.0.0
 
- - Reduce memory usage for inflate. This changes `struct tinfl_decompressor_tag` and therefore requires a major version bump
+ - Reduce memory usage for inflate. This changes `struct tinfl_decompressor_tag` and therefore requires a major version bump (breaks ABI compatibility)
  - Add padding to structures so it continues to work if features differ. This also changes some structures
  - Use _ftelli64, _fseeki64 and stat with MinGW32 and OpenWatcom
  - Fix varios warnings with OpenWatcom compiler
@@ -23,6 +23,9 @@
  - Eliminate 64-bit operations on 32-bit machines
  - Disable treating warnings as error with MSVC
  - Disable building shared lib via CMake by default
+ - Fixed alignment problems on MacOS
+ - Fixed get error string for MZ_ZIP_TOTAL_ERRORS
+ - Write correct FLEVEL 2-bit value in zlib header
  
 ### 2.2.0
 
