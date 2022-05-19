@@ -627,10 +627,10 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush)
     {
         const mz_uint8 cmf = 0x78;
         mz_uint8 flg, flevel = 3;
-        mz_uint header, i, n = sizeof(s_tdefl_num_probes) / sizeof(mz_uint);
+        mz_uint header, i, mz_un = sizeof(s_tdefl_num_probes) / sizeof(mz_uint);
 
         /* Determine compression level by reversing the process in tdefl_create_comp_flags_from_zip_params() */
-        for (i = 0; i < n; i++)
+        for (i = 0; i < mz_un; i++)
             if (s_tdefl_num_probes[i] == (d->m_flags & 0xFFF)) break;
 
         if (i < 2)
