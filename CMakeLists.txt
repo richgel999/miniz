@@ -173,7 +173,7 @@ if(NOT BUILD_HEADER_ONLY)
   if(INSTALL_PROJECT)
     install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/miniz.pc
-      DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
   endif()
 endif()
 
