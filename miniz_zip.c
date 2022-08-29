@@ -1550,7 +1550,8 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc1(mz_zip_archive *pZip, mz_uint fil
     {
         /* Temporarily allocate a read buffer. */
         read_buf_size = MZ_MIN(file_stat.m_comp_size, (mz_uint64)MZ_ZIP_MAX_IO_BUF_SIZE);
-        if constexpr (((sizeof(size_t) == sizeof(mz_uint32))) && (read_buf_size > 0x7FFFFFFF))
+	int constExpression1 = (((sizeof(size_t) == sizeof(mz_uint32))) && (read_buf_size > 0x7FFFFFFF));
+        if (constExpression1)
             return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
         if (NULL == (pRead_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)read_buf_size)))
@@ -1643,7 +1644,8 @@ void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, si
         return NULL;
 
     alloc_size = (flags & MZ_ZIP_FLAG_COMPRESSED_DATA) ? file_stat.m_comp_size : file_stat.m_uncomp_size;
-    if constexpr (((sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF))
+    int constExpression2 = (((sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF));
+    if (constExpression2)
     {
         mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
         return NULL;
@@ -1743,7 +1745,8 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_ind
         /* The file is stored or the caller has requested the compressed data. */
         if (pZip->m_pState->m_pMem)
         {
-            if constexpr (((sizeof(size_t) == sizeof(mz_uint32))) && (file_stat.m_comp_size > MZ_UINT32_MAX))
+            int constExpression3 = (((sizeof(size_t) == sizeof(mz_uint32))) && (file_stat.m_comp_size > MZ_UINT32_MAX));
+	    if (constExpression3)
                 return mz_zip_set_error(pZip, MZ_ZIP_INTERNAL_ERROR);
 
             if (pCallback(pOpaque, out_buf_ofs, pRead_buf, (size_t)file_stat.m_comp_size) != file_stat.m_comp_size)
@@ -2652,7 +2655,8 @@ static size_t mz_zip_heap_write_func(void *pOpaque, mz_uint64 file_ofs, const vo
         return 0;
 
     /* An allocation this big is likely to just fail on 32-bit systems, so don't even go there. */
-    if constexpr ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF))
+    int constExpression4 = ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF));
+    if (constExpression4)
     {
         mz_zip_set_error(pZip, MZ_ZIP_FILE_TOO_LARGE);
         return 0;
