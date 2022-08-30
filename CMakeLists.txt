@@ -16,8 +16,9 @@ else()
   # set(CMAKE_C_VISIBILITY_PRESET hidden)
   # set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
+  # warning C4996: This function or variable may be unsafe. To disable deprecation, use _CRT_SECURE_NO_WARNINGS.
   if (MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3 /Zi /permissive-")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3 /Zi /permissive- /D_CRT_SECURE_NO_WARNINGS")
   else ()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -Wformat=2 -Wall -Wno-overlength-strings -pedantic")
   endif ()
@@ -26,8 +27,7 @@ endif()
 set(MINIZ_API_VERSION 3)
 set(MINIZ_MINOR_VERSION 0)
 set(MINIZ_PATCH_VERSION 0)
-set(MINIZ_VERSION 
-    ${MINIZ_API_VERSION}.${MINIZ_MINOR_VERSION}.${MINIZ_PATCH_VERSION})
+set(MINIZ_VERSION ${MINIZ_API_VERSION}.${MINIZ_MINOR_VERSION}.${MINIZ_PATCH_VERSION})
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
@@ -87,14 +87,14 @@ if(AMALGAMATE_SOURCES)
              "${AMAL_MINIZ_C}" "\n#endif // MINIZ_HEADER_FILE_ONLY\n")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/miniz.h "${AMAL_MINIZ_H}")
     add_library(${PROJECT_NAME} INTERFACE)
-    
+
     # Might not be a good idea to force this on the library user
     # as it could bloat the global namespace
     # https://github.com/libevent/libevent/issues/460
-    # target_compile_definitions(${PROJECT_NAME} 
+    # target_compile_definitions(${PROJECT_NAME}
     #     INTERFACE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
-    
-    set_property(TARGET ${PROJECT_NAME} APPEND 
+
+    set_property(TARGET ${PROJECT_NAME} APPEND
       PROPERTY INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
       $<INSTALL_INTERFACE:include>
@@ -113,7 +113,7 @@ if(AMALGAMATE_SOURCES)
   endif(BUILD_HEADER_ONLY)
 
   set(INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/miniz.h)
-  
+
   file(GLOB_RECURSE ZIP_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/amalgamation" "${CMAKE_CURRENT_BINARY_DIR}/amalgamation/*")
   file(GLOB_RECURSE ZIP_FILES2 RELATIVE "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/examples/*")
   list(APPEND ZIP_FILES ${ZIP_FILES2})
@@ -123,21 +123,21 @@ if(AMALGAMATE_SOURCES)
   set(ZIP_OUT_FN "${CMAKE_CURRENT_BINARY_DIR}/miniz-${MINIZ_VERSION}.zip")
   message(STATUS "Zip files: ${ZIP_FILES}")
   add_custom_command(
-		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/examples
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/ChangeLog.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/ChangeLog.md
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/readme.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/readme.md
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/LICENSE
-		COMMAND ${CMAKE_COMMAND} -E tar "cf" "${ZIP_OUT_FN}" --format=zip -- ${ZIP_FILES}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/amalgamation"
-        OUTPUT  "${ZIP_OUT_FN}"
-        DEPENDS ${ZIP_FILES}
-        COMMENT "Zipping to ${CMAKE_CURRENT_BINARY_DIR}/miniz.zip."
-    )
-	
-	add_custom_target(
-	  create_zip ALL
-	  DEPENDS "${ZIP_OUT_FN}"
-	)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/examples
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/ChangeLog.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/ChangeLog.md
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/readme.md ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/readme.md
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/LICENSE
+    COMMAND ${CMAKE_COMMAND} -E tar "cf" "${ZIP_OUT_FN}" --format=zip -- ${ZIP_FILES}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/amalgamation"
+    OUTPUT "${ZIP_OUT_FN}"
+    DEPENDS ${ZIP_FILES}
+    COMMENT "Zipping to ${CMAKE_CURRENT_BINARY_DIR}/miniz.zip."
+  )
+
+  add_custom_target(
+    create_zip ALL
+    DEPENDS "${ZIP_OUT_FN}"
+  )
 else(AMALGAMATE_SOURCES)
   include(GenerateExportHeader)
   set(miniz_SOURCE miniz.c miniz_zip.c miniz_tinfl.c miniz_tdef.c)
@@ -146,28 +146,27 @@ else(AMALGAMATE_SOURCES)
 
   if(NOT BUILD_SHARED_LIBS)
     string(TOUPPER ${PROJECT_NAME} PROJECT_UPPER)
-    set_target_properties(${PROJECT_NAME}
-        PROPERTIES INTERFACE_COMPILE_DEFINITIONS ${PROJECT_UPPER}_STATIC_DEFINE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERFACE_COMPILE_DEFINITIONS ${PROJECT_UPPER}_STATIC_DEFINE)
   else()
     set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
   endif()
 
   set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${MINIZ_VERSION})
   set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION ${MINIZ_API_VERSION})
-  
+
   target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<INSTALL_INTERFACE:include>
   )
-  
+
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
   list(APPEND
        INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_export.h)
 endif(AMALGAMATE_SOURCES)
 
 if(NOT BUILD_HEADER_ONLY)
-  target_compile_definitions(${PROJECT_NAME} 
+  target_compile_definitions(${PROJECT_NAME}
     PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
 
   # pkg-config file
@@ -235,55 +234,24 @@ if(BUILD_EXAMPLES)
   foreach(X example1 example2 example3 example4 example5 example6)
     add_executable(${X} "examples/${X}.c")
     target_link_libraries(${X} miniz)
-    if(MSVC)
-      # warning C4996: This function or variable may be unsafe. To disable deprecation, use _CRT_SECURE_NO_WARNINGS.
-      target_compile_definitions(${X} PRIVATE _CRT_SECURE_NO_WARNINGS)
-    endif()
   endforeach(X)
   if(UNIX)
     target_link_libraries(example6 m)
   endif()
-
   # add_executable(miniz_tester tests/miniz_tester.cpp tests/timer.cpp)
   # target_link_libraries(miniz_tester miniz)
 endif(BUILD_EXAMPLES)
 
 if(BUILD_FUZZERS)
-  set(FUZZ_MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_main.c")
-
-  set(CHECKSUM_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/checksum_fuzzer.c")
-  set(FLUSH_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/flush_fuzzer.c")
-  set(UNCOMPRESS_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/uncompress_fuzzer.c")
-  set(UNCOMPRESS2_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/uncompress2_fuzzer.c")
-  set(COMPRESS_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/compress_fuzzer.c")
-  set(SMALL_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/small_fuzzer.c")
-  set(LARGE_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/large_fuzzer.c")
-  set(ZIP_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/zip_fuzzer.c")
-
-  add_executable(checksum_fuzzer ${CHECKSUM_FUZZER_SRC_LIST})
-  target_link_libraries(checksum_fuzzer miniz)
-
-  add_executable(flush_fuzzer ${FLUSH_FUZZER_SRC_LIST})
-  target_link_libraries(flush_fuzzer miniz)
-
-  add_executable(uncompress_fuzzer ${UNCOMPRESS_FUZZER_SRC_LIST})
-  target_link_libraries(uncompress_fuzzer miniz)
-
-  add_executable(uncompress2_fuzzer ${UNCOMPRESS2_FUZZER_SRC_LIST})
-  target_link_libraries(uncompress2_fuzzer miniz)
-
-  add_executable(compress_fuzzer ${COMPRESS_FUZZER_SRC_LIST})
-  target_link_libraries(compress_fuzzer miniz)
-
-  add_executable(small_fuzzer ${SMALL_FUZZER_SRC_LIST})
-  target_link_libraries(small_fuzzer miniz)
-
-  add_executable(large_fuzzer ${LARGE_FUZZER_SRC_LIST})
-  target_link_libraries(large_fuzzer miniz)
-
-  add_executable(zip_fuzzer ${ZIP_FUZZER_SRC_LIST})
-  target_link_libraries(zip_fuzzer miniz)
-endif()
+  set(FUZZERS
+    checksum_fuzzer flush_fuzzer uncompress_fuzzer uncompress2_fuzzer
+    compress_fuzzer small_fuzzer large_fuzzer zip_fuzzer
+  )
+  foreach(X ${FUZZERS})
+    add_executable(${X} "tests/fuzz_main.c" "tests/${X}.c")
+    target_link_libraries(${X} miniz)
+  endforeach(X)
+endif(BUILD_FUZZERS)
 
 set(INCLUDE_INSTALL_DIR "include")
 
