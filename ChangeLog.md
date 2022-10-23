@@ -26,6 +26,14 @@
  - Fixed alignment problems on MacOS
  - Fixed get error string for MZ_ZIP_TOTAL_ERRORS
  - Write correct FLEVEL 2-bit value in zlib header
+ - miniz.pc.in: fix include path not containing the "miniz" suffix
+ - Fix compatibility with FreeBSD
+ - pkg-config tweaks
+ - Fix integer overflow in header corruption check
+ - Fix some warnings
+ - tdefl_compress_normal: Avoid NULL ptr arithmetic UB
+ - replace use of stdint.h types with mz_ variants
+ 
  
 ### 2.2.0
 
