@@ -23,6 +23,8 @@ do
 	echo "Test compile with GCC and define $def..."
 	gcc -ansi -pedantic -Wall -I$OUTPUT_PREFIX main.c $OUTPUT_PREFIX/miniz.c -o test.out -D${def}
 done
+echo "Test compile with GCC and MINIZ_USE_UNALIGNED_LOADS_AND_STORES=1..."
+gcc -ansi -pedantic -Wall -I$OUTPUT_PREFIX main.c $OUTPUT_PREFIX/miniz.c -o test.out -DMINIZ_USE_UNALIGNED_LOADS_AND_STORES=1
 rm test.out
 rm main.c
 
