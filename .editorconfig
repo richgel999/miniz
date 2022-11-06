@@ -1,0 +1,15 @@
+# Top-most EditorConfig file
+root = true
+
+# Unix-style newlines
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[{*.cmake,CMakeLists.txt,*.yml}]
+indent_size = 2
+
+[*.{h,hpp,c,cpp}]
+indent_size = 4
