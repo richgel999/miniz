@@ -1,5 +1,9 @@
 ## Changelog
 
+### 3.0.2
+
+ - Fix buffer overrun in mz_utf8z_to_widechar on Windows
+
 ### 3.0.1
 
  - Fix compilation error with MINIZ_USE_UNALIGNED_LOADS_AND_STORES=1
