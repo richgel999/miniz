@@ -272,10 +272,10 @@ enum
     MZ_DEFAULT_COMPRESSION = -1
 };
 
-#define MZ_VERSION "11.0.1"
-#define MZ_VERNUM 0xB001
+#define MZ_VERSION "11.0.2"
+#define MZ_VERNUM 0xB002
 #define MZ_VER_MAJOR 11
-#define MZ_VER_MINOR 1
+#define MZ_VER_MINOR 2
 #define MZ_VER_REVISION 0
 #define MZ_VER_SUBREVISION 0
 
