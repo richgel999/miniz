@@ -39,7 +39,7 @@ extern "C" {
 #else
 #include <sys/stat.h>
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -74,6 +74,15 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
   return err ? NULL : pFile;
 }
 
+#if defined(__MINGW32__)
+static int mz_stat(const char *path, struct _stat *buffer)
+{
+  WCHAR* wPath = mz_utf8z_to_widechar(path);
+  int res = _wstat(wPath, buffer);
+  free(wPath);
+  return res;
+}
+#else
 static int mz_stat64(const char *path, struct __stat64 *buffer)
 {
   WCHAR* wPath = mz_utf8z_to_widechar(path);
@@ -81,6 +90,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
   free(wPath);
   return res;
 }
+#endif
 
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
@@ -91,13 +101,18 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_FWRITE fwrite
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
+#if defined(__MINGW32__)
+#define MZ_FILE_STAT_STRUCT _stat
+#define MZ_FILE_STAT mz_stat
+#else
 #define MZ_FILE_STAT_STRUCT _stat64
 #define MZ_FILE_STAT mz_stat64 
+#endif
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
 
-#elif defined(__MINGW32__) || defined(__WATCOMC__)
+#elif defined(__WATCOMC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
