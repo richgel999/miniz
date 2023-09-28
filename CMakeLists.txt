@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 # determine whether this is a standalone project or included by other projects
 set (MINIZ_STANDALONE_PROJECT ON)
