@@ -10,7 +10,7 @@ if(CMAKE_MINOR_VERSION LESS 12)
   project(miniz)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
-  project(miniz C)
+  project(miniz)
   set(CMAKE_C_STANDARD 90)
   set(CMAKE_VERBOSE_MAKEFILE ON)
   # set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -42,6 +42,7 @@ option(BUILD_FUZZERS "Build fuzz targets" OFF)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
 option(BUILD_SHARED_LIBS "Build shared library instead of static" OFF)
+option(BUILD_TESTS "Build tests" ${MINIZ_STANDALONE_PROJECT})
 option(INSTALL_PROJECT "Install project" ${MINIZ_STANDALONE_PROJECT})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -294,6 +295,20 @@ if(BUILD_FUZZERS)
 
   add_executable(zip_fuzzer ${ZIP_FUZZER_SRC_LIST})
   target_link_libraries(zip_fuzzer miniz)
+endif()
+
+if(BUILD_TESTS)
+	set(CMAKE_CXX_STANDARD 20)
+	set(CMAKE_CXX_STANDARD_REQUIRED YES)
+	
+	add_executable(catch_tests tests/main.cpp
+						tests/catch_amalgamated.cpp)
+	target_link_libraries(catch_tests miniz)
+	
+	enable_testing()
+	
+	add_test(NAME catch_tests
+			 COMMAND $<TARGET_FILE:catch_tests>)
 endif()
 
 set(INCLUDE_INSTALL_DIR "include")
