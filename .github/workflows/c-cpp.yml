@@ -15,3 +15,27 @@ jobs:
     - uses: actions/checkout@v2
     - name: amalgamate
       run: bash amalgamate.sh
+    - name: Run CMake consuming CMakePreset.json and run vcpkg to build packages
+      uses: lukka/run-cmake@v10
+      with:
+        # This is the name of the CMakePresets.json's configuration to use to generate
+        # the project files. This configuration leverages the vcpkg.cmake toolchain file to
+        # run vcpkg and install all dependencies specified in vcpkg.json.
+        configurePreset: 'gcc'
+        # Additional arguments can be appended to the cmake command.
+        # This is useful to reduce the number of CMake's Presets since you can reuse
+        # an existing preset with different variables.
+        configurePresetAdditionalArgs: "['-DENABLE_YOUR_FEATURE=1']"
+        # This is the name of the CMakePresets.json's configuration to build the project.
+        buildPreset: 'gcc'
+        # Additional arguments can be appended when building, for example to specify the
+        # configuration to build.
+        # This is useful to reduce the number of CMake's Presets you need in CMakePresets.json.
+        buildPresetAdditionalArgs: "['--config Release']"
+
+        # This is the name of the CMakePresets.json's configuration to test the project with.
+        testPreset: 'gcc'
+        # Additional arguments can be appended when testing, for example to specify the config
+        # to test.
+        # This is useful to reduce the number of CMake's Presets you need in CMakePresets.json.
+        testPresetAdditionalArgs: "['--config Release']"
