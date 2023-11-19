@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: amalgamate
       run: bash amalgamate.sh
-    - name: Run CMake consuming CMakePreset.json and run vcpkg to build packages
+    - name: Run CMake consuming CMakePreset.json and run tests
       uses: lukka/run-cmake@v10
       with:
         # This is the name of the CMakePresets.json's configuration to use to generate
