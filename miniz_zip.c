@@ -41,7 +41,9 @@ extern "C" {
 
 #if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
 
-#define WIN32_LEAN_AND_MEAN
+#ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN
+#endif
 #ifndef __cplusplus
   #define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS 0
 #endif
