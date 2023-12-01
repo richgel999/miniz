@@ -92,7 +92,7 @@ typedef enum {
 #define tinfl_init(r)     \
     do                    \
     {                     \
-        (r)->m_state = 0; \
+        memset(r, 0, sizeof (tinfl_decompressor)); \
     }                     \
     MZ_MACRO_END
 #define tinfl_get_adler32(r) (r)->m_check_adler32
