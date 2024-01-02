@@ -18,9 +18,15 @@
 # This script is meant to be run by
 # https://github.com/google/oss-fuzz/blob/master/projects/miniz/Dockerfile
 
+cat << "EOF" > miniz_export.h
+#ifndef MINIZ_EXPORT
+#define MINIZ_EXPORT
+#endif
+EOF
+
 mkdir build
 cd build
-cmake .. -DAMALGAMATE_SOURCES=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_FUZZERS=ON
+cmake .. -DAMALGAMATE_SOURCES=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_FUZZERS=ON -DBUILD_TESTS=OFF
 make -j$(nproc)
 cd ..
 
