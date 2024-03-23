@@ -3274,6 +3274,8 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
         time(&cur_time);
         mz_zip_time_t_to_dos_time(cur_time, &dos_time, &dos_date);
     }
+#else
+    (void) last_modified;
 #endif /* #ifndef MINIZ_NO_TIME */
 
 	if (!(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
@@ -3575,6 +3577,8 @@ mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pA
     {
         mz_zip_time_t_to_dos_time(*pFile_time, &dos_time, &dos_date);
     }
+#else
+    (void) pFile_time;
 #endif
 
     if (max_size <= 3)
