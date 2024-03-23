@@ -550,7 +550,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     do
                     {
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
-						memcpy(pOut_buf_cur, pSrc, sizeof(mz_uint32)*2);
+                        memcpy(pOut_buf_cur, pSrc, sizeof(mz_uint32)*2);
 #else
                         ((mz_uint32 *)pOut_buf_cur)[0] = ((const mz_uint32 *)pSrc)[0];
                         ((mz_uint32 *)pOut_buf_cur)[1] = ((const mz_uint32 *)pSrc)[1];
@@ -577,7 +577,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                     pOut_buf_cur[2] = pSrc[2];
                     pOut_buf_cur += 3;
                     pSrc += 3;
-					counter -= 3;
+                    counter -= 3;
                 }
                 if (counter > 0)
                 {
