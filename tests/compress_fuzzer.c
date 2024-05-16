@@ -1,6 +1,6 @@
 /* Derived from zlib fuzzers at http://github.com/google/oss-fuzz/tree/master/projects/zlib,
  * see ossfuzz.sh for full license text.
-*/
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -26,13 +26,16 @@ static void check_compress_level(uint8_t *compr, size_t comprLen,
     assert(0 == memcmp(data, uncompr, dataLen));
 }
 
-#define put_byte(s, i, c) {s[i] = (unsigned char)(c);}
+#define put_byte(s, i, c)          \
+    {                              \
+        s[i] = (unsigned char)(c); \
+    }
 
 static void write_zlib_header(uint8_t *s)
 {
     unsigned level_flags = 0; /* compression level (0..3) */
-    unsigned w_bits = 8; /* window size log2(w_size)  (8..16) */
-    unsigned int header = (Z_DEFLATED + ((w_bits-8)<<4)) << 8;
+    unsigned w_bits = 8;      /* window size log2(w_size)  (8..16) */
+    unsigned int header = (Z_DEFLATED + ((w_bits - 8) << 4)) << 8;
     header |= (level_flags << 6);
 
     header += 31 - (header % 31);
@@ -67,7 +70,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *d, size_t size)
     static size_t kMaxSize = 1024 * 1024;
 
     if (size < 1 || size > kMaxSize)
-    return 0;
+        return 0;
 
     data = d;
     dataLen = size;

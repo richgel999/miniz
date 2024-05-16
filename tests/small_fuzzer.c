@@ -1,6 +1,6 @@
 /* Derived from zlib fuzzers at http://github.com/google/oss-fuzz/tree/master/projects/zlib,
  * see ossfuzz.sh for full license text.
-*/
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -11,12 +11,14 @@
 
 #include "miniz.h"
 
-#define CHECK_ERR(err, msg) { \
-    if (err != Z_OK) { \
-        fprintf(stderr, "%s error: %d\n", msg, err); \
-        exit(1); \
-    } \
-}
+#define CHECK_ERR(err, msg)                              \
+    {                                                    \
+        if (err != Z_OK)                                 \
+        {                                                \
+            fprintf(stderr, "%s error: %d\n", msg, err); \
+            exit(1);                                     \
+        }                                                \
+    }
 
 static const uint8_t *data;
 static size_t dataLen;
@@ -107,7 +109,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *d, size_t size)
     static size_t kMaxSize = 1024 * 1024;
 
     if (size < 1 || size > kMaxSize)
-    return 0;
+        return 0;
 
     data = d;
     dataLen = size;
