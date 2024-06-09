@@ -647,10 +647,23 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_TRUE;
     }
 
+    static mz_bool mz_zip_reader_eocd64_valid(mz_zip_archive *pZip, uint64_t offset, uint8_t *buf)
+    {
+        if (pZip->m_pRead(pZip->m_pIO_opaque, offset, buf, MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE) == MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE)
+        {
+            if (MZ_READ_LE32(buf + MZ_ZIP64_ECDH_SIG_OFS) == MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIG)
+            {
+                return MZ_TRUE;
+            }
+        }
+
+        return MZ_FALSE;
+    }
+
     static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip, mz_uint flags)
     {
         mz_uint cdir_size = 0, cdir_entries_on_this_disk = 0, num_this_disk = 0, cdir_disk_index = 0;
-        mz_uint64 cdir_ofs = 0;
+        mz_uint64 cdir_ofs = 0, eocd_ofs = 0, archive_ofs = 0;
         mz_int64 cur_file_ofs = 0;
         const mz_uint8 *p;
 
@@ -672,6 +685,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (!mz_zip_reader_locate_header_sig(pZip, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIG, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE, &cur_file_ofs))
             return mz_zip_set_error(pZip, MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
 
+        eocd_ofs = cur_file_ofs;
         /* Read and verify the end of central directory record. */
         if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pBuf, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) != MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
@@ -685,18 +699,37 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             {
                 if (MZ_READ_LE32(pZip64_locator + MZ_ZIP64_ECDL_SIG_OFS) == MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIG)
                 {
-                    zip64_end_of_central_dir_ofs = MZ_READ_LE64(pZip64_locator + MZ_ZIP64_ECDL_REL_OFS_TO_ZIP64_ECDR_OFS);
-                    if (zip64_end_of_central_dir_ofs > (pZip->m_archive_size - MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE))
-                        return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
-
-                    if (pZip->m_pRead(pZip->m_pIO_opaque, zip64_end_of_central_dir_ofs, pZip64_end_of_central_dir, MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE) == MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE)
-                    {
-                        if (MZ_READ_LE32(pZip64_end_of_central_dir + MZ_ZIP64_ECDH_SIG_OFS) == MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIG)
-                        {
-                            pZip->m_pState->m_zip64 = MZ_TRUE;
-                        }
-                    }
+                    pZip->m_pState->m_zip64 = MZ_TRUE;
                 }
+            }
+        }
+
+        if (pZip->m_pState->m_zip64)
+        {
+            /* Try locating the EOCD64 right before the EOCD64 locator. This works even
+             * when the effective start of the zip header is not yet known. */
+            if (cur_file_ofs < MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE +
+                                   MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE)
+                return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
+
+            zip64_end_of_central_dir_ofs = cur_file_ofs -
+                                           MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE -
+                                           MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE;
+
+            if (!mz_zip_reader_eocd64_valid(pZip, zip64_end_of_central_dir_ofs,
+                                            pZip64_end_of_central_dir))
+            {
+                /* That failed, try reading where the locator tells us to. */
+                zip64_end_of_central_dir_ofs = MZ_READ_LE64(
+                    pZip64_locator + MZ_ZIP64_ECDL_REL_OFS_TO_ZIP64_ECDR_OFS);
+
+                if (zip64_end_of_central_dir_ofs >
+                    (pZip->m_archive_size - MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE))
+                    return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
+
+                if (!mz_zip_reader_eocd64_valid(pZip, zip64_end_of_central_dir_ofs,
+                                                pZip64_end_of_central_dir))
+                    return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
             }
         }
 
@@ -756,6 +789,26 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         if ((cdir_ofs + (mz_uint64)cdir_size) > pZip->m_archive_size)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+
+        /* The end of central dir follows the central dir, unless the zip file has
+         * some trailing data (e.g. it is appended to an executable file). */
+        archive_ofs = eocd_ofs - (cdir_ofs + cdir_size);
+        if (pZip->m_pState->m_zip64)
+        {
+            if (archive_ofs < MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE +
+                                  MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE)
+                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+
+            archive_ofs -= MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE +
+                           MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE;
+        }
+
+        /* Update the archive start position, but only if not specified. */
+        if (pZip->m_pState->m_file_archive_start_ofs == 0)
+        {
+            pZip->m_pState->m_file_archive_start_ofs = archive_ofs;
+            pZip->m_archive_size -= archive_ofs;
+        }
 
         pZip->m_central_directory_file_ofs = cdir_ofs;
 
