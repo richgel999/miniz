@@ -790,6 +790,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if ((cdir_ofs + (mz_uint64)cdir_size) > pZip->m_archive_size)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
+        if (eocd_ofs < cdir_ofs + cdir_size)
+            return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+
         /* The end of central dir follows the central dir, unless the zip file has
          * some trailing data (e.g. it is appended to an executable file). */
         archive_ofs = eocd_ofs - (cdir_ofs + cdir_size);
