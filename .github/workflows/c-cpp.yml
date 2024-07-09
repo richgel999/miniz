@@ -38,4 +38,4 @@ jobs:
         # Additional arguments can be appended when testing, for example to specify the config
         # to test.
         # This is useful to reduce the number of CMake's Presets you need in CMakePresets.json.
-        testPresetAdditionalArgs: "['--config Release']"
+        testPresetAdditionalArgs: "[]"
