@@ -5,8 +5,11 @@
 
 #ifdef _WIN32
 #define unlink _unlink
+#else
+#include <unistd.h>
 #endif
 
+#ifndef MINIZ_NO_STDIO
 bool create_test_zip()
 {
     unlink("test.zip");
@@ -79,6 +82,7 @@ TEST_CASE("Zip writer tests")
         }
     }
 }
+#endif
 
 TEST_CASE("Tinfl / tdefl tests")
 {
