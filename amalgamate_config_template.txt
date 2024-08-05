@@ -1,0 +1,4 @@
+# Default Configuration Template for Amalgamation
+# Copy this to amalgamate_config.txt and customize it as needed.
+compiler_path=C:\Path\To\Compiler
+cmake_generator=MinGW Makefiles
