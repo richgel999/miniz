@@ -1102,7 +1102,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if ((!pZip) || (!pFilename) || ((archive_size) && (archive_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)))
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
-        pFile = MZ_FOPEN(pFilename, "rb");
+        pFile = MZ_FOPEN(pFilename, (flags & MZ_ZIP_FLAG_READ_ALLOW_WRITING ) ? "r+b" : "rb");
         if (!pFile)
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
 
@@ -3024,7 +3024,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if (pZip->m_pIO_opaque != pZip)
                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
-            if (pZip->m_zip_type == MZ_ZIP_TYPE_FILE)
+            if (pZip->m_zip_type == MZ_ZIP_TYPE_FILE &&
+                !(flags & MZ_ZIP_FLAG_READ_ALLOW_WRITING) )
             {
                 if (!pFilename)
                     return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
@@ -4568,14 +4569,14 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         else
         {
             /* Append to an existing archive. */
-            if (!mz_zip_reader_init_file_v2(&zip_archive, pZip_filename, level_and_flags | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0))
+            if (!mz_zip_reader_init_file_v2(&zip_archive, pZip_filename, level_and_flags | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY | MZ_ZIP_FLAG_READ_ALLOW_WRITING, 0, 0))
             {
                 if (pErr)
                     *pErr = zip_archive.m_last_error;
                 return MZ_FALSE;
             }
 
-            if (!mz_zip_writer_init_from_reader_v2(&zip_archive, pZip_filename, level_and_flags))
+            if (!mz_zip_writer_init_from_reader_v2(&zip_archive, pZip_filename, level_and_flags | MZ_ZIP_FLAG_READ_ALLOW_WRITING))
             {
                 if (pErr)
                     *pErr = zip_archive.m_last_error;

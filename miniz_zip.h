@@ -104,7 +104,8 @@ extern "C"
         MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000,
         /*After adding a compressed file, seek back
         to local file header and set the correct sizes*/
-        MZ_ZIP_FLAG_WRITE_HEADER_SET_SIZE = 0x20000
+        MZ_ZIP_FLAG_WRITE_HEADER_SET_SIZE = 0x20000,
+        MZ_ZIP_FLAG_READ_ALLOW_WRITING = 0x40000
     } mz_zip_flags;
 
     typedef enum
