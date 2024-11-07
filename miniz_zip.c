@@ -854,8 +854,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 filename_size = MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS);
                 ext_data_size = MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS);
 
-                if ((!pZip->m_pState->m_zip64_has_extended_info_fields) &&
-                    (ext_data_size) &&
+                if ((ext_data_size) &&
                     (MZ_MAX(MZ_MAX(comp_size, decomp_size), local_header_ofs) == MZ_UINT32_MAX))
                 {
                     /* Attempt to find zip64 extended information field in the entry's extra data */
@@ -916,9 +915,25 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                             pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
                             extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                         } while (extra_size_remaining);
-                        // Read zip64 extended information field into comp_size and decomp_size
-                        comp_size = MZ_READ_LE64(pExtra_data + sizeof(mz_uint16) * 2);
-                        decomp_size = MZ_READ_LE64(pExtra_data + sizeof(mz_uint16) * 2 + sizeof(mz_uint64));
+                        // Read zip64 extended information field into comp_size, decomp_size, local_header_ofs
+                        // Header ID: 0x0001, field size: 2 bytes
+                        extra_size_remaining -= sizeof(mz_uint16) * 2;
+                        pExtra_data += sizeof(mz_uint16) * 2;
+                        if (decomp_size == MZ_UINT32_MAX && extra_size_remaining >= sizeof(mz_uint64)) {
+                            decomp_size = MZ_READ_LE64(pExtra_data);
+                            extra_size_remaining -= sizeof(mz_uint64);
+                            pExtra_data += sizeof(mz_uint64);
+                        }
+                        if (comp_size == MZ_UINT32_MAX && extra_size_remaining >= sizeof(mz_uint64)) {
+                            comp_size = MZ_READ_LE64(pExtra_data);
+                            extra_size_remaining -= sizeof(mz_uint64);
+                            pExtra_data += sizeof(mz_uint64);
+                        }
+                        if (local_header_ofs == MZ_UINT32_MAX && extra_size_remaining >= sizeof(mz_uint64)) {
+                            local_header_ofs = MZ_READ_LE64(pExtra_data);
+                            extra_size_remaining -= sizeof(mz_uint64);
+                            pExtra_data += sizeof(mz_uint64);
+                        }
                         MZ_FREE(buf);
                     }
                 }
@@ -936,7 +951,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                 if (comp_size != MZ_UINT32_MAX)
                 {
-                    if (((mz_uint64)MZ_READ_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS) + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + comp_size) > pZip->m_archive_size)
+                    if ((local_header_ofs + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + comp_size) > pZip->m_archive_size)
                         return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
                 }
 
