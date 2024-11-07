@@ -916,7 +916,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                             pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
                             extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                         } while (extra_size_remaining);
-
+                        // Read zip64 extended information field into comp_size and decomp_size
+                        comp_size = MZ_READ_LE64(pExtra_data + sizeof(mz_uint16) * 2);
+                        decomp_size = MZ_READ_LE64(pExtra_data + sizeof(mz_uint16) * 2 + sizeof(mz_uint64));
                         MZ_FREE(buf);
                     }
                 }
