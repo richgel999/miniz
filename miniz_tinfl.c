@@ -491,7 +491,7 @@ extern "C"
                             bit_buf >>= code_len;
                             num_bits -= code_len;
                         
-                        //assert(sym2 != 0 && counter != 0);
+                        /* assert(sym2 != 0 && counter != 0); */
                         if (sym2 == 0 && counter == 0)
                         {
                             TINFL_CR_RETURN_FOREVER(40, TINFL_STATUS_FAILED);
