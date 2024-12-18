@@ -490,6 +490,12 @@ extern "C"
                             }
                             bit_buf >>= code_len;
                             num_bits -= code_len;
+                        
+                        /* assert(sym2 != 0 && counter != 0); */
+                        if (sym2 == 0 && counter == 0)
+                        {
+                            TINFL_CR_RETURN_FOREVER(40, TINFL_STATUS_FAILED);
+                        }
 
                             pOut_buf_cur[0] = (mz_uint8)counter;
                             if (sym2 & 256)
