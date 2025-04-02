@@ -6,7 +6,7 @@ if(DEFINED PROJECT_NAME)
   set(MINIZ_STANDALONE_PROJECT OFF)
 endif()
 
-if(CMAKE_MINOR_VERSION LESS 12)
+if(CMAKE_VERSION VERSION_LESS "3.12")
   project(miniz)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
