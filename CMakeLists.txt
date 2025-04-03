@@ -6,11 +6,12 @@ if(DEFINED PROJECT_NAME)
   set(MINIZ_STANDALONE_PROJECT OFF)
 endif()
 
+
 if(CMAKE_VERSION VERSION_LESS "3.12")
-  project(miniz)
+  project(miniz C)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
-  project(miniz)
+  project(miniz C)
   set(CMAKE_C_STANDARD 90)
   set(CMAKE_VERBOSE_MAKEFILE ON)
   # set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -309,6 +310,7 @@ if(BUILD_FUZZERS)
 endif()
 
 if(BUILD_TESTS)
+  enable_language(CXX)
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
