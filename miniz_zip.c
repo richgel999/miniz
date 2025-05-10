@@ -42,6 +42,7 @@ extern "C"
 
 #if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
 
+#define MZ_PLATFORM 0x1000
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -154,6 +155,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
+#define MZ_PLATFORM 0x0300
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
@@ -170,6 +172,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) || (defined(__linux__) && defined(__x86_64__))
+#define MZ_PLATFORM 0x0300
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
@@ -3143,7 +3146,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         (void)pZip;
         memset(pDst, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE);
         MZ_WRITE_LE32(pDst + MZ_ZIP_LDH_SIG_OFS, MZ_ZIP_LOCAL_DIR_HEADER_SIG);
-        MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_VERSION_NEEDED_OFS, method ? 20 : 0);
+        MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_VERSION_NEEDED_OFS, method ? 20 : 0x0A);
         MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_BIT_FLAG_OFS, bit_flags);
         MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_METHOD_OFS, method);
         MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_FILE_TIME_OFS, dos_time);
@@ -3165,7 +3168,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         (void)pZip;
         memset(pDst, 0, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE);
         MZ_WRITE_LE32(pDst + MZ_ZIP_CDH_SIG_OFS, MZ_ZIP_CENTRAL_DIR_HEADER_SIG);
-        MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_NEEDED_OFS, method ? 20 : 0);
+        MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_MADE_BY_OFS, 0x002d | MZ_PLATFORM);
+        MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_NEEDED_OFS, method ? 20 : 0x0A);
         MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_BIT_FLAG_OFS, bit_flags);
         MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_METHOD_OFS, method);
         MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_FILE_TIME_OFS, dos_time);
