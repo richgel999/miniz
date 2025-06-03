@@ -18,7 +18,7 @@ else()
   # set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
   if (MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3 /Zi /permissive-")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3 /permissive-")
   else ()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -Wformat=2 -Wall -Wno-overlength-strings -pedantic")
   endif ()
