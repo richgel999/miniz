@@ -35,12 +35,23 @@ int main(int argc, char *argv[])
     }
 
     // Open input file.
+#if defined(_MSC_VER) || defined(__STDC_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__
+    {
+        const errno_t err = fopen_s(&pInfile, argv[1], "rb");;
+        if (err != 0 || pInfile == NULL) {
+            fprintf(stderr, "Failed to open %s for reading", argv[1]);
+            free(pInfile);
+            return EXIT_FAILURE;
+        }
+    }
+#else
     pInfile = fopen(argv[1], "rb");
     if (!pInfile)
     {
         printf("Failed opening input file!\n");
         return EXIT_FAILURE;
     }
+#endif /* defined(_MSC_VER) || defined(__STDC_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__ */
 
     // Determine input file's size.
     fseek(pInfile, 0, SEEK_END);
@@ -69,12 +80,23 @@ int main(int argc, char *argv[])
     }
 
     // Open output file.
+#if defined(_MSC_VER) || defined(__STDC_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__
+    {
+        const errno_t err = fopen_s(&pOutfile, argv[2], "wb");;
+        if (err != 0 || pInfile == NULL) {
+            fprintf(stderr, "Failed to open %s for writing", argv[2]);
+            free(pOutfile);
+            return EXIT_FAILURE;
+        }
+    }
+#else
     pOutfile = fopen(argv[2], "wb");
     if (!pOutfile)
     {
         printf("Failed opening output file!\n");
         return EXIT_FAILURE;
     }
+#endif /* defined(_MSC_VER) || defined(__STDC_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__ */
 
     printf("Input file size: %u\n", infile_size);
 
