@@ -101,7 +101,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 }
 #endif
 
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <sys/utime.h>
 #endif
 #define MZ_FOPEN mz_fopen
@@ -122,7 +122,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__WATCOMC__)
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <sys/utime.h>
 #endif
 #define MZ_FOPEN(f, m) fopen(f, m)
@@ -138,7 +138,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__TINYC__)
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <sys/utime.h>
 #endif
 #define MZ_FOPEN(f, m) fopen(f, m)
@@ -154,7 +154,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <utime.h>
 #endif
 #define MZ_FOPEN(f, m) fopen64(f, m)
@@ -170,7 +170,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) || (defined(__linux__) && defined(__x86_64__))
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <utime.h>
 #endif
 #define MZ_FOPEN(f, m) fopen(f, m)
@@ -187,7 +187,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
 #else
 #pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
-#ifndef MINIZ_NO_TIME
+#ifndef MINIZ_NO_UTIME
 #include <utime.h>
 #endif
 #define MZ_FOPEN(f, m) fopen(f, m)
@@ -465,7 +465,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_TRUE;
     }
 #endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS*/
-
+#ifndef MINIZ_NO_UTIME
     static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
     {
         struct utimbuf t;
@@ -476,6 +476,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return !utime(pFilename, &t);
     }
+#endif /* #ifndef MINIZ_NO_UTIME */
 #endif /* #ifndef MINIZ_NO_STDIO */
 #endif /* #ifndef MINIZ_NO_TIME */
 
@@ -2300,7 +2301,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             status = MZ_FALSE;
         }
 
-#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO)
+#if !defined(MINIZ_NO_UTIME) && !defined(MINIZ_NO_STDIO)
         if (status)
             mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
 #endif
