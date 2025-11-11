@@ -1,4 +1,4 @@
-/* miniz.c 3.0.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c 3.1.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
    Rich Geldreich <richgel99@gmail.com>, last updated Oct. 13, 2013
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
@@ -114,7 +114,7 @@
 
 #include "miniz_export.h"
 
-/* Defines to completely disable specific portions of miniz.c: 
+/* Defines to completely disable specific portions of miniz.c:
    If all macros here are defined the only functionality remaining will be CRC-32 and adler-32. */
 
 /* Define MINIZ_NO_STDIO to disable all usage and any functions which rely on stdio for file I/O. */
@@ -143,7 +143,7 @@
 /* Define MINIZ_NO_ZLIB_COMPATIBLE_NAME to disable zlib names, to prevent conflicts against stock zlib. */
 /*#define MINIZ_NO_ZLIB_COMPATIBLE_NAMES */
 
-/* Define MINIZ_NO_MALLOC to disable all calls to malloc, free, and realloc. 
+/* Define MINIZ_NO_MALLOC to disable all calls to malloc, free, and realloc.
    Note if MINIZ_NO_MALLOC is defined then the user must always provide custom user alloc/free/realloc
    callbacks to the zlib and archive API's, and a few stand-alone helper API's which don't provide custom user
    functions (such as tdefl_compress_mem_to_heap() and tinfl_decompress_mem_to_heap()) won't work. */
@@ -223,233 +223,234 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* ------------------- zlib-style API Definitions. */
+    /* ------------------- zlib-style API Definitions. */
 
-/* For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members. Beware: mz_ulong can be either 32 or 64-bits! */
-typedef unsigned long mz_ulong;
+    /* For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members. Beware: mz_ulong can be either 32 or 64-bits! */
+    typedef unsigned long mz_ulong;
 
-/* mz_free() internally uses the MZ_FREE() macro (which by default calls free() unless you've modified the MZ_MALLOC macro) to release a block allocated from the heap. */
-MINIZ_EXPORT void mz_free(void *p);
+    /* mz_free() internally uses the MZ_FREE() macro (which by default calls free() unless you've modified the MZ_MALLOC macro) to release a block allocated from the heap. */
+    MINIZ_EXPORT void mz_free(void *p);
 
 #define MZ_ADLER32_INIT (1)
-/* mz_adler32() returns the initial adler-32 value to use when called with ptr==NULL. */
-MINIZ_EXPORT mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len);
+    /* mz_adler32() returns the initial adler-32 value to use when called with ptr==NULL. */
+    MINIZ_EXPORT mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len);
 
 #define MZ_CRC32_INIT (0)
-/* mz_crc32() returns the initial CRC-32 value to use when called with ptr==NULL. */
-MINIZ_EXPORT mz_ulong mz_crc32(mz_ulong crc, const unsigned char *ptr, size_t buf_len);
+    /* mz_crc32() returns the initial CRC-32 value to use when called with ptr==NULL. */
+    MINIZ_EXPORT mz_ulong mz_crc32(mz_ulong crc, const unsigned char *ptr, size_t buf_len);
 
-/* Compression strategies. */
-enum
-{
-    MZ_DEFAULT_STRATEGY = 0,
-    MZ_FILTERED = 1,
-    MZ_HUFFMAN_ONLY = 2,
-    MZ_RLE = 3,
-    MZ_FIXED = 4
-};
+    /* Compression strategies. */
+    enum
+    {
+        MZ_DEFAULT_STRATEGY = 0,
+        MZ_FILTERED = 1,
+        MZ_HUFFMAN_ONLY = 2,
+        MZ_RLE = 3,
+        MZ_FIXED = 4
+    };
 
 /* Method */
 #define MZ_DEFLATED 8
 
-/* Heap allocation callbacks.
-Note that mz_alloc_func parameter types purposely differ from zlib's: items/size is size_t, not unsigned long. */
-typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
-typedef void (*mz_free_func)(void *opaque, void *address);
-typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
+    /* Heap allocation callbacks.
+    Note that mz_alloc_func parameter types purposely differ from zlib's: items/size is size_t, not unsigned long. */
+    typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
+    typedef void (*mz_free_func)(void *opaque, void *address);
+    typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
 
-/* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
-enum
-{
-    MZ_NO_COMPRESSION = 0,
-    MZ_BEST_SPEED = 1,
-    MZ_BEST_COMPRESSION = 9,
-    MZ_UBER_COMPRESSION = 10,
-    MZ_DEFAULT_LEVEL = 6,
-    MZ_DEFAULT_COMPRESSION = -1
-};
+    /* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
+    enum
+    {
+        MZ_NO_COMPRESSION = 0,
+        MZ_BEST_SPEED = 1,
+        MZ_BEST_COMPRESSION = 9,
+        MZ_UBER_COMPRESSION = 10,
+        MZ_DEFAULT_LEVEL = 6,
+        MZ_DEFAULT_COMPRESSION = -1
+    };
 
-#define MZ_VERSION "11.0.0"
-#define MZ_VERNUM 0xB000
+#define MZ_VERSION "11.3.0"
+#define MZ_VERNUM 0xB300
 #define MZ_VER_MAJOR 11
-#define MZ_VER_MINOR 0
+#define MZ_VER_MINOR 3
 #define MZ_VER_REVISION 0
 #define MZ_VER_SUBREVISION 0
 
 #ifndef MINIZ_NO_ZLIB_APIS
 
-/* Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs). */
-enum
-{
-    MZ_NO_FLUSH = 0,
-    MZ_PARTIAL_FLUSH = 1,
-    MZ_SYNC_FLUSH = 2,
-    MZ_FULL_FLUSH = 3,
-    MZ_FINISH = 4,
-    MZ_BLOCK = 5
-};
+    /* Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs). */
+    enum
+    {
+        MZ_NO_FLUSH = 0,
+        MZ_PARTIAL_FLUSH = 1,
+        MZ_SYNC_FLUSH = 2,
+        MZ_FULL_FLUSH = 3,
+        MZ_FINISH = 4,
+        MZ_BLOCK = 5
+    };
 
-/* Return status codes. MZ_PARAM_ERROR is non-standard. */
-enum
-{
-    MZ_OK = 0,
-    MZ_STREAM_END = 1,
-    MZ_NEED_DICT = 2,
-    MZ_ERRNO = -1,
-    MZ_STREAM_ERROR = -2,
-    MZ_DATA_ERROR = -3,
-    MZ_MEM_ERROR = -4,
-    MZ_BUF_ERROR = -5,
-    MZ_VERSION_ERROR = -6,
-    MZ_PARAM_ERROR = -10000
-};
+    /* Return status codes. MZ_PARAM_ERROR is non-standard. */
+    enum
+    {
+        MZ_OK = 0,
+        MZ_STREAM_END = 1,
+        MZ_NEED_DICT = 2,
+        MZ_ERRNO = -1,
+        MZ_STREAM_ERROR = -2,
+        MZ_DATA_ERROR = -3,
+        MZ_MEM_ERROR = -4,
+        MZ_BUF_ERROR = -5,
+        MZ_VERSION_ERROR = -6,
+        MZ_PARAM_ERROR = -10000
+    };
 
 /* Window bits */
 #define MZ_DEFAULT_WINDOW_BITS 15
 
-struct mz_internal_state;
+    struct mz_internal_state;
 
-/* Compression/decompression stream struct. */
-typedef struct mz_stream_s
-{
-    const unsigned char *next_in; /* pointer to next byte to read */
-    unsigned int avail_in;        /* number of bytes available at next_in */
-    mz_ulong total_in;            /* total number of bytes consumed so far */
+    /* Compression/decompression stream struct. */
+    typedef struct mz_stream_s
+    {
+        const unsigned char *next_in; /* pointer to next byte to read */
+        unsigned int avail_in;        /* number of bytes available at next_in */
+        mz_ulong total_in;            /* total number of bytes consumed so far */
 
-    unsigned char *next_out; /* pointer to next byte to write */
-    unsigned int avail_out;  /* number of bytes that can be written to next_out */
-    mz_ulong total_out;      /* total number of bytes produced so far */
+        unsigned char *next_out; /* pointer to next byte to write */
+        unsigned int avail_out;  /* number of bytes that can be written to next_out */
+        mz_ulong total_out;      /* total number of bytes produced so far */
 
-    char *msg;                       /* error msg (unused) */
-    struct mz_internal_state *state; /* internal state, allocated by zalloc/zfree */
+        char *msg;                       /* error msg (unused) */
+        struct mz_internal_state *state; /* internal state, allocated by zalloc/zfree */
 
-    mz_alloc_func zalloc; /* optional heap allocation function (defaults to malloc) */
-    mz_free_func zfree;   /* optional heap free function (defaults to free) */
-    void *opaque;         /* heap alloc function user pointer */
+        mz_alloc_func zalloc; /* optional heap allocation function (defaults to malloc) */
+        mz_free_func zfree;   /* optional heap free function (defaults to free) */
+        void *opaque;         /* heap alloc function user pointer */
 
-    int data_type;     /* data_type (unused) */
-    mz_ulong adler;    /* adler32 of the source or uncompressed data */
-    mz_ulong reserved; /* not used */
-} mz_stream;
+        int data_type;     /* data_type (unused) */
+        mz_ulong adler;    /* adler32 of the source or uncompressed data */
+        mz_ulong reserved; /* not used */
+    } mz_stream;
 
-typedef mz_stream *mz_streamp;
+    typedef mz_stream *mz_streamp;
 
-/* Returns the version string of miniz.c. */
-MINIZ_EXPORT const char *mz_version(void);
+    /* Returns the version string of miniz.c. */
+    MINIZ_EXPORT const char *mz_version(void);
 
 #ifndef MINIZ_NO_DEFLATE_APIS
 
-/* mz_deflateInit() initializes a compressor with default options: */
-/* Parameters: */
-/*  pStream must point to an initialized mz_stream struct. */
-/*  level must be between [MZ_NO_COMPRESSION, MZ_BEST_COMPRESSION]. */
-/*  level 1 enables a specially optimized compression function that's been optimized purely for performance, not ratio. */
-/*  (This special func. is currently only enabled when MINIZ_USE_UNALIGNED_LOADS_AND_STORES and MINIZ_LITTLE_ENDIAN are defined.) */
-/* Return values: */
-/*  MZ_OK on success. */
-/*  MZ_STREAM_ERROR if the stream is bogus. */
-/*  MZ_PARAM_ERROR if the input parameters are bogus. */
-/*  MZ_MEM_ERROR on out of memory. */
-MINIZ_EXPORT int mz_deflateInit(mz_streamp pStream, int level);
+    /* mz_deflateInit() initializes a compressor with default options: */
+    /* Parameters: */
+    /*  pStream must point to an initialized mz_stream struct. */
+    /*  level must be between [MZ_NO_COMPRESSION, MZ_BEST_COMPRESSION]. */
+    /*  level 1 enables a specially optimized compression function that's been optimized purely for performance, not ratio. */
+    /*  (This special func. is currently only enabled when MINIZ_USE_UNALIGNED_LOADS_AND_STORES and MINIZ_LITTLE_ENDIAN are defined.) */
+    /* Return values: */
+    /*  MZ_OK on success. */
+    /*  MZ_STREAM_ERROR if the stream is bogus. */
+    /*  MZ_PARAM_ERROR if the input parameters are bogus. */
+    /*  MZ_MEM_ERROR on out of memory. */
+    MINIZ_EXPORT int mz_deflateInit(mz_streamp pStream, int level);
 
-/* mz_deflateInit2() is like mz_deflate(), except with more control: */
-/* Additional parameters: */
-/*   method must be MZ_DEFLATED */
-/*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer) */
-/*   mem_level must be between [1, 9] (it's checked but ignored by miniz.c) */
-MINIZ_EXPORT int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
+    /* mz_deflateInit2() is like mz_deflate(), except with more control: */
+    /* Additional parameters: */
+    /*   method must be MZ_DEFLATED */
+    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer) */
+    /*   mem_level must be between [1, 9] (it's checked but ignored by miniz.c) */
+    MINIZ_EXPORT int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
 
-/* Quickly resets a compressor without having to reallocate anything. Same as calling mz_deflateEnd() followed by mz_deflateInit()/mz_deflateInit2(). */
-MINIZ_EXPORT int mz_deflateReset(mz_streamp pStream);
+    /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_deflateEnd() followed by mz_deflateInit()/mz_deflateInit2(). */
+    MINIZ_EXPORT int mz_deflateReset(mz_streamp pStream);
 
-/* mz_deflate() compresses the input to output, consuming as much of the input and producing as much output as possible. */
-/* Parameters: */
-/*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
-/*   flush may be MZ_NO_FLUSH, MZ_PARTIAL_FLUSH/MZ_SYNC_FLUSH, MZ_FULL_FLUSH, or MZ_FINISH. */
-/* Return values: */
-/*   MZ_OK on success (when flushing, or if more input is needed but not available, and/or there's more output to be written but the output buffer is full). */
-/*   MZ_STREAM_END if all input has been consumed and all output bytes have been written. Don't call mz_deflate() on the stream anymore. */
-/*   MZ_STREAM_ERROR if the stream is bogus. */
-/*   MZ_PARAM_ERROR if one of the parameters is invalid. */
-/*   MZ_BUF_ERROR if no forward progress is possible because the input and/or output buffers are empty. (Fill up the input buffer or free up some output space and try again.) */
-MINIZ_EXPORT int mz_deflate(mz_streamp pStream, int flush);
+    /* mz_deflate() compresses the input to output, consuming as much of the input and producing as much output as possible. */
+    /* Parameters: */
+    /*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
+    /*   flush may be MZ_NO_FLUSH, MZ_PARTIAL_FLUSH/MZ_SYNC_FLUSH, MZ_FULL_FLUSH, or MZ_FINISH. */
+    /* Return values: */
+    /*   MZ_OK on success (when flushing, or if more input is needed but not available, and/or there's more output to be written but the output buffer is full). */
+    /*   MZ_STREAM_END if all input has been consumed and all output bytes have been written. Don't call mz_deflate() on the stream anymore. */
+    /*   MZ_STREAM_ERROR if the stream is bogus. */
+    /*   MZ_PARAM_ERROR if one of the parameters is invalid. */
+    /*   MZ_BUF_ERROR if no forward progress is possible because the input and/or output buffers are empty. (Fill up the input buffer or free up some output space and try again.) */
+    MINIZ_EXPORT int mz_deflate(mz_streamp pStream, int flush);
 
-/* mz_deflateEnd() deinitializes a compressor: */
-/* Return values: */
-/*  MZ_OK on success. */
-/*  MZ_STREAM_ERROR if the stream is bogus. */
-MINIZ_EXPORT int mz_deflateEnd(mz_streamp pStream);
+    /* mz_deflateEnd() deinitializes a compressor: */
+    /* Return values: */
+    /*  MZ_OK on success. */
+    /*  MZ_STREAM_ERROR if the stream is bogus. */
+    MINIZ_EXPORT int mz_deflateEnd(mz_streamp pStream);
 
-/* mz_deflateBound() returns a (very) conservative upper bound on the amount of data that could be generated by deflate(), assuming flush is set to only MZ_NO_FLUSH or MZ_FINISH. */
-MINIZ_EXPORT mz_ulong mz_deflateBound(mz_streamp pStream, mz_ulong source_len);
+    /* mz_deflateBound() returns a (very) conservative upper bound on the amount of data that could be generated by deflate(), assuming flush is set to only MZ_NO_FLUSH or MZ_FINISH. */
+    MINIZ_EXPORT mz_ulong mz_deflateBound(mz_streamp pStream, mz_ulong source_len);
 
-/* Single-call compression functions mz_compress() and mz_compress2(): */
-/* Returns MZ_OK on success, or one of the error codes from mz_deflate() on failure. */
-MINIZ_EXPORT int mz_compress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
-MINIZ_EXPORT int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len, int level);
+    /* Single-call compression functions mz_compress() and mz_compress2(): */
+    /* Returns MZ_OK on success, or one of the error codes from mz_deflate() on failure. */
+    MINIZ_EXPORT int mz_compress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
+    MINIZ_EXPORT int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len, int level);
 
-/* mz_compressBound() returns a (very) conservative upper bound on the amount of data that could be generated by calling mz_compress(). */
-MINIZ_EXPORT mz_ulong mz_compressBound(mz_ulong source_len);
+    /* mz_compressBound() returns a (very) conservative upper bound on the amount of data that could be generated by calling mz_compress(). */
+    MINIZ_EXPORT mz_ulong mz_compressBound(mz_ulong source_len);
 
 #endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
 
 #ifndef MINIZ_NO_INFLATE_APIS
 
-/* Initializes a decompressor. */
-MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
+    /* Initializes a decompressor. */
+    MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
 
-/* mz_inflateInit2() is like mz_inflateInit() with an additional option that controls the window size and whether or not the stream has been wrapped with a zlib header/footer: */
-/* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
-MINIZ_EXPORT int mz_inflateInit2(mz_streamp pStream, int window_bits);
+    /* mz_inflateInit2() is like mz_inflateInit() with an additional option that controls the window size and whether or not the stream has been wrapped with a zlib header/footer: */
+    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
+    MINIZ_EXPORT int mz_inflateInit2(mz_streamp pStream, int window_bits);
 
-/* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */
-MINIZ_EXPORT int mz_inflateReset(mz_streamp pStream);
+    /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */
+    MINIZ_EXPORT int mz_inflateReset(mz_streamp pStream);
 
-/* Decompresses the input stream to the output, consuming only as much of the input as needed, and writing as much to the output as possible. */
-/* Parameters: */
-/*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
-/*   flush may be MZ_NO_FLUSH, MZ_SYNC_FLUSH, or MZ_FINISH. */
-/*   On the first call, if flush is MZ_FINISH it's assumed the input and output buffers are both sized large enough to decompress the entire stream in a single call (this is slightly faster). */
-/*   MZ_FINISH implies that there are no more source bytes available beside what's already in the input buffer, and that the output buffer is large enough to hold the rest of the decompressed data. */
-/* Return values: */
-/*   MZ_OK on success. Either more input is needed but not available, and/or there's more output to be written but the output buffer is full. */
-/*   MZ_STREAM_END if all needed input has been consumed and all output bytes have been written. For zlib streams, the adler-32 of the decompressed data has also been verified. */
-/*   MZ_STREAM_ERROR if the stream is bogus. */
-/*   MZ_DATA_ERROR if the deflate stream is invalid. */
-/*   MZ_PARAM_ERROR if one of the parameters is invalid. */
-/*   MZ_BUF_ERROR if no forward progress is possible because the input buffer is empty but the inflater needs more input to continue, or if the output buffer is not large enough. Call mz_inflate() again */
-/*   with more input data, or with more room in the output buffer (except when using single call decompression, described above). */
-MINIZ_EXPORT int mz_inflate(mz_streamp pStream, int flush);
+    /* Decompresses the input stream to the output, consuming only as much of the input as needed, and writing as much to the output as possible. */
+    /* Parameters: */
+    /*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
+    /*   flush may be MZ_NO_FLUSH, MZ_SYNC_FLUSH, or MZ_FINISH. */
+    /*   On the first call, if flush is MZ_FINISH it's assumed the input and output buffers are both sized large enough to decompress the entire stream in a single call (this is slightly faster). */
+    /*   MZ_FINISH implies that there are no more source bytes available beside what's already in the input buffer, and that the output buffer is large enough to hold the rest of the decompressed data. */
+    /* Return values: */
+    /*   MZ_OK on success. Either more input is needed but not available, and/or there's more output to be written but the output buffer is full. */
+    /*   MZ_STREAM_END if all needed input has been consumed and all output bytes have been written. For zlib streams, the adler-32 of the decompressed data has also been verified. */
+    /*   MZ_STREAM_ERROR if the stream is bogus. */
+    /*   MZ_DATA_ERROR if the deflate stream is invalid. */
+    /*   MZ_PARAM_ERROR if one of the parameters is invalid. */
+    /*   MZ_BUF_ERROR if no forward progress is possible because the input buffer is empty but the inflater needs more input to continue, or if the output buffer is not large enough. Call mz_inflate() again */
+    /*   with more input data, or with more room in the output buffer (except when using single call decompression, described above). */
+    MINIZ_EXPORT int mz_inflate(mz_streamp pStream, int flush);
 
-/* Deinitializes a decompressor. */
-MINIZ_EXPORT int mz_inflateEnd(mz_streamp pStream);
+    /* Deinitializes a decompressor. */
+    MINIZ_EXPORT int mz_inflateEnd(mz_streamp pStream);
 
-/* Single-call decompression. */
-/* Returns MZ_OK on success, or one of the error codes from mz_inflate() on failure. */
-MINIZ_EXPORT int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
-MINIZ_EXPORT int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
+    /* Single-call decompression. */
+    /* Returns MZ_OK on success, or one of the error codes from mz_inflate() on failure. */
+    MINIZ_EXPORT int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
+    MINIZ_EXPORT int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
 #endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
 
-/* Returns a string description of the specified error code, or NULL if the error code is invalid. */
-MINIZ_EXPORT const char *mz_error(int err);
+    /* Returns a string description of the specified error code, or NULL if the error code is invalid. */
+    MINIZ_EXPORT const char *mz_error(int err);
 
 /* Redefine zlib-compatible names to miniz equivalents, so miniz.c can be used as a drop-in replacement for the subset of zlib that miniz.c supports. */
 /* Define MINIZ_NO_ZLIB_COMPATIBLE_NAMES to disable zlib-compatibility if you use zlib in the same project. */
 #ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES
-typedef unsigned char Byte;
-typedef unsigned int uInt;
-typedef mz_ulong uLong;
-typedef Byte Bytef;
-typedef uInt uIntf;
-typedef char charf;
-typedef int intf;
-typedef void *voidpf;
-typedef uLong uLongf;
-typedef void *voidp;
-typedef void *const voidpc;
+    typedef unsigned char Byte;
+    typedef unsigned int uInt;
+    typedef mz_ulong uLong;
+    typedef Byte Bytef;
+    typedef uInt uIntf;
+    typedef char charf;
+    typedef int intf;
+    typedef void *voidpf;
+    typedef uLong uLongf;
+    typedef void *voidp;
+    typedef void *const voidpc;
 #define Z_NULL 0
 #define Z_NO_FLUSH MZ_NO_FLUSH
 #define Z_PARTIAL_FLUSH MZ_PARTIAL_FLUSH
@@ -478,44 +479,116 @@ typedef void *const voidpc;
 #define Z_FIXED MZ_FIXED
 #define Z_DEFLATED MZ_DEFLATED
 #define Z_DEFAULT_WINDOW_BITS MZ_DEFAULT_WINDOW_BITS
-#define alloc_func mz_alloc_func
-#define free_func mz_free_func
+    /* See mz_alloc_func */
+    typedef void *(*alloc_func)(void *opaque, size_t items, size_t size);
+    /* See mz_free_func */
+    typedef void (*free_func)(void *opaque, void *address);
+
 #define internal_state mz_internal_state
 #define z_stream mz_stream
 
 #ifndef MINIZ_NO_DEFLATE_APIS
-#define deflateInit mz_deflateInit
-#define deflateInit2 mz_deflateInit2
-#define deflateReset mz_deflateReset
-#define deflate mz_deflate
-#define deflateEnd mz_deflateEnd
-#define deflateBound mz_deflateBound
-#define compress mz_compress
-#define compress2 mz_compress2
-#define compressBound mz_compressBound
+    /* Compatiblity with zlib API. See called functions for documentation */
+    static int deflateInit(mz_streamp pStream, int level)
+    {
+        return mz_deflateInit(pStream, level);
+    }
+    static int deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy)
+    {
+        return mz_deflateInit2(pStream, level, method, window_bits, mem_level, strategy);
+    }
+    static int deflateReset(mz_streamp pStream)
+    {
+        return mz_deflateReset(pStream);
+    }
+    static int deflate(mz_streamp pStream, int flush)
+    {
+        return mz_deflate(pStream, flush);
+    }
+    static int deflateEnd(mz_streamp pStream)
+    {
+        return mz_deflateEnd(pStream);
+    }
+    static mz_ulong deflateBound(mz_streamp pStream, mz_ulong source_len)
+    {
+        return mz_deflateBound(pStream, source_len);
+    }
+    static int compress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len)
+    {
+        return mz_compress(pDest, pDest_len, pSource, source_len);
+    }
+    static int compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len, int level)
+    {
+        return mz_compress2(pDest, pDest_len, pSource, source_len, level);
+    }
+    static mz_ulong compressBound(mz_ulong source_len)
+    {
+        return mz_compressBound(source_len);
+    }
 #endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
 
 #ifndef MINIZ_NO_INFLATE_APIS
-#define inflateInit mz_inflateInit
-#define inflateInit2 mz_inflateInit2
-#define inflateReset mz_inflateReset
-#define inflate mz_inflate
-#define inflateEnd mz_inflateEnd
-#define uncompress mz_uncompress
-#define uncompress2 mz_uncompress2
+    /* Compatiblity with zlib API. See called functions for documentation */
+    static int inflateInit(mz_streamp pStream)
+    {
+        return mz_inflateInit(pStream);
+    }
+
+    static int inflateInit2(mz_streamp pStream, int window_bits)
+    {
+        return mz_inflateInit2(pStream, window_bits);
+    }
+
+    static int inflateReset(mz_streamp pStream)
+    {
+        return mz_inflateReset(pStream);
+    }
+
+    static int inflate(mz_streamp pStream, int flush)
+    {
+        return mz_inflate(pStream, flush);
+    }
+
+    static int inflateEnd(mz_streamp pStream)
+    {
+        return mz_inflateEnd(pStream);
+    }
+
+    static int uncompress(unsigned char* pDest, mz_ulong* pDest_len, const unsigned char* pSource, mz_ulong source_len)
+    {
+        return mz_uncompress(pDest, pDest_len, pSource, source_len);
+    }
+
+    static int uncompress2(unsigned char* pDest, mz_ulong* pDest_len, const unsigned char* pSource, mz_ulong* pSource_len)
+    {
+        return mz_uncompress2(pDest, pDest_len, pSource, pSource_len);
+    }
 #endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
 
-#define crc32 mz_crc32
-#define adler32 mz_adler32
+    static mz_ulong crc32(mz_ulong crc, const unsigned char *ptr, size_t buf_len)
+    {
+        return mz_crc32(crc, ptr, buf_len);
+    }
+
+    static mz_ulong adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
+    {
+        return mz_adler32(adler, ptr, buf_len);
+    }
+    
 #define MAX_WBITS 15
 #define MAX_MEM_LEVEL 9
-#define zError mz_error
+
+    static const char* zError(int err)
+    {
+        return mz_error(err);
+    }
 #define ZLIB_VERSION MZ_VERSION
 #define ZLIB_VERNUM MZ_VERNUM
 #define ZLIB_VER_MAJOR MZ_VER_MAJOR
 #define ZLIB_VER_MINOR MZ_VER_MINOR
 #define ZLIB_VER_REVISION MZ_VER_REVISION
 #define ZLIB_VER_SUBREVISION MZ_VER_SUBREVISION
+
 #define zlibVersion mz_version
 #define zlib_version mz_version()
 #endif /* #ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES */

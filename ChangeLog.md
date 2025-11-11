@@ -1,5 +1,34 @@
 ## Changelog
 
+### 3.1.0
+
+ - Fix warnings: Ensure correct integer promotion when adding
+ - Fix Unicode paths on MinGW32
+ - Prevent min/max conflicts between windows.h and std namespace
+ - Update miniz_tdef.c to enable compiling in forced-C++ mode
+ - Fix missing large file support warning on 64-bit Linux
+ - Bump cmake minimum version
+ - Add some catch2 tests including CI
+ - Remove parameter check in `tinfl_decompress` that breaks `tinfl_decompress_mem_to_heap`
+ - Don't redefine `WIN32_LEAN_AND_MEAN` if already defined
+ - Fix OSS-Fuzz build
+ - Do not redefine `TDEFL_LESS_MEMORY` if already defined
+ - Fix unused arg warnings when building with `MINIZ_NO_TIME`
+ - Support Zip archives not starting at zero offset
+ - Fix offset detection for MZ_ZIP_TYPE_USER
+ - Avoid fdreopen if possible
+ - cmake: new option BUILD_NO_STDIO to enable MINIZ_NO_STDIO
+ - Add fuzzer for mz_zip_add_mem_to_archive_file_in_place function
+ - Replace defines with function wrappers etc. as much as possible
+
+### 3.0.2
+
+ - Fix buffer overrun in mz_utf8z_to_widechar on Windows
+
+### 3.0.1
+
+ - Fix compilation error with MINIZ_USE_UNALIGNED_LOADS_AND_STORES=1
+
 ### 3.0.0
 
  - Reduce memory usage for inflate. This changes `struct tinfl_decompressor_tag` and therefore requires a major version bump (breaks ABI compatibility)
@@ -26,6 +55,14 @@
  - Fixed alignment problems on MacOS
  - Fixed get error string for MZ_ZIP_TOTAL_ERRORS
  - Write correct FLEVEL 2-bit value in zlib header
+ - miniz.pc.in: fix include path not containing the "miniz" suffix
+ - Fix compatibility with FreeBSD
+ - pkg-config tweaks
+ - Fix integer overflow in header corruption check
+ - Fix some warnings
+ - tdefl_compress_normal: Avoid NULL ptr arithmetic UB
+ - replace use of stdint.h types with mz_ variants
+ 
  
 ### 2.2.0
 

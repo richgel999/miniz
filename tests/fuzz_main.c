@@ -12,14 +12,14 @@ int main(int argc, char **argv)
     char *buf = NULL;
     long siz_buf;
 
-    if(argc < 2)
+    if (argc < 2)
     {
         fprintf(stderr, "no input file\n");
         goto err;
     }
 
     f = fopen(argv[1], "rb");
-    if(f == NULL)
+    if (f == NULL)
     {
         fprintf(stderr, "error opening input file %s\n", argv[1]);
         goto err;
@@ -30,22 +30,23 @@ int main(int argc, char **argv)
     siz_buf = ftell(f);
     rewind(f);
 
-    if(siz_buf < 1) goto err;
+    if (siz_buf < 1)
+        goto err;
 
-    buf = (char*)malloc(siz_buf);
-    if(buf == NULL)
+    buf = (char *)malloc(siz_buf);
+    if (buf == NULL)
     {
         fprintf(stderr, "malloc() failed\n");
         goto err;
     }
 
-    if(fread(buf, siz_buf, 1, f) != 1)
+    if (fread(buf, siz_buf, 1, f) != 1)
     {
         fprintf(stderr, "fread() failed\n");
         goto err;
     }
 
-    (void)LLVMFuzzerTestOneInput((uint8_t*)buf, siz_buf);
+    (void)LLVMFuzzerTestOneInput((uint8_t *)buf, siz_buf);
 
 err:
     free(buf);

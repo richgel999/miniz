@@ -1,6 +1,6 @@
 /* Derived from zlib fuzzers at http://github.com/google/oss-fuzz/tree/master/projects/zlib,
  * see ossfuzz.sh for full license text.
-*/
+ */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -8,7 +8,7 @@
 
 #include "miniz.h"
 
-int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     unsigned long int buffer_length = 1;
     unsigned char *buffer = NULL;

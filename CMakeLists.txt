@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5...3.12)
 
 # determine whether this is a standalone project or included by other projects
 set (MINIZ_STANDALONE_PROJECT ON)
@@ -6,8 +6,9 @@ if(DEFINED PROJECT_NAME)
   set(MINIZ_STANDALONE_PROJECT OFF)
 endif()
 
-if(CMAKE_MINOR_VERSION LESS 12)
-  project(miniz)
+
+if(CMAKE_VERSION VERSION_LESS "3.12")
+  project(miniz C)
   # see issue https://gitlab.kitware.com/cmake/cmake/merge_requests/1799
 else()
   project(miniz C)
@@ -24,9 +25,9 @@ else()
 endif()
 
 set(MINIZ_API_VERSION 3)
-set(MINIZ_MINOR_VERSION 0)
+set(MINIZ_MINOR_VERSION 1)
 set(MINIZ_PATCH_VERSION 0)
-set(MINIZ_VERSION 
+set(MINIZ_VERSION
     ${MINIZ_API_VERSION}.${MINIZ_MINOR_VERSION}.${MINIZ_PATCH_VERSION})
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -42,6 +43,8 @@ option(BUILD_FUZZERS "Build fuzz targets" OFF)
 option(AMALGAMATE_SOURCES "Amalgamate sources into miniz.h/c" OFF)
 option(BUILD_HEADER_ONLY "Build a header-only version" OFF)
 option(BUILD_SHARED_LIBS "Build shared library instead of static" OFF)
+option(BUILD_NO_STDIO" Build a without stdio version" OFF)
+option(BUILD_TESTS "Build tests" ${MINIZ_STANDALONE_PROJECT})
 option(INSTALL_PROJECT "Install project" ${MINIZ_STANDALONE_PROJECT})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -84,14 +87,14 @@ if(AMALGAMATE_SOURCES)
              "${AMAL_MINIZ_C}" "\n#endif // MINIZ_HEADER_FILE_ONLY\n")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/miniz.h "${AMAL_MINIZ_H}")
     add_library(${PROJECT_NAME} INTERFACE)
-    
+
     # Might not be a good idea to force this on the library user
     # as it could bloat the global namespace
     # https://github.com/libevent/libevent/issues/460
-    # target_compile_definitions(${PROJECT_NAME} 
+    # target_compile_definitions(${PROJECT_NAME}
     #     INTERFACE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
-    
-    set_property(TARGET ${PROJECT_NAME} APPEND 
+
+    set_property(TARGET ${PROJECT_NAME} APPEND
       PROPERTY INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
       $<INSTALL_INTERFACE:include>
@@ -110,7 +113,7 @@ if(AMALGAMATE_SOURCES)
   endif(BUILD_HEADER_ONLY)
 
   set(INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/amalgamation/miniz.h)
-  
+
   file(GLOB_RECURSE ZIP_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/amalgamation" "${CMAKE_CURRENT_BINARY_DIR}/amalgamation/*")
   file(GLOB_RECURSE ZIP_FILES2 RELATIVE "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/examples/*")
   list(APPEND ZIP_FILES ${ZIP_FILES2})
@@ -130,7 +133,7 @@ if(AMALGAMATE_SOURCES)
         DEPENDS ${ZIP_FILES}
         COMMENT "Zipping to ${CMAKE_CURRENT_BINARY_DIR}/miniz.zip."
     )
-	
+
 	add_custom_target(
 	  create_zip ALL
 	  DEPENDS "${ZIP_OUT_FN}"
@@ -151,20 +154,20 @@ else(AMALGAMATE_SOURCES)
 
   set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${MINIZ_VERSION})
   set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION ${MINIZ_API_VERSION})
-  
+
   target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<INSTALL_INTERFACE:include>
   )
-  
+
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
   list(APPEND
        INSTALL_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_export.h)
 endif(AMALGAMATE_SOURCES)
 
 if(NOT BUILD_HEADER_ONLY)
-  target_compile_definitions(${PROJECT_NAME} 
+  target_compile_definitions(${PROJECT_NAME}
     PRIVATE $<$<C_COMPILER_ID:GNU>:_GNU_SOURCE>)
 
   # pkg-config file
@@ -175,6 +178,10 @@ if(NOT BUILD_HEADER_ONLY)
       ${CMAKE_CURRENT_BINARY_DIR}/miniz.pc
       DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
   endif()
+endif()
+
+if(BUILD_NO_STDIO)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE MINIZ_NO_STDIO)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY
@@ -241,8 +248,10 @@ if(BUILD_EXAMPLES)
 
   add_executable(example1 ${EXAMPLE1_SRC_LIST})
   target_link_libraries(example1 miniz)
-  add_executable(example2 ${EXAMPLE2_SRC_LIST})
-  target_link_libraries(example2 miniz)
+  if(NOT BUILD_NO_STDIO)
+    add_executable(example2 ${EXAMPLE2_SRC_LIST})
+    target_link_libraries(example2 miniz)
+  endif()
   add_executable(example3 ${EXAMPLE3_SRC_LIST})
   target_link_libraries(example3 miniz)
   add_executable(example4 ${EXAMPLE4_SRC_LIST})
@@ -270,6 +279,7 @@ if(BUILD_FUZZERS)
   set(SMALL_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/small_fuzzer.c")
   set(LARGE_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/large_fuzzer.c")
   set(ZIP_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/zip_fuzzer.c")
+  set(ADD_IN_PLACE_FUZZER_SRC_LIST "${FUZZ_MAIN_SRC}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/add_in_place_fuzzer.c")
 
   add_executable(checksum_fuzzer ${CHECKSUM_FUZZER_SRC_LIST})
   target_link_libraries(checksum_fuzzer miniz)
@@ -294,6 +304,25 @@ if(BUILD_FUZZERS)
 
   add_executable(zip_fuzzer ${ZIP_FUZZER_SRC_LIST})
   target_link_libraries(zip_fuzzer miniz)
+
+  add_executable(add_in_place_fuzzer ${ADD_IN_PLACE_FUZZER_SRC_LIST})
+  target_link_libraries(add_in_place_fuzzer miniz)
+endif()
+
+if(BUILD_TESTS)
+  enable_language(CXX)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED YES)
+
+  add_executable(catch_tests tests/main.cpp tests/catch_amalgamated.cpp)
+  if(BUILD_NO_STDIO)
+    target_compile_definitions(catch_tests PRIVATE -DMINIZ_NO_STDIO)
+  endif()
+  target_link_libraries(catch_tests miniz)
+
+  enable_testing()
+
+  add_test(NAME catch_tests COMMAND $<TARGET_FILE:catch_tests>)
 endif()
 
 set(INCLUDE_INSTALL_DIR "include")

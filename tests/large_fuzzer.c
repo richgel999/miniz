@@ -1,6 +1,6 @@
 /* Derived from zlib fuzzers at http://github.com/google/oss-fuzz/tree/master/projects/zlib,
  * see ossfuzz.sh for full license text.
-*/
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -11,12 +11,14 @@
 
 #include "miniz.h"
 
-#define CHECK_ERR(err, msg) { \
-    if (err != Z_OK) { \
-        fprintf(stderr, "%s error: %d\n", msg, err); \
-        exit(1); \
-    } \
-}
+#define CHECK_ERR(err, msg)                              \
+    {                                                    \
+        if (err != Z_OK)                                 \
+        {                                                \
+            fprintf(stderr, "%s error: %d\n", msg, err); \
+            exit(1);                                     \
+        }                                                \
+    }
 
 static const uint8_t *data;
 static size_t dataLen;
@@ -42,8 +44,8 @@ void test_large_deflate(unsigned char *compr, size_t comprLen,
     c_stream.avail_out = (unsigned int)comprLen;
 
     /* At this point, uncompr is still mostly zeroes, so it should compress
-    * very well:
-    */
+     * very well:
+     */
     c_stream.next_in = uncompr;
     c_stream.avail_in = (unsigned int)uncomprLen;
     err = deflate(&c_stream, Z_NO_FLUSH);
@@ -94,7 +96,8 @@ void test_large_inflate(unsigned char *compr, size_t comprLen,
         d_stream.next_out = uncompr; /* discard the output */
         d_stream.avail_out = (unsigned int)uncomprLen;
         err = inflate(&d_stream, Z_NO_FLUSH);
-        if (err == Z_STREAM_END) break;
+        if (err == Z_STREAM_END)
+            break;
 
         CHECK_ERR(err, "large inflate");
     }
@@ -113,7 +116,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *d, size_t size)
     static size_t kMaxSize = 512 * 1024;
 
     if (size < 1 || size > kMaxSize)
-    return 0;
+        return 0;
 
     data = d;
     dataLen = size;
