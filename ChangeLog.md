@@ -1,5 +1,9 @@
 ## Changelog
 
+### 3.1.1
+
+ - Fixed mz_zip_get_error_string treating MZ_ZIP_TOTAL_ERRORS as an actual error. Removed MZ_ZIP_TOTAL_ERRORS constant completely as unused
+
 ### 3.1.0
 
  - Fix warnings: Ensure correct integer promotion when adding
