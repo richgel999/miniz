@@ -4787,8 +4787,6 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 return "validation failed";
             case MZ_ZIP_WRITE_CALLBACK_FAILED:
                 return "write callback failed";
-            case MZ_ZIP_TOTAL_ERRORS:
-                return "total errors";
             default:
                 break;
         }
