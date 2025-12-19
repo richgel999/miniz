@@ -868,13 +868,12 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                         if (MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size + ext_data_size > n)
                         {
-                            buf = MZ_MALLOC(ext_data_size);
-                            if (buf == NULL)
+                            if (NULL == (buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, ext_data_size)))
                                 return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
 
                             if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size, buf, ext_data_size) != ext_data_size)
                             {
-                                MZ_FREE(buf);
+                                pZip->m_pFree(pZip->m_pAlloc_opaque, buf);
                                 return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
                             }
 
@@ -892,7 +891,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                             if (extra_size_remaining < (sizeof(mz_uint16) * 2))
                             {
-                                MZ_FREE(buf);
+                                pZip->m_pFree(pZip->m_pAlloc_opaque, buf);
                                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
                             }
 
@@ -901,7 +900,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                             if ((field_data_size + sizeof(mz_uint16) * 2) > extra_size_remaining)
                             {
-                                MZ_FREE(buf);
+                                pZip->m_pFree(pZip->m_pAlloc_opaque, buf);
                                 return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
                             }
 
@@ -917,7 +916,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                             extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                         } while (extra_size_remaining);
 
-                        MZ_FREE(buf);
+                        pZip->m_pFree(pZip->m_pAlloc_opaque, buf);
                     }
                 }
 

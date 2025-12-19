@@ -1,5 +1,9 @@
 ## Changelog
 
+### 3.1.1
+
+ - Fix mz_zip_reader_read_central_dir calling MZ_ALLOC directly instead of configured mz_zip_archive allocator callback
+
 ### 3.1.0
 
  - Fix warnings: Ensure correct integer promotion when adding
