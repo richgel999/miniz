@@ -1,5 +1,9 @@
 ## Changelog
 
+### 3.1.1
+
+ – Declare function wrappers as inline static to fix warnings
+
 ### 3.1.0
 
  - Fix warnings: Ensure correct integer promotion when adding
