@@ -2,7 +2,7 @@
 
 ### 3.1.1
 
- – Declare function wrappers as inline static to fix warnings
+ - Declare function wrappers as inline static to fix warnings
 
 ### 3.1.0
 
