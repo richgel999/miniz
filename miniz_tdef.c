@@ -1498,6 +1498,11 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         *pLen_out = 0;
         if (!pComp)
             return NULL;
+        if (w <= 0 || h <= 0 || w > 0xFFFF || h > 0xFFFF || num_chans < 1 || num_chans > 4)
+        {
+            MZ_FREE(pComp);
+            return NULL;
+        }
         MZ_CLEAR_OBJ(out_buf);
         out_buf.m_expandable = MZ_TRUE;
         out_buf.m_capacity = 57 + MZ_MAX(64, (1 + bpl) * h);
