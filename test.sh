@@ -2,7 +2,7 @@
 
 set -e
 
-. amalgamate.sh
+. amalgamate_and_verify.sh
 
 cat << "EOF" > miniz_export.h
 #ifndef MINIZ_EXPORT
