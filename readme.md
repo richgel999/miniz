@@ -1,10 +1,20 @@
 ## Miniz
 
-Miniz is a lossless, high performance data compression library in a single source file that implements the zlib (RFC 1950) and Deflate (RFC 1951) compressed data format specification standards. It supports the most commonly used functions exported by the zlib library, but is a completely independent implementation so zlib's licensing requirements do not apply. Miniz also contains simple to use functions for writing .PNG format image files and reading/writing/appending .ZIP format archives. Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
+Miniz is a lossless, high performance data compression library in a single source file that implements the zlib (RFC 1950) and Deflate (RFC 1951) compressed data format specification standards. The support for 32-bit CRC and ISIZE has been added recently and is still under testing.
+
+Miniz  supports the most commonly used functions exported by the zlib library, but is a completely independent implementation so zlib's licensing requirements do not apply. It also contains simple to use functions for writing .PNG format image files and reading/writing/appending .ZIP format archives.
+
+Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
 
 ## Usage
 
 Releases are available at the [releases page](https://github.com/richgel999/miniz/releases) as a pair of `miniz.c`/`miniz.h` files which can be simply added to a project. To create this file pair the different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) during build. Alternatively use as cmake or meson module (or build system of your choice).
+
+```sh
+cd minz
+sh amalgamate.sh
+ls -al amalgamation/miniz.[hc]
+```
 
 ## Features
 
