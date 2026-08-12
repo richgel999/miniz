@@ -13,12 +13,14 @@ extern "C"
     /* TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input. */
     /* TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is at least the size of the dictionary (typically 32KB). */
     /* TINFL_FLAG_COMPUTE_ADLER32: Force adler-32 checksum computation of the decompressed bytes. */
+    /* TINFL_FLAG_PARSE_GZIP_HEADER: If set, the input has a valid gzip header and ends with a CRC-32 checksum and ISIZE (it's a valid gzip stream per RFC 1952). */
     enum
     {
         TINFL_FLAG_PARSE_ZLIB_HEADER = 1,
         TINFL_FLAG_HAS_MORE_INPUT = 2,
         TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF = 4,
-        TINFL_FLAG_COMPUTE_ADLER32 = 8
+        TINFL_FLAG_COMPUTE_ADLER32 = 8,
+        TINFL_FLAG_PARSE_GZIP_HEADER = 16 /* RAF: RFC 1952 */
     };
 
     /* High level decompression functions: */
@@ -130,7 +132,8 @@ typedef mz_uint32 tinfl_bit_buf_t;
 
     struct tinfl_decompressor_tag
     {
-        mz_uint32 m_state, m_num_bits, m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32, m_dist, m_counter, m_num_extra, m_table_sizes[TINFL_MAX_HUFF_TABLES];
+        mz_uint32 m_state, m_num_bits, m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32,
+        m_check_crc32, m_dist, m_counter, m_num_extra, m_table_sizes[TINFL_MAX_HUFF_TABLES]; /* RAF: RFC 1952 */
         tinfl_bit_buf_t m_bit_buf;
         size_t m_dist_from_out_buf_start;
         mz_int16 m_look_up[TINFL_MAX_HUFF_TABLES][TINFL_FAST_LOOKUP_SIZE];

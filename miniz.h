@@ -369,7 +369,10 @@ extern "C"
     /* mz_deflateInit2() is like mz_deflate(), except with more control: */
     /* Additional parameters: */
     /*   method must be MZ_DEFLATED */
-    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer) */
+    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer),
+         -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer), or MZ_DEFAULT_WINDOW_BITS+16 (gzip header/CRC-32 footer) 
+	   //RAF: RFC 1952
+     */
     /*   mem_level must be between [1, 9] (it's checked but ignored by miniz.c) */
     MINIZ_EXPORT int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
 
@@ -413,7 +416,10 @@ extern "C"
     MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
 
     /* mz_inflateInit2() is like mz_inflateInit() with an additional option that controls the window size and whether or not the stream has been wrapped with a zlib header/footer: */
-    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
+    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer),
+       -MZ_DEFAULT_WINDOW_BITS (raw deflate) or MZ_DEFAULT_WINDOW_BITS+16 (gzip header/footer).
+	   //RAF: RFC 1952
+	 */
     MINIZ_EXPORT int mz_inflateInit2(mz_streamp pStream, int window_bits);
 
     /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */

@@ -41,7 +41,9 @@ extern "C"
         TDEFL_RLE_MATCHES = 0x10000,
         TDEFL_FILTER_MATCHES = 0x20000,
         TDEFL_FORCE_ALL_STATIC_BLOCKS = 0x40000,
-        TDEFL_FORCE_ALL_RAW_BLOCKS = 0x80000
+        TDEFL_FORCE_ALL_RAW_BLOCKS = 0x80000,
+        TDEFL_WRITE_GZIP_HEADER = 0x100000
+        /* RAF: RFC 1952 */
     };
 
     /* High level compression functions: */
@@ -147,7 +149,7 @@ enum
         void *m_pPut_buf_user;
         mz_uint m_flags, m_max_probes[2];
         int m_greedy_parsing;
-        mz_uint m_adler32, m_lookahead_pos, m_lookahead_size, m_dict_size;
+        mz_uint m_adler32, m_crc32, m_total_uncomp_size, m_lookahead_pos, m_lookahead_size, m_dict_size; /* RAF: RFC 1952 */
         mz_uint8 *m_pLZ_code_buf, *m_pLZ_flags, *m_pOutput_buf, *m_pOutput_buf_end;
         mz_uint m_num_flags_left, m_total_lz_bytes, m_lz_code_buf_dict_pos, m_bits_in, m_bit_buffer;
         mz_uint m_saved_match_dist, m_saved_match_len, m_saved_lit, m_output_flush_ofs, m_output_flush_remaining, m_finished, m_block_index, m_wants_to_finish;
@@ -187,7 +189,9 @@ enum
 
     /* Create tdefl_compress() flags given zlib-style compression parameters. */
     /* level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files) */
-    /* window_bits may be -15 (raw deflate) or 15 (zlib) */
+    /* window_bits may be -15 (raw deflate), 15 (zlib), or 31 (gzip)
+	   //RAF: RFC 1952
+	 */
     /* strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED */
     MINIZ_EXPORT mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
 

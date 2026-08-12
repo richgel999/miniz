@@ -200,7 +200,9 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
         if (!pStream)
             return MZ_STREAM_ERROR;
-        if ((method != MZ_DEFLATED) || ((mem_level < 1) || (mem_level > 9)) || ((window_bits != MZ_DEFAULT_WINDOW_BITS) && (-window_bits != MZ_DEFAULT_WINDOW_BITS)))
+        /* RAF: RFC 1952 */
+        if ((method != MZ_DEFLATED) || ((mem_level < 1) || (mem_level > 9)) || ((window_bits != MZ_DEFAULT_WINDOW_BITS)
+        && (window_bits != MZ_DEFAULT_WINDOW_BITS + 16) && (-window_bits != MZ_DEFAULT_WINDOW_BITS)))
             return MZ_PARAM_ERROR;
 
         pStream->data_type = 0;
@@ -373,7 +375,9 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         inflate_state *pDecomp;
         if (!pStream)
             return MZ_STREAM_ERROR;
-        if ((window_bits != MZ_DEFAULT_WINDOW_BITS) && (-window_bits != MZ_DEFAULT_WINDOW_BITS))
+        /* RAF: RFC 1952 */
+        if ((window_bits != MZ_DEFAULT_WINDOW_BITS)
+        && (window_bits != MZ_DEFAULT_WINDOW_BITS + 16) && (-window_bits != MZ_DEFAULT_WINDOW_BITS))
             return MZ_PARAM_ERROR;
 
         pStream->data_type = 0;
@@ -451,7 +455,13 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
         pState = (inflate_state *)pStream->state;
         if (pState->m_window_bits > 0)
+        {
+            /* RAF: RFC 1952 */
+            if (pState->m_window_bits > 15)
+                decomp_flags |= TINFL_FLAG_PARSE_GZIP_HEADER;
+            else
             decomp_flags |= TINFL_FLAG_PARSE_ZLIB_HEADER;
+        }
         orig_avail_in = pStream->avail_in;
 
         first_call = pState->m_first_call;

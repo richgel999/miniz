@@ -618,7 +618,21 @@ static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
         *d->m_pLZ_flags = (mz_uint8)(*d->m_pLZ_flags >> d->m_num_flags_left);
         d->m_pLZ_code_buf -= (d->m_num_flags_left == 8);
 
-        if ((d->m_flags & TDEFL_WRITE_ZLIB_HEADER) && (!d->m_block_index))
+        /* RAF: RFC 1952 */
+        if ((d->m_flags & TDEFL_WRITE_GZIP_HEADER) && (!d->m_block_index))
+        {
+            TDEFL_PUT_BITS(0x1f, 8);
+            TDEFL_PUT_BITS(0x8b, 8);
+            TDEFL_PUT_BITS(8, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(0, 8);
+            TDEFL_PUT_BITS(255, 8);
+        }
+        else if ((d->m_flags & TDEFL_WRITE_ZLIB_HEADER) && (!d->m_block_index))
         {
             const mz_uint8 cmf = 0x78;
             mz_uint8 flg, flevel = 3;
@@ -690,7 +704,24 @@ static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
                 {
                     TDEFL_PUT_BITS(0, 8 - d->m_bits_in);
                 }
-                if (d->m_flags & TDEFL_WRITE_ZLIB_HEADER)
+                /* RAF: RFC 1952 */
+                if (d->m_flags & TDEFL_WRITE_GZIP_HEADER)
+                {
+                    mz_uint i;
+                    mz_uint32 c = d->m_crc32;
+                    for (i = 0; i < 4; i++)
+                    {
+                        TDEFL_PUT_BITS(c & 0xFF, 8);
+                        c >>= 8;
+                    }
+                    c = d->m_total_uncomp_size;
+                    for (i = 0; i < 4; i++)
+                    {
+                        TDEFL_PUT_BITS(c & 0xFF, 8);
+                        c >>= 8;
+                    }
+                }
+                else if (d->m_flags & TDEFL_WRITE_ZLIB_HEADER)
                 {
                     mz_uint i, a = d->m_adler32;
                     for (i = 0; i < 4; i++)
@@ -1314,6 +1345,13 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 
         if ((d->m_flags & (TDEFL_WRITE_ZLIB_HEADER | TDEFL_COMPUTE_ADLER32)) && (pIn_buf))
             d->m_adler32 = (mz_uint32)mz_adler32(d->m_adler32, (const mz_uint8 *)pIn_buf, d->m_pSrc - (const mz_uint8 *)pIn_buf);
+        /* RAF: RFC 1952 */
+        if ((d->m_flags & TDEFL_WRITE_GZIP_HEADER) && (pIn_buf))
+        {
+            size_t n = d->m_pSrc - (const mz_uint8 *)pIn_buf;
+            d->m_crc32 = (mz_uint32)mz_crc32(d->m_crc32, (const mz_uint8 *)pIn_buf, n);
+            d->m_total_uncomp_size += (mz_uint32)n;
+        }
 
         if ((flush) && (!d->m_lookahead_size) && (!d->m_src_buf_left) && (!d->m_output_flush_remaining))
         {
@@ -1357,7 +1395,9 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         d->m_pOutput_buf_end = d->m_output_buf;
         d->m_prev_return_status = TDEFL_STATUS_OKAY;
         d->m_saved_match_dist = d->m_saved_match_len = d->m_saved_lit = 0;
-        d->m_adler32 = 1;
+        d->m_adler32 = (flags & TDEFL_WRITE_GZIP_HEADER) ? 0 : 1; /* RAF: RFC 1952 */
+        d->m_crc32 = 0;                                           /* RAF: RFC 1952 */
+        d->m_total_uncomp_size = 0;                               /* RAF: RFC 1952 */
         d->m_pIn_buf = NULL;
         d->m_pOut_buf = NULL;
         d->m_pIn_buf_size = NULL;
@@ -1380,7 +1420,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 
     mz_uint32 tdefl_get_adler32(tdefl_compressor *d)
     {
-        return d->m_adler32;
+        return (d->m_flags & TDEFL_WRITE_GZIP_HEADER) ? d->m_crc32 : d->m_adler32; /* RAF: RFC 1952 */
     }
 
     mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags)
@@ -1462,8 +1502,14 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
     mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy)
     {
         mz_uint comp_flags = s_tdefl_num_probes[(level >= 0) ? MZ_MIN(10, level) : MZ_DEFAULT_LEVEL] | ((level <= 3) ? TDEFL_GREEDY_PARSING_FLAG : 0);
+        /* RAF: RFC 1952 */
         if (window_bits > 0)
+        {
+            if (window_bits > 15)
+                comp_flags |= TDEFL_WRITE_GZIP_HEADER;
+            else
             comp_flags |= TDEFL_WRITE_ZLIB_HEADER;
+        }
 
         if (!level)
             comp_flags |= TDEFL_FORCE_ALL_RAW_BLOCKS;

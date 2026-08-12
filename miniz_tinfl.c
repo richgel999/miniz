@@ -227,6 +227,74 @@ extern "C"
 
         bit_buf = num_bits = dist = counter = num_extra = r->m_zhdr0 = r->m_zhdr1 = 0;
         r->m_z_adler32 = r->m_check_adler32 = 1;
+        r->m_check_crc32 = 0; /* RAF: RFC 1952 */
+
+        if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+        {
+            /* RAF: RFC 1952 */
+            mz_uint8 flg;
+            /* ID1 */
+            TINFL_GET_BYTE(60, r->m_zhdr0);
+            if (r->m_zhdr0 != 0x1f)
+            {
+                TINFL_CR_RETURN_FOREVER(61, TINFL_STATUS_FAILED);
+            }
+            /* ID2 */
+            TINFL_GET_BYTE(62, r->m_zhdr1);
+            if (r->m_zhdr1 != 0x8b)
+            {
+                TINFL_CR_RETURN_FOREVER(63, TINFL_STATUS_FAILED);
+            }
+            /* CM (must be 8 for deflate) */
+            TINFL_GET_BYTE(64, r->m_zhdr0);
+            if (r->m_zhdr0 != 8)
+            {
+                TINFL_CR_RETURN_FOREVER(65, TINFL_STATUS_FAILED);
+            }
+            /* FLG */
+            TINFL_GET_BYTE(66, flg);
+            /* MTIME (4 bytes) */
+            TINFL_GET_BYTE(67, r->m_zhdr0);
+            TINFL_GET_BYTE(68, r->m_zhdr0);
+            TINFL_GET_BYTE(69, r->m_zhdr0);
+            TINFL_GET_BYTE(70, r->m_zhdr0);
+            /* XFL */
+            TINFL_GET_BYTE(71, r->m_zhdr0);
+            /* OS */
+            TINFL_GET_BYTE(72, r->m_zhdr0);
+            /* FEXTRA */
+            if (flg & 4)
+            {
+                mz_uint16 xlen;
+                TINFL_GET_BYTE(73, r->m_zhdr0); xlen = r->m_zhdr0;
+                TINFL_GET_BYTE(74, r->m_zhdr1); xlen |= ((mz_uint16)r->m_zhdr1 << 8);
+                while (xlen--)
+                {
+                    TINFL_GET_BYTE(75, r->m_zhdr0);
+                }
+            }
+            /* FNAME */
+            if (flg & 8)
+            {
+                do {
+                    TINFL_GET_BYTE(76, r->m_zhdr0);
+                } while (r->m_zhdr0);
+            }
+            /* FCOMMENT */
+            if (flg & 16)
+            {
+                do {
+                    TINFL_GET_BYTE(77, r->m_zhdr0);
+                } while (r->m_zhdr0);
+            }
+            /* FHCRC */
+            if (flg & 2)
+            {
+                TINFL_GET_BYTE(78, r->m_zhdr0);
+                TINFL_GET_BYTE(79, r->m_zhdr0);
+            }
+        }
+        else
         if (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER)
         {
             TINFL_GET_BYTE(1, r->m_zhdr0);
@@ -599,6 +667,9 @@ extern "C"
             }
         } while (!(r->m_final & 1));
 
+        /* dist_from_out_buf_start must reflect the true total output size for gzip ISIZE verification. */
+           dist_from_out_buf_start = pOut_buf_cur - pOut_buf_start; /* RAF: RFC 1952 */
+
         /* Ensure byte alignment and put back any bytes from the bitbuf if we've looked ahead too far on gzip, or other Deflate streams followed by arbitrary data. */
         /* I'm being super conservative here. A number of simplifications can be made to the byte alignment part, and the Adler32 check shouldn't ever need to worry about reading from the bitbuf now. */
         TINFL_SKIP_BITS(32, num_bits & 7);
@@ -610,6 +681,29 @@ extern "C"
         bit_buf &= ~(~(tinfl_bit_buf_t)0 << num_bits);
         MZ_ASSERT(!num_bits); /* if this assert fires then we've read beyond the end of non-deflate/zlib streams with following data (such as gzip streams). */
 
+        if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+        {
+            /* RAF: RFC 1952 */
+            mz_uint i;
+            mz_uint32 crc32 = 0, isize = 0;
+            /* CRC32 (little-endian) */
+            for (i = 0; i < 4; ++i)
+            {
+                mz_uint s;
+                TINFL_GET_BYTE(81, s);
+                crc32 |= ((mz_uint32)s << (i * 8));
+            }
+            /* ISIZE (little-endian) */
+            for (i = 0; i < 4; ++i)
+            {
+                mz_uint s;
+                TINFL_GET_BYTE(82, s);
+                isize |= ((mz_uint32)s << (i * 8));
+            }
+            r->m_z_adler32 = crc32;
+            counter = isize;
+        }
+        else
         if (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER)
         {
             for (counter = 0; counter < 4; ++counter)
@@ -646,6 +740,16 @@ extern "C"
         r->m_dist_from_out_buf_start = dist_from_out_buf_start;
         *pIn_buf_size = pIn_buf_cur - pIn_buf_next;
         *pOut_buf_size = pOut_buf_cur - pOut_buf_next;
+        if ((decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER) && (status >= 0))
+        {
+            /* RAF: RFC 1952 */
+            const mz_uint8 *ptr = pOut_buf_next;
+            size_t buf_len = *pOut_buf_size;
+            r->m_check_crc32 = (mz_uint32)mz_crc32(r->m_check_crc32, ptr, buf_len);
+            if ((status == TINFL_STATUS_DONE) && ((r->m_check_crc32 != r->m_z_adler32) || ((mz_uint32)r->m_dist_from_out_buf_start != r->m_counter)))
+                status = TINFL_STATUS_ADLER32_MISMATCH;
+        }
+        else
         if ((decomp_flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_COMPUTE_ADLER32)) && (status >= 0))
         {
             const mz_uint8 *ptr = pOut_buf_next;
