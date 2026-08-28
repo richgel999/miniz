@@ -1,34 +1,14 @@
 ## Miniz
 
+> [!WARNING]
+> 
+> The RFC-1952 support has been recently added but is not deeply tested, yet. An example of use can be found starting from this commit [here](https://github.com/robang74/pgunzip/commit/2be87f79fa9ade14dbab17474244b8100e34683e).
+
 Miniz is a lossless, high performance data compression library in a single source file that implements the zlib (RFC 1950) and Deflate (RFC 1951) compressed data format specification standards. The support for 32-bit CRC and ISIZE has been added recently and is still under testing.
 
 Miniz  supports the most commonly used functions exported by the zlib library, but is a completely independent implementation so zlib's licensing requirements do not apply. It also contains simple to use functions for writing .PNG format image files and reading/writing/appending .ZIP format archives.
 
 Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
-
-> [!WARNING]
-> 
-> The RFC-1952 support has been recently added but is not self-sufficient, yet. It requires that each GZIP stream is provided one after another because miniz isn't able to autonomously inflate the whole stream as-is.
-
-This is limitation can impair theRFC-1952 miniz adoption by end-user, certantly. However, find the end of a GZIP stream is relatively simple also when reading by STDIN.
-
-```c
-strm.avail_in = r;
-r -= 2; // to avoid the buffer overflow
-for (size_t n = 1; n < r; n++) {
-    if (inbuf[n  ] == 0x1f
-    &&  inbuf[n+1] == 0x8b
-    &&  inbuf[n+2] == 0x08
-    ){
-        strm.avail_in = n;
-        rmn = r - n + 2;
-        set = n;
-        break;
-    }
-}
-```
-
-The variables `rmn` and `set` can be useful for supporting the reading function in appending data because reading char by char would be unsustainable slow and reading everything in memory at once isn't possible in the most general scenario in which a `.gz` file can be arbitrarily long.
 
 ## Usage
 
