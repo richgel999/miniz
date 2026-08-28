@@ -466,8 +466,18 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
         first_call = pState->m_first_call;
         pState->m_first_call = 0;
-        if (pState->m_last_status < 0)
-            return MZ_DATA_ERROR;
+        if (pState->m_last_status < 0) {
+            /*
+               fprintf(stderr, "last status: %d, dict avail: %d\n",
+                   pState->m_last_status, pState->m_dict_avail);
+            */
+            if (pState->m_dict_avail   /* RAF: RFC 1952 */
+            && (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+            ){
+                pState->m_last_status = 0;
+            } else
+                return MZ_DATA_ERROR;
+        }
 
         if (pState->m_has_flushed && (flush != MZ_FINISH))
             return MZ_STREAM_ERROR;
@@ -537,11 +547,16 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
             pState->m_dict_avail -= n;
             pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
 
-            if (status < 0) {
-                if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+            if (status < 0) { /* RAF: RFC 1952 */
+                if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER) {
+                    if(pState->m_dict_avail) {
+                        /* fprintf(stderr, "dict avail: %d\n", pState->m_dict_avail); */
+                        return MZ_BUF_ERROR;
+                    }
                     return MZ_STREAM_END;
-                else
+                } else {
                     return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
+                }
             } else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
                 return MZ_BUF_ERROR; /* Signal caller that we can't make forward progress without supplying more input or by setting flush to MZ_FINISH. */
             else if (flush == MZ_FINISH)
