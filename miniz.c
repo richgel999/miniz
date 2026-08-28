@@ -460,7 +460,7 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
             if (pState->m_window_bits > 15)
                 decomp_flags |= TINFL_FLAG_PARSE_GZIP_HEADER;
             else
-            decomp_flags |= TINFL_FLAG_PARSE_ZLIB_HEADER;
+                decomp_flags |= TINFL_FLAG_PARSE_ZLIB_HEADER;
         }
         orig_avail_in = pStream->avail_in;
 
@@ -537,9 +537,12 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
             pState->m_dict_avail -= n;
             pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
 
-            if (status < 0)
-                return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
-            else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
+            if (status < 0) {
+                if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+                    return MZ_STREAM_END;
+                else
+                    return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
+            } else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
                 return MZ_BUF_ERROR; /* Signal caller that we can't make forward progress without supplying more input or by setting flush to MZ_FINISH. */
             else if (flush == MZ_FINISH)
             {
