@@ -6,13 +6,37 @@ Miniz  supports the most commonly used functions exported by the zlib library, b
 
 Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
 
+> [!WARNING]
+> 
+> The RFC-1952 support has been recently added but is not self-sufficient, yet. It requires that each GZIP stream is provided one after another because miniz isn't able to autonomously inflate the whole stream as-is.
+
+This is limitation can impair theRFC-1952 miniz adoption by end-user, certantly. However, find the end of a GZIP stream is relatively simple also when reading by STDIN.
+
+```c
+strm.avail_in = r;
+r -= 2; // to avoid the buffer overflow
+for (size_t n = 1; n < r; n++) {
+    if (inbuf[n  ] == 0x1f
+    &&  inbuf[n+1] == 0x8b
+    &&  inbuf[n+2] == 0x08
+    ){
+        strm.avail_in = n;
+        rmn = r - n + 2;
+        set = n;
+        break;
+    }
+}
+```
+
+The variables `rmn` and `set` can be useful for supporting the reading function in appending data because reading char by char would be unsustainable slow and reading everything in memory at once isn't possible in the most general scenario in which a `.gz` file can be arbitrarily long.
+
 ## Usage
 
 Releases are available at the [releases page](https://github.com/richgel999/miniz/releases) as a pair of `miniz.c`/`miniz.h` files which can be simply added to a project. To create this file pair the different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) during build. Alternatively use as cmake or meson module (or build system of your choice).
 
 ```sh
 cd minz
-sh amalgamate.sh
+SKIPTESTS=1 sh amalgamate.sh
 ls -al amalgamation/miniz.[hc]
 ```
 
