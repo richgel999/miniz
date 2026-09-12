@@ -33,7 +33,7 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64) == 8 ? 1 : -1];
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     /* ------------------- zlib-style API's */
 
@@ -156,7 +156,7 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
     return ~crc32;
 }
-#endif
+#endif /* 0 */
 
     void mz_free(void *p)
     {
@@ -200,7 +200,9 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
         if (!pStream)
             return MZ_STREAM_ERROR;
-        if ((method != MZ_DEFLATED) || ((mem_level < 1) || (mem_level > 9)) || ((window_bits != MZ_DEFAULT_WINDOW_BITS) && (-window_bits != MZ_DEFAULT_WINDOW_BITS)))
+        /* RAF: RFC 1952 */
+        if ((method != MZ_DEFLATED) || ((mem_level < 1) || (mem_level > 9)) || ((window_bits != MZ_DEFAULT_WINDOW_BITS)
+        && (window_bits != MZ_DEFAULT_WINDOW_BITS + 16) && (-window_bits != MZ_DEFAULT_WINDOW_BITS)))
             return MZ_PARAM_ERROR;
 
         pStream->data_type = 0;
@@ -355,7 +357,7 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         return mz_deflateBound(NULL, source_len);
     }
 
-#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+#endif /* MINIZ_NO_DEFLATE_APIS */
 
 #ifndef MINIZ_NO_INFLATE_APIS
 
@@ -373,7 +375,9 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         inflate_state *pDecomp;
         if (!pStream)
             return MZ_STREAM_ERROR;
-        if ((window_bits != MZ_DEFAULT_WINDOW_BITS) && (-window_bits != MZ_DEFAULT_WINDOW_BITS))
+        /* RAF: RFC 1952 */
+        if ((window_bits != MZ_DEFAULT_WINDOW_BITS)
+        && (window_bits != MZ_DEFAULT_WINDOW_BITS + 16) && (-window_bits != MZ_DEFAULT_WINDOW_BITS))
             return MZ_PARAM_ERROR;
 
         pStream->data_type = 0;
@@ -451,13 +455,25 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
         pState = (inflate_state *)pStream->state;
         if (pState->m_window_bits > 0)
-            decomp_flags |= TINFL_FLAG_PARSE_ZLIB_HEADER;
+        {
+            /* RAF: RFC 1952 */
+            if (pState->m_window_bits > 15)
+                decomp_flags |= TINFL_FLAG_PARSE_GZIP_HEADER;
+            else
+                decomp_flags |= TINFL_FLAG_PARSE_ZLIB_HEADER;
+        }
         orig_avail_in = pStream->avail_in;
 
         first_call = pState->m_first_call;
         pState->m_first_call = 0;
-        if (pState->m_last_status < 0)
-            return MZ_DATA_ERROR;
+        if (pState->m_last_status < 0) {
+            if (pState->m_dict_avail   /* RAF: RFC 1952 */
+            && (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
+            ){
+                pState->m_last_status = 0;
+            } else
+                return MZ_DATA_ERROR;
+        }
 
         if (pState->m_has_flushed && (flush != MZ_FINISH))
             return MZ_STREAM_ERROR;
@@ -527,9 +543,16 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
             pState->m_dict_avail -= n;
             pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
 
-            if (status < 0)
-                return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
-            else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
+            if (status < 0) { /* RAF: RFC 1952 */
+                if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER) {
+                    if(pState->m_dict_avail) {
+                        return MZ_BUF_ERROR;
+                    }
+                    return MZ_STREAM_END;
+                } else {
+                    return MZ_DATA_ERROR; /* Stream is corrupted (there could be some uncompressed data left in the output dictionary - oh well). */
+                }
+            } else if ((status == TINFL_STATUS_NEEDS_MORE_INPUT) && (!orig_avail_in))
                 return MZ_BUF_ERROR; /* Signal caller that we can't make forward progress without supplying more input or by setting flush to MZ_FINISH. */
             else if (flush == MZ_FINISH)
             {
@@ -594,7 +617,7 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         return mz_uncompress2(pDest, pDest_len, pSource, &source_len);
     }
 
-#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+#endif /* MINIZ_NO_INFLATE_APIS */
 
     const char *mz_error(int err)
     {
@@ -612,11 +635,11 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         return NULL;
     }
 
-#endif /*MINIZ_NO_ZLIB_APIS */
+#endif /* MINIZ_NO_ZLIB_APIS */
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
 /*
   This is free and unencumbered software released into the public domain.

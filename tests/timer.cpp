@@ -10,7 +10,7 @@
 #include <windows.h>
 #elif defined(_XBOX)
 #include <xtl.h>
-#endif
+#endif /* defined(WIN32) */
 
 unsigned long long timer::g_init_ticks;
 unsigned long long timer::g_freq;
@@ -37,7 +37,7 @@ inline void query_counter_frequency(timer_ticks *pTicks)
 {
    *pTicks = 1000000;
 }
-#endif
+#endif /* defined(WIN32) || defined(_XBOX) */
 
 timer::timer() :
    m_start_time(0),

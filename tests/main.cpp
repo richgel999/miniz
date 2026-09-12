@@ -8,7 +8,7 @@
 #define unlink _unlink
 #else
 #include <unistd.h>
-#endif
+#endif /* _WIN32 */
 
 #ifndef MINIZ_NO_STDIO
 bool create_test_zip(const bool zip64)
@@ -136,7 +136,7 @@ TEST_CASE("Zip reader tests")
     }
 }
 
-#endif
+#endif /* MINIZ_NO_STDIO */
 
 TEST_CASE("Tinfl / tdefl tests")
 {
