@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: amalgamate
       run: bash amalgamate.sh
     - name: Run CMake consuming CMakePreset.json and run tests
