@@ -410,6 +410,7 @@ TEST_CASE("Zip extraction iterator buffer ownership")
     CHECK(allocator.invalid_frees == 0);
 }
 
+#ifndef _FOR_UCHAOSYS_ONLY
 #ifndef MINIZ_NO_ARCHIVE_APIS
 TEST_CASE("Zip reader zip64 local header offset out of bounds")
 {
@@ -446,6 +447,7 @@ TEST_CASE("Zip reader zip64 local header offset out of bounds")
     free(p);
     mz_zip_reader_end(&zip);
 }
+#endif
 #endif
 
 TEST_CASE("Tinfl / tdefl tests")

@@ -232,7 +232,7 @@ extern "C"
         if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
         {
             /* RAF: RFC 1952 */
-            mz_uint8 flg;
+            mz_uint8 flg = 0;
             /* ID1 */
             TINFL_GET_BYTE(60, r->m_zhdr0);
             if (r->m_zhdr0 != 0x1f)
@@ -265,9 +265,11 @@ extern "C"
             /* FEXTRA */
             if (flg & 4)
             {
-                mz_uint16 xlen;
-                TINFL_GET_BYTE(73, r->m_zhdr0); xlen = r->m_zhdr0;
-                TINFL_GET_BYTE(74, r->m_zhdr1); xlen |= ((mz_uint16)r->m_zhdr1 << 8);
+                mz_uint16 xlen = 0;
+                TINFL_GET_BYTE(73, r->m_zhdr0);
+                xlen = r->m_zhdr0;
+                TINFL_GET_BYTE(74, r->m_zhdr1);
+                xlen |= ((mz_uint16)r->m_zhdr1 << 8);
                 while (xlen--)
                 {
                     TINFL_GET_BYTE(75, r->m_zhdr0);
