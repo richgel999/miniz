@@ -8,11 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: amalgamate
       run: bash amalgamate.sh
     - name: Run CMake consuming CMakePreset.json and run tests
-      uses: lukka/run-cmake@v10
+      uses: lukka/run-cmake@v11
       with:
         # This is the name of the CMakePresets.json's configuration to use to generate
         # the project files. This configuration leverages the vcpkg.cmake toolchain file to
