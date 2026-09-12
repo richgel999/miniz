@@ -467,8 +467,6 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
         first_call = pState->m_first_call;
         pState->m_first_call = 0;
         if (pState->m_last_status < 0) {
-            //fprintf(stderr, "last status: %d, dict avail: %d\n",
-            //  pState->m_last_status, pState->m_dict_avail);
             if (pState->m_dict_avail   /* RAF: RFC 1952 */
             && (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER)
             ){
@@ -548,7 +546,6 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
             if (status < 0) { /* RAF: RFC 1952 */
                 if (decomp_flags & TINFL_FLAG_PARSE_GZIP_HEADER) {
                     if(pState->m_dict_avail) {
-                        //fprintf(stderr, "dict avail: %d\n", pState->m_dict_avail);
                         return MZ_BUF_ERROR;
                     }
                     return MZ_STREAM_END;

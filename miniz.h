@@ -114,6 +114,13 @@
 
 #include "miniz_export.h"
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE
+#endif
+
 #if defined(__STRICT_ANSI__)
 #define MZ_FORCEINLINE
 #elif defined(_MSC_VER)

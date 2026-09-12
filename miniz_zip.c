@@ -212,6 +212,15 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #endif /* defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__) */
 #endif /* MINIZ_NO_STDIO */
 
+/* Ensure MZ_PLATFORM is defined regardless of MINIZ_NO_STDIO */
+#ifndef MZ_PLATFORM
+  #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__)
+    #define MZ_PLATFORM (10 << 8) /* Windows NTFS */
+  #else
+    #define MZ_PLATFORM (3 << 8)  /* Unix / Linux */
+  #endif
+#endif
+
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
     /* Various ZIP archive enums. To completely avoid cross platform compiler alignment and platform endian issues, miniz.c doesn't use structs for any of this stuff. */
@@ -918,8 +927,10 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                             pExtra_data += sizeof(mz_uint16) * 2 + field_data_size;
                             extra_size_remaining = extra_size_remaining - sizeof(mz_uint16) * 2 - field_data_size;
                         } while (extra_size_remaining);
-                        // Read zip64 extended information field into comp_size, decomp_size, local_header_ofs
-                        // Header ID: 0x0001, field size: 2 bytes
+                        /* Read zip64 extended information field into comp_size,
+                           decomp_size, local_header_ofs
+                           Header ID: 0x0001, field size: 2 bytes
+                         */
                         extra_size_remaining -= sizeof(mz_uint16) * 2;
                         pExtra_data += sizeof(mz_uint16) * 2;
                         if (decomp_size == MZ_UINT32_MAX && extra_size_remaining >= sizeof(mz_uint64)) {
