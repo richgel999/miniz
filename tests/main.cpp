@@ -138,6 +138,24 @@ TEST_CASE("Zip reader tests")
 
 #endif
 
+TEST_CASE("Zip reader EOCD back-scan")
+{
+    SECTION("buffer without a signature at the very start")
+    {
+        /* The EOCD back-scan stepped backwards by sizeof(buf_u32)-3 each time.
+         * That step was size_t, so once the cursor dropped below it the signed
+         * cursor wrapped to a negative offset and was handed to the read
+         * callback, whose pMem + file_ofs is then out of bounds.  A buffer that
+         * holds no ZIP signature reaches that point. */
+        std::string buf(4097, 'A');
+
+        mz_zip_archive zip = {};
+        REQUIRE(!mz_zip_reader_init_mem(&zip, buf.data(), buf.size(), 0));
+        REQUIRE(zip.m_last_error == MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
+        mz_zip_reader_end(&zip);
+    }
+}
+
 TEST_CASE("Tinfl / tdefl tests")
 {
     SECTION("simple_test1")

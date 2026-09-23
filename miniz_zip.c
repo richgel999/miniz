@@ -640,7 +640,11 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if ((!cur_file_ofs) || ((pZip->m_archive_size - cur_file_ofs) >= ((mz_uint64)(MZ_UINT16_MAX) + record_size)))
                 return MZ_FALSE;
 
-            cur_file_ofs = MZ_MAX(cur_file_ofs - (sizeof(buf_u32) - 3), 0);
+            /* sizeof(buf_u32) is size_t, so subtracting it from the signed
+             * cur_file_ofs promotes the expression to unsigned and the result wraps
+             * when the cursor drops below the step size, leaving a negative offset.
+             * Cast so the subtraction stays signed (see the initialisation above). */
+            cur_file_ofs = MZ_MAX(cur_file_ofs - (mz_int64)(sizeof(buf_u32) - 3), (mz_int64)0);
         }
 
         *pOfs = cur_file_ofs;
@@ -1037,7 +1041,11 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
     {
         mz_zip_archive *pZip = (mz_zip_archive *)pOpaque;
         size_t s = (file_ofs >= pZip->m_archive_size) ? 0 : (size_t)MZ_MIN(pZip->m_archive_size - file_ofs, n);
-        memcpy(pBuf, (const mz_uint8 *)pZip->m_pState->m_pMem + file_ofs, s);
+        /* Only form the source address when there is something to copy: an
+         * out-of-range file_ofs would otherwise make pMem + file_ofs undefined
+         * even though s is 0. */
+        if (s)
+            memcpy(pBuf, (const mz_uint8 *)pZip->m_pState->m_pMem + file_ofs, s);
         return s;
     }
 
