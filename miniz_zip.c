@@ -31,7 +31,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     /* ------------------- .ZIP archive reading */
 
@@ -44,13 +44,13 @@ extern "C"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#endif
+#endif /* WIN32_LEAN_AND_MEAN */
 #ifndef __cplusplus
 #define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS 0
-#endif
+#endif /* __cplusplus */
 #ifndef NOMINMAX
 #define NOMINMAX
-#endif
+#endif /* NOMINMAX */
 #include <windows.h>
 
 static WCHAR *mz_utf8z_to_widechar(const char *str)
@@ -99,11 +99,11 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
     free(wPath);
     return res;
 }
-#endif
+#endif /* defined(__MINGW32__) */
 
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN mz_fopen
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -116,7 +116,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #else
 #define MZ_FILE_STAT_STRUCT _stat64
 #define MZ_FILE_STAT mz_stat64
-#endif
+#endif /* defined(__MINGW32__) */
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
@@ -124,7 +124,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #elif defined(__WATCOMC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -140,7 +140,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -156,7 +156,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN(f, m) fopen64(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -172,7 +172,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #elif defined(__APPLE__) || defined(__FreeBSD__) || (defined(__linux__) && defined(__x86_64__))
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -189,7 +189,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
-#endif
+#endif /* MINIZ_NO_TIME */
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -200,14 +200,14 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #else
 #define MZ_FTELL64 ftello
 #define MZ_FSEEK64 fseeko
-#endif
+#endif /* __STRICT_ANSI__ */
 #define MZ_FILE_STAT_STRUCT stat
 #define MZ_FILE_STAT stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
-#endif /* #ifdef _MSC_VER */
-#endif /* #ifdef MINIZ_NO_STDIO */
+#endif /* defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__) */
+#endif /* MINIZ_NO_STDIO */
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
@@ -343,7 +343,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_ZIP_ARRAY_ELEMENT(array_ptr, element_type, index) ((element_type *)((array_ptr)->m_p))[mz_zip_array_range_check(array_ptr, index)]
 #else
 #define MZ_ZIP_ARRAY_ELEMENT(array_ptr, element_type, index) ((element_type *)((array_ptr)->m_p))[index]
-#endif
+#endif /* defined(DEBUG) || defined(_DEBUG) */
 
     static MZ_FORCEINLINE void mz_zip_array_init(mz_zip_array *pArray, mz_uint32 element_size)
     {
@@ -443,7 +443,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         }
 #else
         struct tm *tm = localtime(&time);
-#endif /* #ifdef _MSC_VER */
+#endif /* _MSC_VER */
 
         *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) + ((tm->tm_sec) >> 1));
         *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday);
@@ -464,7 +464,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return MZ_TRUE;
     }
-#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS*/
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
     static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
     {
@@ -476,8 +476,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return !utime(pFilename, &t);
     }
-#endif /* #ifndef MINIZ_NO_STDIO */
-#endif /* #ifndef MINIZ_NO_TIME */
+#endif /* MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_TIME */
 
     static MZ_FORCEINLINE mz_bool mz_zip_set_error(mz_zip_archive *pZip, mz_zip_error err_num)
     {
@@ -1000,7 +1000,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 }
                 pState->m_pFile = NULL;
             }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
             pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
         }
@@ -1062,7 +1062,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pZip->m_pState->m_pMem = const_cast<void *>(pMem);
 #else
     pZip->m_pState->m_pMem = (void *)pMem;
-#endif
+#endif /* __cplusplus */
 
         pZip->m_pState->m_mem_size = size;
 
@@ -1188,7 +1188,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_TRUE;
     }
 
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
     static MZ_FORCEINLINE const mz_uint8 *mz_zip_get_cdh(mz_zip_archive *pZip, mz_uint file_index)
     {
@@ -1299,7 +1299,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pStat->m_method = MZ_READ_LE16(p + MZ_ZIP_CDH_METHOD_OFS);
 #ifndef MINIZ_NO_TIME
         pStat->m_time = mz_zip_dos_to_time_t(MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_TIME_OFS), MZ_READ_LE16(p + MZ_ZIP_CDH_FILE_DATE_OFS));
-#endif
+#endif /* MINIZ_NO_TIME */
         pStat->m_crc32 = MZ_READ_LE32(p + MZ_ZIP_CDH_CRC32_OFS);
         pStat->m_comp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_COMPRESSED_SIZE_OFS);
         pStat->m_uncomp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS);
@@ -1602,7 +1602,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 if (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, (size_t)file_stat.m_uncomp_size) != file_stat.m_crc32)
                     return mz_zip_set_error(pZip, MZ_ZIP_CRC_CHECK_FAILED);
             }
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
 
             return MZ_TRUE;
         }
@@ -1679,7 +1679,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 mz_zip_set_error(pZip, MZ_ZIP_CRC_CHECK_FAILED);
                 status = TINFL_STATUS_FAILED;
             }
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
         }
 
         if ((!pZip->m_pState->m_pMem) && (!pUser_read_buf))
@@ -1764,7 +1764,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         int status = TINFL_STATUS_DONE;
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
         mz_uint file_crc32 = MZ_CRC32_INIT;
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
         mz_uint64 read_buf_size, read_buf_ofs = 0, read_buf_avail, comp_remaining, out_buf_ofs = 0, cur_file_ofs;
         mz_zip_archive_file_stat file_stat;
         void *pRead_buf = NULL;
@@ -1836,7 +1836,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 {
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
                     file_crc32 = (mz_uint32)mz_crc32(file_crc32, (const mz_uint8 *)pRead_buf, (size_t)file_stat.m_comp_size);
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
                 }
 
                 cur_file_ofs += file_stat.m_comp_size;
@@ -1860,7 +1860,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                     {
                         file_crc32 = (mz_uint32)mz_crc32(file_crc32, (const mz_uint8 *)pRead_buf, (size_t)read_buf_avail);
                     }
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
 
                     if (pCallback(pOpaque, out_buf_ofs, pRead_buf, (size_t)read_buf_avail) != read_buf_avail)
                     {
@@ -1921,7 +1921,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
                         file_crc32 = (mz_uint32)mz_crc32(file_crc32, pWrite_buf_cur, out_buf_size);
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
                         if ((out_buf_ofs += out_buf_size) > file_stat.m_uncomp_size)
                         {
                             mz_zip_set_error(pZip, MZ_ZIP_DECOMPRESSION_FAILED);
@@ -1947,7 +1947,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 mz_zip_set_error(pZip, MZ_ZIP_DECOMPRESSION_FAILED);
                 status = TINFL_STATUS_FAILED;
             }
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
         }
 
         if (!pZip->m_pState->m_pMem)
@@ -2017,7 +2017,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pState->status = TINFL_STATUS_DONE;
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
         pState->file_crc32 = MZ_CRC32_INIT;
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
         pState->read_buf_ofs = 0;
         pState->out_buf_ofs = 0;
         pState->pRead_buf = NULL;
@@ -2144,7 +2144,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             /* Compute CRC if not returning compressed data only */
             if (!(pState->flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
                 pState->file_crc32 = (mz_uint32)mz_crc32(pState->file_crc32, (const mz_uint8 *)pvBuf, copied_to_caller);
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
 
             /* Advance offsets, dec counters */
             pState->cur_file_ofs += copied_to_caller;
@@ -2202,7 +2202,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
                     /* Perform CRC */
                     pState->file_crc32 = (mz_uint32)mz_crc32(pState->file_crc32, pWrite_buf_cur, to_copy);
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
 
                     /* Decrement data consumed from block */
                     pState->out_blk_remain -= to_copy;
@@ -2248,7 +2248,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 mz_zip_set_error(pState->pZip, MZ_ZIP_DECOMPRESSION_FAILED);
                 pState->status = TINFL_STATUS_FAILED;
             }
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
         }
 
         /* Free buffers */
@@ -2303,7 +2303,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO)
         if (status)
             mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
-#endif
+#endif /* !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO) */
 
         return status;
     }
@@ -2338,7 +2338,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return mz_zip_reader_extract_to_cfile(pZip, file_index, pFile, flags);
     }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
     static size_t mz_zip_compute_crc32_callback(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n)
     {
@@ -2695,7 +2695,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return success;
     }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
     /* ------------------- .ZIP archive writing */
 
@@ -2794,7 +2794,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
             pState->m_pFile = NULL;
         }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
         if ((pZip->m_pWrite == mz_zip_heap_write_func) && (pState->m_pMem))
         {
@@ -2982,7 +2982,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return MZ_TRUE;
     }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
     mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags)
     {
@@ -3041,7 +3041,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
             pZip->m_pWrite = mz_zip_file_write_func;
             pZip->m_pNeeds_keepalive = NULL;
-#endif /* #ifdef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
         }
         else if (pState->m_pMem)
         {
@@ -3335,7 +3335,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         }
 #else
         (void)last_modified;
-#endif /* #ifndef MINIZ_NO_TIME */
+#endif /* MINIZ_NO_TIME */
 
         if (!(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
         {
@@ -3634,7 +3634,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         }
 #else
         (void)pFile_time;
-#endif
+#endif /* MINIZ_NO_TIME */
 
         if (max_size <= 3)
             level = 0;
@@ -3943,7 +3943,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pFile_time = &file_modified_time;
         if (!mz_zip_get_file_modified_time(pSrc_filename, &file_modified_time))
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_STAT_FAILED);
-#endif
+#endif /* !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO) */
 
         pSrc_file = MZ_FOPEN(pSrc_filename, "rb");
         if (!pSrc_file)
@@ -3959,7 +3959,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return status;
     }
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
     static mz_bool mz_zip_writer_update_zip64_extension_block(mz_zip_array *pNew_ext, mz_zip_archive *pZip, const mz_uint8 *pExt, mz_uint32 ext_len, mz_uint64 *pComp_size, mz_uint64 *pUncomp_size, mz_uint64 *pLocal_header_ofs, mz_uint32 *pDisk_start)
     {
@@ -4483,7 +4483,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #ifndef MINIZ_NO_STDIO
         if ((pState->m_pFile) && (MZ_FFLUSH(pState->m_pFile) == EOF))
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_CLOSE_FAILED);
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
         pZip->m_archive_size += MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE;
 
@@ -4664,9 +4664,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return mz_zip_extract_archive_file_to_heap_v2(pZip_filename, pArchive_name, NULL, pSize, flags, NULL);
     }
 
-#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
-#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS */
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
     /* ------------------- Misc utils */
 
@@ -4883,13 +4883,13 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
         else if ((pZip->m_zip_mode == MZ_ZIP_MODE_WRITING) || (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED))
             return mz_zip_writer_end(pZip);
-#endif
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
         return MZ_FALSE;
     }
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /*#ifndef MINIZ_NO_ARCHIVE_APIS*/
+#endif /* MINIZ_NO_ARCHIVE_APIS */

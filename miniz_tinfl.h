@@ -7,7 +7,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
     /* Decompression flags used by tinfl_decompress(). */
     /* TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream. */
     /* TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input. */
@@ -50,7 +50,7 @@ extern "C"
     /* structure size and allocation mechanism. */
     MINIZ_EXPORT tinfl_decompressor *tinfl_decompressor_alloc(void);
     MINIZ_EXPORT void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
-#endif
+#endif /* MINIZ_NO_MALLOC */
 
 /* Max size of LZ dictionary. */
 #define TINFL_LZ_DICT_SIZE 32768
@@ -118,7 +118,7 @@ extern "C"
 #define TINFL_USE_64BIT_BITBUF 1
 #else
 #define TINFL_USE_64BIT_BITBUF 0
-#endif
+#endif /* MINIZ_HAS_64BIT_REGISTERS */
 
 #if TINFL_USE_64BIT_BITBUF
     typedef mz_uint64 tinfl_bit_buf_t;
@@ -126,7 +126,7 @@ extern "C"
 #else
 typedef mz_uint32 tinfl_bit_buf_t;
 #define TINFL_BITBUF_SIZE (32)
-#endif
+#endif /* TINFL_USE_64BIT_BITBUF */
 
     struct tinfl_decompressor_tag
     {
@@ -145,6 +145,6 @@ typedef mz_uint32 tinfl_bit_buf_t;
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+#endif /* MINIZ_NO_INFLATE_APIS */

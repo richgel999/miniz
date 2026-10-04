@@ -6,13 +6,13 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 /* ------------------- Low-level Compression API Definitions */
 
 /* Set TDEFL_LESS_MEMORY to 1 to use less memory (compression will be slightly slower, and raw/dynamic blocks will be output more frequently). */
 #ifndef TDEFL_LESS_MEMORY
 #define TDEFL_LESS_MEMORY 0
-#endif
+#endif /* TDEFL_LESS_MEMORY */
 
     /* tdefl_init() compression flags logically OR'd together (low 12 bits contain the max. number of probes per dictionary search): */
     /* TDEFL_DEFAULT_MAX_PROBES: The compressor defaults to 128 dictionary probes per dictionary search. 0=Huffman only, 1=Huffman+LZ (fastest/crap compression), 4095=Huffman+LZ (slowest/best compression). */
@@ -113,7 +113,7 @@ enum
     TDEFL_LZ_HASH_SHIFT = (TDEFL_LZ_HASH_BITS + 2) / 3,
     TDEFL_LZ_HASH_SIZE = 1 << TDEFL_LZ_HASH_BITS
 };
-#endif
+#endif /* TDEFL_LESS_MEMORY */
 
     /* The low-level tdefl functions below may be used directly if the above helper functions aren't flexible enough. The low-level functions don't make any heap allocations, unlike the above helper functions. */
     typedef enum
@@ -190,10 +190,10 @@ enum
     /* structure size and allocation mechanism. */
     MINIZ_EXPORT tdefl_compressor *tdefl_compressor_alloc(void);
     MINIZ_EXPORT void tdefl_compressor_free(tdefl_compressor *pComp);
-#endif
+#endif /* MINIZ_NO_MALLOC */
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+#endif /* MINIZ_NO_DEFLATE_APIS */

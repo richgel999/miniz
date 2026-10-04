@@ -9,7 +9,7 @@
 #define unlink _unlink
 #else
 #include <unistd.h>
-#endif
+#endif /* _WIN32 */
 
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 struct short_write_context
@@ -237,7 +237,7 @@ TEST_CASE("Zip reader tests")
     }
 }
 
-#endif
+#endif /* MINIZ_NO_STDIO */
 
 TEST_CASE("Tinfl / tdefl tests")
 {

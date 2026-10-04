@@ -6,11 +6,11 @@
 // Ensure we get the 64-bit variants of the CRT's file I/O calls
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
-#endif
+#endif /* _FILE_OFFSET_BITS */
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE 1
-#endif
-#endif
+#endif /* _LARGEFILE64_SOURCE */
+#endif /* defined(__GNUC__) */
 
 #include <stdio.h>
 #include "miniz.h"

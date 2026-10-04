@@ -9,7 +9,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     enum
     {
@@ -73,7 +73,7 @@ extern "C"
         MZ_TIME_T m_padding;
 #else
     MZ_TIME_T m_time;
-#endif
+#endif /* MINIZ_NO_TIME */
     } mz_zip_archive_file_stat;
 
     typedef size_t (*mz_file_read_func)(void *pOpaque, mz_uint64 file_ofs, void *pBuf, size_t n);
@@ -204,7 +204,7 @@ extern "C"
         mz_uint padding;
 #else
     mz_uint file_crc32;
-#endif
+#endif /* MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS */
 
     } mz_zip_reader_extract_iter_state;
 
@@ -227,7 +227,7 @@ extern "C"
     /* The archive is assumed to be archive_size bytes long. If archive_size is 0, then the entire rest of the file is assumed to contain the archive. */
     /* The FILE will NOT be closed when mz_zip_reader_end() is called. */
     MINIZ_EXPORT mz_bool mz_zip_reader_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint64 archive_size, mz_uint flags);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
     /* Ends archive reading, freeing all allocations, and closing the input archive file if mz_zip_reader_init_file() was used. */
     MINIZ_EXPORT mz_bool mz_zip_reader_end(mz_zip_archive *pZip);
@@ -323,7 +323,7 @@ extern "C"
     /* Extracts a archive file starting at the current position in the destination FILE stream. */
     MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_cfile(mz_zip_archive *pZip, mz_uint file_index, MZ_FILE *File, mz_uint flags);
     MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_cfile(mz_zip_archive *pZip, const char *pArchive_filename, MZ_FILE *pFile, mz_uint flags);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
 #if 0
 /* TODO */
@@ -334,7 +334,7 @@ extern "C"
 	mz_bool mz_zip_streaming_extract_seek(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState, mz_uint64 new_ofs);
 	size_t mz_zip_streaming_extract_read(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState, void *pBuf, size_t buf_size);
 	mz_bool mz_zip_streaming_extract_end(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
-#endif
+#endif /* 0 */
 
     /* This function compares the archive's local headers, the optional local zip64 extended information block, and the optional descriptor following the compressed data vs. the data in the central directory. */
     /* It also validates that each file can be successfully uncompressed unless the MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY is specified. */
@@ -347,7 +347,7 @@ extern "C"
     MINIZ_EXPORT mz_bool mz_zip_validate_mem_archive(const void *pMem, size_t size, mz_uint flags, mz_zip_error *pErr);
 #ifndef MINIZ_NO_STDIO
     MINIZ_EXPORT mz_bool mz_zip_validate_file_archive(const char *pFilename, mz_uint flags, mz_zip_error *pErr);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
     /* Universal end function - calls either mz_zip_reader_end() or mz_zip_writer_end(). */
     MINIZ_EXPORT mz_bool mz_zip_end(mz_zip_archive *pZip);
@@ -369,7 +369,7 @@ extern "C"
     MINIZ_EXPORT mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning);
     MINIZ_EXPORT mz_bool mz_zip_writer_init_file_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning, mz_uint flags);
     MINIZ_EXPORT mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint flags);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
     /* Converts a ZIP archive reader object into a writer object, to allow efficient in-place file appends to occur on an existing archive. */
     /* For archives opened using mz_zip_reader_init_file, pFilename must be the archive's filename so it can be reopened for writing. If the file can't be reopened, mz_zip_reader_end() will be called. */
@@ -409,7 +409,7 @@ extern "C"
     MINIZ_EXPORT mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 max_size,
                                                  const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
                                                  const char *user_extra_data_central, mz_uint user_extra_data_central_len);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
     /* Adds a file to an archive by fully cloning the data from another archive. */
     /* This function fully clones the source file's compressed data (no recompression), along with its full filename, extra data (it may add or modify the zip64 local header extra data field), and the optional descriptor following the compressed data. */
@@ -443,12 +443,12 @@ extern "C"
     /* Returns NULL on failure. */
     MINIZ_EXPORT void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint flags);
     MINIZ_EXPORT void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr);
-#endif
+#endif /* MINIZ_NO_STDIO */
 
-#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS */
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
 #endif /* MINIZ_NO_ARCHIVE_APIS */

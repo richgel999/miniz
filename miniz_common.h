@@ -24,14 +24,14 @@ typedef int mz_bool;
 #define MZ_MACRO_END while (0, 0)
 #else
 #define MZ_MACRO_END while (0)
-#endif
+#endif /* _MSC_VER */
 
 #ifdef MINIZ_NO_STDIO
 #define MZ_FILE void *
 #else
 #include <stdio.h>
 #define MZ_FILE FILE
-#endif /* #ifdef MINIZ_NO_STDIO */
+#endif /* MINIZ_NO_STDIO */
 
 #ifdef MINIZ_NO_TIME
 typedef struct mz_dummy_time_t_tag
@@ -42,7 +42,7 @@ typedef struct mz_dummy_time_t_tag
 #define MZ_TIME_T mz_dummy_time_t
 #else
 #define MZ_TIME_T time_t
-#endif
+#endif /* MINIZ_NO_TIME */
 
 #define MZ_ASSERT(x) assert(x)
 
@@ -54,7 +54,7 @@ typedef struct mz_dummy_time_t_tag
 #define MZ_MALLOC(x) malloc(x)
 #define MZ_FREE(x) free(x)
 #define MZ_REALLOC(p, x) realloc(p, x)
-#endif
+#endif /* MINIZ_NO_MALLOC */
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -68,14 +68,14 @@ typedef struct mz_dummy_time_t_tag
 #else
 #define MZ_READ_LE16(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U))
 #define MZ_READ_LE32(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U) | ((mz_uint32)(((const mz_uint8 *)(p))[2]) << 16U) | ((mz_uint32)(((const mz_uint8 *)(p))[3]) << 24U))
-#endif
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN */
 
 #define MZ_READ_LE64(p) (((mz_uint64)MZ_READ_LE32(p)) | (((mz_uint64)MZ_READ_LE32((const mz_uint8 *)(p) + sizeof(mz_uint32))) << 32U))
 
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     extern MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
     extern MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address);
@@ -86,4 +86,4 @@ extern "C"
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */

@@ -3,17 +3,17 @@
 // It's something quick I put together last year to help regression test miniz/tinfl under Linux/Win32/Mac. It's derived from LZHAM's test module.
 #ifdef _MSC_VER
 #pragma warning (disable:4127) //  warning C4127: conditional expression is constant
-#endif
+#endif /* _MSC_VER */
 
 #if defined(__GNUC__)
   // Ensure we get the 64-bit variants of the CRT's file I/O calls
   #ifndef _FILE_OFFSET_BITS
     #define _FILE_OFFSET_BITS 64
-  #endif
+  #endif /* _FILE_OFFSET_BITS */
   #ifndef _LARGEFILE64_SOURCE
     #define _LARGEFILE64_SOURCE 1
-  #endif
-#endif
+  #endif /* _LARGEFILE64_SOURCE */
+#endif /* defined(__GNUC__) */
 
 #include "miniz.h"
 #include "miniz_zip.h"
@@ -56,19 +56,19 @@ typedef unsigned int uint;
    #define _stricmp strcasecmp
    #define FILE_STAT_STRUCT stat64
    #define FILE_STAT stat64
-#endif
+#endif /* defined(WIN32) */
 
 #ifdef WIN32
 #define QUAD_INT_FMT "%I64u"
 #else
 #define QUAD_INT_FMT "%llu"
-#endif
+#endif /* WIN32 */
 
 #ifdef _DEBUG
 const bool g_is_debug = true;
 #else
 const bool g_is_debug = false;
-#endif
+#endif /* _DEBUG */
 
 typedef unsigned char uint8;
 typedef unsigned int uint;
@@ -155,7 +155,7 @@ static void random_fill(uint8 *pDst, size_t len, uint32 x)
     }
   }
 }
-#endif
+#endif /* 0 */
 
 static void print_usage()
 {
@@ -417,7 +417,7 @@ static bool compress_file_zlib(const char* pSrc_filename, const char *pDst_filen
         printf("\b\b\b\b");
       printf("Progress: %3.1f%%, Bytes Remaining: %3.1fMB, %3.3fMB/sec", (1.0f - (static_cast<float>(src_bytes_left) / src_file_size)) * 100.0f, src_bytes_left / 1048576.0f, comp_rate / (1024.0f * 1024.0f));
       printf("                \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
-#endif
+#endif /* TDEFL_PRINT_OUTPUT_PROGRESS */
     }
 
     if (in_file_buf_ofs == in_file_buf_size)
@@ -492,7 +492,7 @@ static bool compress_file_zlib(const char* pSrc_filename, const char *pDst_filen
   {
     printf("\b\b\b\b    \b\b\b\b");
   }
-#endif
+#endif /* TDEFL_PRINT_OUTPUT_PROGRESS */
 
   src_bytes_left += (in_file_buf_size - in_file_buf_ofs);
 
@@ -1202,7 +1202,7 @@ static bool find_files(std::string pathname, const std::string &pattern, string_
 
   return true;
 }
-#endif
+#endif /* defined(WIN32) */
 
 static bool test_recursive(const char *pPath, comp_options options)
 {
@@ -1220,7 +1220,7 @@ static bool test_recursive(const char *pPath, comp_options options)
 #ifdef WIN32
   MEMORYSTATUS initial_mem_status;
   GlobalMemoryStatus(&initial_mem_status);
-#endif
+#endif /* WIN32 */
 
   timer_ticks start_tick_count = timer::get_ticks();
 
@@ -1351,7 +1351,7 @@ static bool test_recursive(const char *pPath, comp_options options)
     const int64 bytes_allocated = initial_mem_status.dwAvailVirtual- mem_status.dwAvailVirtual;
 
     printf("Memory allocated relative to first file: %I64i\n", bytes_allocated);
-#endif
+#endif /* WIN32 */
 
     printf("\n");
   }
@@ -1399,7 +1399,7 @@ static bool test_archives(const char *pPath, comp_options options)
 #ifdef WIN32
   MEMORYSTATUS initial_mem_status;
   GlobalMemoryStatus(&initial_mem_status);
-#endif
+#endif /* WIN32 */
 
   const int first_file_index = 0;
   uint unique_id = static_cast<uint>(timer::get_init_ticks());
@@ -1570,7 +1570,7 @@ static bool test_archives(const char *pPath, comp_options options)
     const int64 bytes_allocated = initial_mem_status.dwAvailVirtual- mem_status.dwAvailVirtual;
 
     printf("Memory allocated relative to first file: %I64i\n", bytes_allocated);
-#endif
+#endif /* WIN32 */
 
     printf("\n");
   }
@@ -1868,7 +1868,7 @@ int main(int argc, char *argv[])
   printf("miniz.c x64 Command Line Test App - Compiled %s %s\n", __DATE__, __TIME__);
 #else
   printf("miniz.c x86 Command Line Test App - Compiled %s %s\n", __DATE__, __TIME__);
-#endif
+#endif /* defined(_WIN64) || defined(__LP64__) || defined(_LP64) */
   timer::get_ticks();
 
   string_array cmd_line;

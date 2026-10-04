@@ -31,7 +31,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     /* ------------------- Low-level Compression (independent from all decompression API's) */
 
@@ -772,7 +772,7 @@ static mz_bool tdefl_compress_lz_codes(tdefl_compressor *d)
 #else
 #define TDEFL_READ_UNALIGNED_WORD(p) *(const mz_uint16 *)(p)
 #define TDEFL_READ_UNALIGNED_WORD2(p) *(const mz_uint16 *)(p)
-#endif
+#endif /* MINIZ_UNALIGNED_USE_MEMCPY */
     static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist, mz_uint max_match_len, mz_uint *pMatch_dist, mz_uint *pMatch_len)
     {
         mz_uint dist, pos = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK, match_len = *pMatch_len, probe_pos = pos, next_probe_pos, probe_len;
@@ -869,7 +869,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         }
     }
 }
-#endif /* #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES */
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES */
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
 #ifdef MINIZ_UNALIGNED_USE_MEMCPY
@@ -881,7 +881,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
     }
 #else
 #define TDEFL_READ_UNALIGNED_WORD32(p) *(const mz_uint32 *)(p)
-#endif
+#endif /* MINIZ_UNALIGNED_USE_MEMCPY */
     static mz_bool tdefl_compress_fast(tdefl_compressor *d)
     {
         /* Faster, minimally featured LZRW1-style match+parse loop with better register utilization. Intended for applications where raw throughput is valued more highly than ratio. */
@@ -955,7 +955,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
                         memcpy(&pLZ_code_buf[1], &cur_match_dist, sizeof(cur_match_dist));
 #else
                         *(mz_uint16 *)(&pLZ_code_buf[1]) = (mz_uint16)cur_match_dist;
-#endif
+#endif /* MINIZ_UNALIGNED_USE_MEMCPY */
                         pLZ_code_buf += 3;
                         *pLZ_flags = (mz_uint8)((*pLZ_flags >> 1) | 0x80);
 
@@ -1306,7 +1306,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
                 return d->m_prev_return_status;
         }
         else
-#endif /* #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN */
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN */
         {
             if (!tdefl_compress_normal(d))
                 return d->m_prev_return_status;
@@ -1482,7 +1482,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4204) /* nonstandard extension used : non-constant aggregate initializer (also supported by GNU C and C99, so no big deal) */
-#endif
+#endif /* _MSC_VER */
 
     /* Simple PNG writer function by Alex Evans, 2011. Released into the public domain: https://gist.github.com/908299, more context at
      http://altdevblogaday.org/2011/04/06/a-smaller-jpg-encoder/.
@@ -1589,14 +1589,14 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
     {
         MZ_FREE(pComp);
     }
-#endif
+#endif /* MINIZ_NO_MALLOC */
 
 #ifdef _MSC_VER
 #pragma warning(pop)
-#endif
+#endif /* _MSC_VER */
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+#endif /* MINIZ_NO_DEFLATE_APIS */

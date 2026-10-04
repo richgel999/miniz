@@ -31,7 +31,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif
+#endif /* __cplusplus */
 
     /* ------------------- Low-level Decompression (completely independent from all compression API's) */
 
@@ -453,7 +453,7 @@ extern "C"
                             pIn_buf_cur += 2;
                             num_bits += 16;
                         }
-#endif
+#endif /* TINFL_USE_64BIT_BITBUF */
                             if ((sym2 = r->m_look_up[0][bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0)
                                 code_len = sym2 >> 9;
                             else
@@ -481,7 +481,7 @@ extern "C"
                                 pIn_buf_cur += 2;
                                 num_bits += 16;
                             }
-#endif
+#endif /* !TINFL_USE_64BIT_BITBUF */
                             if ((sym2 = r->m_look_up[0][bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0)
                                 code_len = sym2 >> 9;
                             else
@@ -563,7 +563,7 @@ extern "C"
 #else
                             ((mz_uint32 *)pOut_buf_cur)[0] = ((const mz_uint32 *)pSrc)[0];
                             ((mz_uint32 *)pOut_buf_cur)[1] = ((const mz_uint32 *)pSrc)[1];
-#endif
+#endif /* MINIZ_UNALIGNED_USE_MEMCPY */
                             pOut_buf_cur += 8;
                         } while ((pSrc += 8) < pSrc_end);
                         if ((counter &= 7) < 3)
@@ -578,7 +578,7 @@ extern "C"
                             continue;
                         }
                     }
-#endif
+#endif /* MINIZ_USE_UNALIGNED_LOADS_AND_STORES */
                     while (counter > 2)
                     {
                         pOut_buf_cur[0] = pSrc[0];
@@ -769,10 +769,10 @@ extern "C"
     {
         MZ_FREE(pDecomp);
     }
-#endif
+#endif /* MINIZ_NO_MALLOC */
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+#endif /* MINIZ_NO_INFLATE_APIS */
