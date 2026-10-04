@@ -3309,7 +3309,11 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 pState->m_zip64 = MZ_TRUE;
                 /*return mz_zip_set_error(pZip, MZ_ZIP_TOO_MANY_FILES); */
             }
-            if (((mz_uint64)buf_size > 0xFFFFFFFF) || (uncomp_size > 0xFFFFFFFF))
+            if (
+#if SIZE_MAX > 0xFFFFFFFF
+                (buf_size > 0xFFFFFFFF) ||
+#endif
+                (uncomp_size > 0xFFFFFFFF))
             {
                 pState->m_zip64 = MZ_TRUE;
                 /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */
