@@ -3,6 +3,7 @@
 #include "miniz_zip.h"
 #include <assert.h>
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
 #define unlink _unlink
@@ -133,6 +134,16 @@ TEST_CASE("Zip reader tests")
         auto b = mz_zip_reader_init_file(&zip_archive, "test.zip", 0);
         REQUIRE(!b);
         REQUIRE(zip_archive.m_last_error == MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+    }
+
+    SECTION("Test malformed archive scan does not underflow")
+    {
+        std::vector<unsigned char> data(4097, 'A');
+        mz_zip_archive zip_archive = {};
+
+        auto b = mz_zip_reader_init_mem(&zip_archive, data.data(), data.size(), 0);
+        REQUIRE(!b);
+        REQUIRE(zip_archive.m_last_error == MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
     }
 }
 
