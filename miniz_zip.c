@@ -3527,7 +3527,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             }
 
             if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
-                return MZ_FALSE;
+                return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
 
             cur_archive_file_ofs += local_dir_footer_size;
         }
@@ -3849,7 +3849,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             }
 
             if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
-                return MZ_FALSE;
+                return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
 
             cur_archive_file_ofs += local_dir_footer_size;
         }
