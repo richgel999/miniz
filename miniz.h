@@ -114,14 +114,14 @@
 
 #include "miniz_export.h"
 
-#if defined(__STRICT_ANSI__)
-#define MZ_FORCEINLINE
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
 #define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
-#else
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define MZ_FORCEINLINE inline
+#else
+#define MZ_FORCEINLINE
 #endif /* defined(__STRICT_ANSI__) */
 
 /* Defines to completely disable specific portions of miniz.c:
