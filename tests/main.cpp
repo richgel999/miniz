@@ -4,6 +4,9 @@
 #include <assert.h>
 #include <string>
 #include <vector>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 
 #ifdef _WIN32
 #define unlink _unlink
@@ -172,6 +175,76 @@ TEST_CASE("Zip writer tests")
                 MZ_BEST_COMPRESSION);
             REQUIRE(b);
         }
+    }
+}
+
+TEST_CASE("In-place archive file cleanup")
+{
+    const auto filename = GENERATE("miniz-cleanup-ascii.zip", "miniz-cleanup-\xC3\xA9.zip", "miniz-cleanup-\xE4\xB8\xAD\xE6\x96\x87.zip", "miniz-cleanup-\xF0\x9F\x98\x80.zip");
+    const auto use_v2 = GENERATE(false, true);
+    const std::filesystem::path path(std::u8string(filename, filename + strlen(filename)));
+    REQUIRE_FALSE(std::filesystem::exists(path));
+    struct archive_cleanup
+    {
+        std::filesystem::path path;
+        ~archive_cleanup()
+        {
+            std::error_code error;
+            std::filesystem::remove(path, error);
+        }
+    } cleanup{ path };
+    INFO("filename: " << filename << ", use_v2: " << use_v2);
+
+    SECTION("Failed creation removes the new archive")
+    {
+        mz_zip_error error = MZ_ZIP_NO_ERROR;
+        const auto status = use_v2
+            ? mz_zip_add_mem_to_archive_file_in_place_v2(filename, "directory/", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION, &error)
+            : mz_zip_add_mem_to_archive_file_in_place(filename, "directory/", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION);
+        CHECK_FALSE(status);
+        if (use_v2)
+            CHECK(error == MZ_ZIP_INVALID_PARAMETER);
+        CHECK_FALSE(std::filesystem::exists(path));
+    }
+
+    SECTION("Failed append preserves the existing archive")
+    {
+        REQUIRE(mz_zip_add_mem_to_archive_file_in_place(filename, "test.txt", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION));
+        std::ifstream before_file(path, std::ios::binary);
+        REQUIRE(before_file.is_open());
+        const std::string before{ std::istreambuf_iterator<char>(before_file), std::istreambuf_iterator<char>() };
+        before_file.close();
+
+        mz_zip_error error = MZ_ZIP_NO_ERROR;
+        const auto status = use_v2
+            ? mz_zip_add_mem_to_archive_file_in_place_v2(filename, "directory/", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION, &error)
+            : mz_zip_add_mem_to_archive_file_in_place(filename, "directory/", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION);
+        CHECK_FALSE(status);
+        if (use_v2)
+            CHECK(error == MZ_ZIP_INVALID_PARAMETER);
+        REQUIRE(std::filesystem::exists(path));
+        std::ifstream after_file(path, std::ios::binary);
+        REQUIRE(after_file.is_open());
+        const std::string after{ std::istreambuf_iterator<char>(after_file), std::istreambuf_iterator<char>() };
+        CHECK(after == before);
+    }
+
+    SECTION("Successful creation keeps a readable archive")
+    {
+        mz_zip_error error = MZ_ZIP_NO_ERROR;
+        const auto status = use_v2
+            ? mz_zip_add_mem_to_archive_file_in_place_v2(filename, "test.txt", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION, &error)
+            : mz_zip_add_mem_to_archive_file_in_place(filename, "test.txt", "foo", 3, NULL, 0, MZ_DEFAULT_COMPRESSION);
+        REQUIRE(status);
+        if (use_v2)
+            CHECK(error == MZ_ZIP_NO_ERROR);
+        mz_zip_archive archive = {};
+        REQUIRE(mz_zip_reader_init_file(&archive, filename, 0));
+        CHECK(mz_zip_reader_get_num_files(&archive) == 1);
+        char content[3] = {};
+        CHECK(mz_zip_reader_extract_file_to_mem(&archive, "test.txt", content, sizeof(content), 0));
+        CHECK(std::string_view(content, sizeof(content)) == "foo");
+        CHECK(mz_zip_reader_end(&archive));
     }
 }
 
