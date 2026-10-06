@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string>
 #include <vector>
+#include <memory>
+#include <unordered_set>
 
 #ifdef _WIN32
 #define unlink _unlink
@@ -238,6 +240,116 @@ TEST_CASE("Zip reader tests")
 }
 
 #endif /* MINIZ_NO_STDIO */
+
+struct iterator_test_allocator
+{
+    std::unordered_set<void *> allocations;
+    bool fail_dictionary = false;
+    bool dictionary_failed = false;
+    unsigned invalid_frees = 0;
+
+    static void *alloc(void *opaque, size_t items, size_t size)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        if (self.fail_dictionary && items * size == TINFL_LZ_DICT_SIZE)
+        {
+            self.dictionary_failed = true;
+            return nullptr;
+        }
+        void *p = malloc(items * size);
+        if (p)
+            self.allocations.insert(p);
+        return p;
+    }
+
+    static void *realloc(void *opaque, void *p, size_t items, size_t size)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        self.allocations.erase(p);
+        void *result = ::realloc(p, items * size);
+        if (result)
+            self.allocations.insert(result);
+        else if (p)
+            self.allocations.insert(p);
+        return result;
+    }
+
+    static void free(void *opaque, void *p)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        if (!p)
+            return;
+        if (self.allocations.erase(p))
+            ::free(p);
+        else
+            ++self.invalid_frees;
+    }
+};
+
+TEST_CASE("Zip extraction iterator buffer ownership")
+{
+    const bool memory_reader = GENERATE(false, true);
+    const bool fail_dictionary = GENERATE(false, true);
+    CAPTURE(memory_reader, fail_dictionary);
+
+    const std::string contents(4096, 'a');
+    mz_zip_archive writer = {};
+    REQUIRE(mz_zip_writer_init_heap(&writer, 0, 0));
+    REQUIRE(mz_zip_writer_add_mem(&writer, "test.txt", contents.data(), contents.size(), MZ_BEST_COMPRESSION));
+    void *archive = nullptr;
+    size_t archive_size = 0;
+    REQUIRE(mz_zip_writer_finalize_heap_archive(&writer, &archive, &archive_size));
+    REQUIRE(mz_zip_writer_end(&writer));
+    std::unique_ptr<void, decltype(&mz_free)> archive_owner(archive, mz_free);
+    std::string_view archive_view(static_cast<const char *>(archive), archive_size);
+
+    iterator_test_allocator allocator;
+    mz_zip_archive reader = {};
+    reader.m_pAlloc = iterator_test_allocator::alloc;
+    reader.m_pRealloc = iterator_test_allocator::realloc;
+    reader.m_pFree = iterator_test_allocator::free;
+    reader.m_pAlloc_opaque = &allocator;
+    if (memory_reader)
+        REQUIRE(mz_zip_reader_init_mem(&reader, archive, archive_size, 0));
+    else
+    {
+        reader.m_pIO_opaque = &archive_view;
+        reader.m_pRead = [](void *opaque, mz_uint64 offset, void *buf, size_t size) -> size_t {
+            const auto &view = *static_cast<std::string_view *>(opaque);
+            if (offset > view.size() || size > view.size() - offset)
+                return 0;
+            memcpy(buf, view.data() + offset, size);
+            return size;
+        };
+        REQUIRE(mz_zip_reader_init(&reader, archive_size, 0));
+    }
+    mz_zip_archive_file_stat stat;
+    REQUIRE(mz_zip_reader_file_stat(&reader, 0, &stat));
+    REQUIRE(stat.m_method == MZ_DEFLATED);
+
+    const auto reader_allocations = allocator.allocations.size();
+    allocator.fail_dictionary = fail_dictionary;
+    auto *iter = mz_zip_reader_extract_iter_new(&reader, 0, 0);
+    if (fail_dictionary)
+    {
+        CHECK(iter == nullptr);
+        CHECK(allocator.dictionary_failed);
+        CHECK(mz_zip_get_last_error(&reader) == MZ_ZIP_ALLOC_FAILED);
+    }
+    else
+    {
+        REQUIRE(iter != nullptr);
+        std::string extracted(contents.size(), '\0');
+        CHECK(mz_zip_reader_extract_iter_read(iter, extracted.data(), extracted.size()) == contents.size());
+        CHECK(extracted == contents);
+    }
+    if (iter)
+        CHECK(mz_zip_reader_extract_iter_free(iter));
+    CHECK(allocator.allocations.size() == reader_allocations);
+    CHECK(mz_zip_reader_end(&reader));
+    CHECK(allocator.allocations.empty());
+    CHECK(allocator.invalid_frees == 0);
+}
 
 TEST_CASE("Tinfl / tdefl tests")
 {

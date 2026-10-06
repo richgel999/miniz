@@ -2086,7 +2086,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if (NULL == (pState->pWrite_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, TINFL_LZ_DICT_SIZE)))
             {
                 mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
-                if (pState->pRead_buf)
+                if (pState->pRead_buf && !pZip->m_pState->m_pMem)
                     pZip->m_pFree(pZip->m_pAlloc_opaque, pState->pRead_buf);
                 pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
                 return NULL;
