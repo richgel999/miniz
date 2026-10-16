@@ -39,11 +39,16 @@ int main(int argc, char *argv[])
     mz_zip_archive zip_archive;
     void *p;
     const int N = 50;
-    char data[2048];
-    char archive_filename[64];
+    enum
+    {
+        archive_filename_len = 64,
+        data_len = 2048
+    };
+    char data[data_len];
+    char archive_filename[archive_filename_len];
     static const char *s_Test_archive_filename = "__mz_example2_test__.zip";
 
-    assert((strlen(s_pTest_str) + 64) < sizeof(data));
+    assert((strlen(s_pTest_str) + archive_filename_len) < sizeof(data));
 
     printf("miniz.c version: %s\n", MZ_VERSION);
 
@@ -55,9 +60,13 @@ int main(int argc, char *argv[])
     // Append a bunch of text files to the test archive
     for (i = (N - 1); i >= 0; --i)
     {
+#ifdef _MSC_VER
+        sprintf_s(archive_filename, archive_filename_len, "%u.txt", i);
+        sprintf_s(data, data_len, "%u %s %u", (N - 1) - i, s_pTest_str, i);
+#else
         sprintf(archive_filename, "%u.txt", i);
         sprintf(data, "%u %s %u", (N - 1) - i, s_pTest_str, i);
-
+#endif
         // Add a new file to the archive. Note this is an IN-PLACE operation, so if it fails your archive is probably hosed (its central directory may not be complete) but it should be recoverable using zip -F or -FF. So use caution with this guy.
         // A more robust way to add a file to an archive would be to read it into memory, perform the operation, then write a new archive out to a temp file and then delete/rename the files.
         // Or, write a new archive to disk to a temp file, then delete/rename the files. For this test this API is fine.
@@ -127,8 +136,13 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < N; i++)
         {
+#ifdef _MSC_VER
+            sprintf_s(archive_filename, archive_filename_len, "%u.txt", i);
+            sprintf_s(data, data_len, "%u %s %u", (N - 1) - i, s_pTest_str, i);
+#else
             sprintf(archive_filename, "%u.txt", i);
             sprintf(data, "%u %s %u", (N - 1) - i, s_pTest_str, i);
+#endif
 
             // Try to extract all the files to the heap.
             p = mz_zip_reader_extract_file_to_heap(&zip_archive, archive_filename, &uncomp_size, 0);
