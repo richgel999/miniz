@@ -420,9 +420,17 @@ extern "C"
     /* An archive must be manually finalized by calling this function for it to be valid. */
     MINIZ_EXPORT mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip);
 
+    /* Like mz_zip_writer_finalize_archive(), with an archive-wide comment of up to 65535 bytes. */
+    /* The comment is copied during this call; it may contain zero bytes and is not null-terminated in the archive. */
+    /* Pass NULL and zero for no comment. When appending to an archive, this replaces the old archive comment. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_finalize_archive_v2(mz_zip_archive *pZip, const void *pComment, mz_uint16 comment_size);
+
     /* Finalizes a heap archive, returning a pointer to the heap block and its size. */
     /* The heap block will be allocated using the mz_zip_archive's alloc/realloc callbacks. */
     MINIZ_EXPORT mz_bool mz_zip_writer_finalize_heap_archive(mz_zip_archive *pZip, void **ppBuf, size_t *pSize);
+
+    /* Like mz_zip_writer_finalize_heap_archive(), with the archive-wide comment described above. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_finalize_heap_archive_v2(mz_zip_archive *pZip, void **ppBuf, size_t *pSize, const void *pComment, mz_uint16 comment_size);
 
     /* Ends archive writing, freeing all allocations, and closing the output file if mz_zip_writer_init_file() was used. */
     /* Note for the archive to be valid, it *must* have been finalized before ending (this function will not do it for you). */

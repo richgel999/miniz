@@ -327,6 +327,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         MZ_FILE *m_pFile;
         mz_uint64 m_file_archive_start_ofs;
 
+        /* Original extent when switching a reader to a writer; finalization must not leave an old tail. */
+        mz_uint64 m_existing_archive_size;
+
         void *m_pMem;
         size_t m_mem_size;
         size_t m_mem_capacity;
@@ -3057,6 +3060,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         else if (!pZip->m_pWrite)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
+        pState->m_existing_archive_size = pZip->m_archive_size;
+
         /* Start writing new files at the archive's current central directory location. */
         /* TODO: We could add a flag that lets the user start writing immediately AFTER the existing central dir - this would be safer. */
         pZip->m_archive_size = pZip->m_central_directory_file_ofs;
@@ -4405,14 +4410,28 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
     mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip)
     {
+        return mz_zip_writer_finalize_archive_v2(pZip, NULL, 0);
+    }
+
+    mz_bool mz_zip_writer_finalize_archive_v2(mz_zip_archive *pZip, const void *pComment, mz_uint16 comment_size)
+    {
         mz_zip_internal_state *pState;
-        mz_uint64 central_dir_ofs, central_dir_size;
+        mz_uint64 central_dir_ofs, central_dir_size, trailer_size;
         mz_uint8 hdr[256];
 
-        if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING))
+        if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_WRITING) || (comment_size && !pComment))
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
         pState = pZip->m_pState;
+
+        /* Keep the new end record at the physical end when replacing a longer comment.
+           Moving the directory forward avoids requiring a truncate callback from the IO backend. */
+        trailer_size = (mz_uint64)pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + comment_size;
+        if (pState->m_zip64)
+            trailer_size += MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE + MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE;
+        if ((pState->m_existing_archive_size > pZip->m_archive_size) &&
+            ((pState->m_existing_archive_size - pZip->m_archive_size) > trailer_size))
+            pZip->m_archive_size = pState->m_existing_archive_size - trailer_size;
 
         if (pState->m_zip64)
         {
@@ -4421,7 +4440,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         }
         else
         {
-            if ((pZip->m_total_files > MZ_UINT16_MAX) || ((pZip->m_archive_size + pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) > MZ_UINT32_MAX))
+            if ((pZip->m_total_files > MZ_UINT16_MAX) || ((pZip->m_archive_size + pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + comment_size) > MZ_UINT32_MAX))
                 return mz_zip_set_error(pZip, MZ_ZIP_TOO_MANY_FILES);
         }
 
@@ -4477,7 +4496,12 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         MZ_WRITE_LE32(hdr + MZ_ZIP_ECDH_CDIR_SIZE_OFS, MZ_MIN(MZ_UINT32_MAX, central_dir_size));
         MZ_WRITE_LE32(hdr + MZ_ZIP_ECDH_CDIR_OFS_OFS, MZ_MIN(MZ_UINT32_MAX, central_dir_ofs));
 
+        MZ_WRITE_LE16(hdr + MZ_ZIP_ECDH_COMMENT_SIZE_OFS, comment_size);
+
         if (pZip->m_pWrite(pZip->m_pIO_opaque, pZip->m_archive_size, hdr, MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) != MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)
+            return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
+
+        if (comment_size && (pZip->m_pWrite(pZip->m_pIO_opaque, pZip->m_archive_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE, pComment, comment_size) != comment_size))
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
 
 #ifndef MINIZ_NO_STDIO
@@ -4485,13 +4509,18 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             return mz_zip_set_error(pZip, MZ_ZIP_FILE_CLOSE_FAILED);
 #endif /* MINIZ_NO_STDIO */
 
-        pZip->m_archive_size += MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE;
+        pZip->m_archive_size += MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + comment_size;
 
         pZip->m_zip_mode = MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED;
         return MZ_TRUE;
     }
 
     mz_bool mz_zip_writer_finalize_heap_archive(mz_zip_archive *pZip, void **ppBuf, size_t *pSize)
+    {
+        return mz_zip_writer_finalize_heap_archive_v2(pZip, ppBuf, pSize, NULL, 0);
+    }
+
+    mz_bool mz_zip_writer_finalize_heap_archive_v2(mz_zip_archive *pZip, void **ppBuf, size_t *pSize, const void *pComment, mz_uint16 comment_size)
     {
         if ((!ppBuf) || (!pSize))
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
@@ -4505,7 +4534,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (pZip->m_pWrite != mz_zip_heap_write_func)
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
-        if (!mz_zip_writer_finalize_archive(pZip))
+        if (!mz_zip_writer_finalize_archive_v2(pZip, pComment, comment_size))
             return MZ_FALSE;
 
         *ppBuf = pZip->m_pState->m_pMem;
