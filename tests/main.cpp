@@ -235,6 +235,24 @@ TEST_CASE("Zip reader tests")
         REQUIRE(!b);
         REQUIRE(zip_archive.m_last_error == MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
     }
+
+    SECTION("Test archive with end of central dir record at start of file")
+    {
+        /* Empty archive: a 22-byte end of central directory record at offset 0
+         * followed by a 4075-byte comment, so the record is more than one scan
+         * buffer away from the end of the 4097-byte file. */
+        const unsigned char eocd[22] = { 0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0, 0, 0, 0,
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0xeb, 0x0f };
+        std::vector<unsigned char> data(sizeof(eocd) + 4075, 'C');
+        for (size_t i = 0; i < sizeof(eocd); ++i)
+            data[i] = eocd[i];
+        mz_zip_archive zip_archive = {};
+
+        auto b = mz_zip_reader_init_mem(&zip_archive, data.data(), data.size(), 0);
+        REQUIRE(b);
+        REQUIRE(mz_zip_reader_get_num_files(&zip_archive) == 0);
+        mz_zip_reader_end(&zip_archive);
+    }
 }
 
 #endif /* MINIZ_NO_STDIO */
