@@ -72,6 +72,13 @@ extern "C"
     MINIZ_EXPORT void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip);
     MINIZ_EXPORT void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out);
 
+    /* Like tdefl_write_image_to_png_file_in_memory_ex(), but can write an indexed (palette) PNG. */
+    /* If plte_size > 0, num_chans must be 1 and pImage holds palette indices. pPlte points to plte_size bytes of RGB triplets */
+    /* (plte_size must be a multiple of 3, at most 768). Optionally pTrns points to trns_size alpha values (one per palette entry, */
+    /* trns_size <= plte_size/3) written as a tRNS chunk. Pass NULL/0 for both to get the same output as _ex(). */
+    MINIZ_EXPORT void *tdefl_write_image_to_png_file_in_memory_ex2(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip,
+                                                                   const mz_uint8 *pPlte, int plte_size, const mz_uint8 *pTrns, int trns_size);
+
     /* Output stream interface. The compressor uses this interface to write compressed data. It'll typically be called TDEFL_OUT_BUF_SIZE at a time. */
     typedef mz_bool (*tdefl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
 

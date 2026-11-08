@@ -284,3 +284,136 @@ TEST_CASE("Tinfl / tdefl tests")
         REQUIRE(memcmp(decomp_buf, p, uncomp_len) == 0);
     }
 }
+
+namespace
+{
+    struct PngChunk
+    {
+        std::string type;
+        std::vector<uint8_t> data;
+    };
+
+    uint32_t read_be32(const uint8_t *p)
+    {
+        return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
+    }
+
+    /* Splits a PNG file into chunks, verifying the signature and every chunk CRC. */
+    std::vector<PngChunk> parse_png(const uint8_t *p, size_t len)
+    {
+        static const uint8_t sig[8] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
+        std::vector<PngChunk> chunks;
+        REQUIRE(len >= 8);
+        REQUIRE(memcmp(p, sig, 8) == 0);
+        size_t ofs = 8;
+        while (ofs < len)
+        {
+            REQUIRE(len - ofs >= 12);
+            uint32_t n = read_be32(p + ofs);
+            REQUIRE(len - ofs - 12 >= n);
+            REQUIRE(mz_crc32(MZ_CRC32_INIT, p + ofs + 4, n + 4) == read_be32(p + ofs + 8 + n));
+            PngChunk c;
+            c.type.assign((const char *)p + ofs + 4, 4);
+            c.data.assign(p + ofs + 8, p + ofs + 8 + n);
+            chunks.push_back(c);
+            ofs += 12 + n;
+        }
+        REQUIRE(ofs == len);
+        return chunks;
+    }
+}
+
+TEST_CASE("PNG writer tests")
+{
+    const int w = 5, h = 3;
+
+    SECTION("Indexed image with palette and transparency")
+    {
+        uint8_t idx[w * h];
+        for (int i = 0; i < w * h; ++i)
+            idx[i] = (uint8_t)(i % 3);
+        const uint8_t plte[9] = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
+        const uint8_t trns[2] = { 0, 128 };
+
+        size_t png_len = 0;
+        void *png = tdefl_write_image_to_png_file_in_memory_ex2(idx, w, h, 1, &png_len, 6, MZ_FALSE, plte, sizeof(plte), trns, sizeof(trns));
+        REQUIRE(png != NULL);
+
+        std::vector<PngChunk> chunks = parse_png((const uint8_t *)png, png_len);
+        mz_free(png);
+
+        REQUIRE(chunks.size() == 5);
+        REQUIRE(chunks[0].type == "IHDR");
+        REQUIRE(chunks[0].data.size() == 13);
+        REQUIRE(read_be32(&chunks[0].data[0]) == (uint32_t)w);
+        REQUIRE(read_be32(&chunks[0].data[4]) == (uint32_t)h);
+        REQUIRE(chunks[0].data[8] == 8); /* bit depth */
+        REQUIRE(chunks[0].data[9] == 3); /* color type: indexed */
+        REQUIRE(chunks[1].type == "PLTE");
+        REQUIRE(chunks[1].data == std::vector<uint8_t>(plte, plte + sizeof(plte)));
+        REQUIRE(chunks[2].type == "tRNS");
+        REQUIRE(chunks[2].data == std::vector<uint8_t>(trns, trns + sizeof(trns)));
+        REQUIRE(chunks[3].type == "IDAT");
+        REQUIRE(chunks[4].type == "IEND");
+        REQUIRE(chunks[4].data.empty());
+
+        uint8_t raw[(w + 1) * h];
+        mz_ulong raw_len = sizeof(raw);
+        REQUIRE(mz_uncompress(raw, &raw_len, chunks[3].data.data(), (mz_ulong)chunks[3].data.size()) == MZ_OK);
+        REQUIRE(raw_len == sizeof(raw));
+        for (int y = 0; y < h; ++y)
+        {
+            REQUIRE(raw[y * (w + 1)] == 0); /* filter type: none */
+            REQUIRE(memcmp(raw + y * (w + 1) + 1, idx + y * w, w) == 0);
+        }
+    }
+
+    SECTION("_ex2 without palette matches _ex")
+    {
+        uint8_t rgb[w * h * 3];
+        for (int i = 0; i < (int)sizeof(rgb); ++i)
+            rgb[i] = (uint8_t)(i * 7);
+
+        size_t len1 = 0, len2 = 0;
+        void *png1 = tdefl_write_image_to_png_file_in_memory_ex(rgb, w, h, 3, &len1, 6, MZ_TRUE);
+        void *png2 = tdefl_write_image_to_png_file_in_memory_ex2(rgb, w, h, 3, &len2, 6, MZ_TRUE, NULL, 0, NULL, 0);
+        REQUIRE(png1 != NULL);
+        REQUIRE(png2 != NULL);
+        REQUIRE(len1 == len2);
+        REQUIRE(memcmp(png1, png2, len1) == 0);
+
+        std::vector<PngChunk> chunks = parse_png((const uint8_t *)png1, len1);
+        REQUIRE(chunks.size() == 3);
+        REQUIRE(chunks[0].type == "IHDR");
+        REQUIRE(chunks[0].data[9] == 2); /* color type: RGB */
+        REQUIRE(chunks[1].type == "IDAT");
+        REQUIRE(chunks[2].type == "IEND");
+        mz_free(png1);
+        mz_free(png2);
+    }
+
+    SECTION("Invalid palette parameters are rejected")
+    {
+        uint8_t img[w * h * 3] = { 0 };
+        const uint8_t plte[9] = { 0 };
+        const uint8_t trns[4] = { 0 };
+        size_t len = 1;
+
+        /* palette with more than one channel */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 3, &len, 6, MZ_FALSE, plte, 9, NULL, 0) == NULL);
+        REQUIRE(len == 0);
+        /* palette size not a multiple of 3 */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 8, NULL, 0) == NULL);
+        /* palette larger than 256 entries */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 257 * 3, NULL, 0) == NULL);
+        /* more transparency entries than palette entries */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 9, trns, 4) == NULL);
+        /* transparency without palette */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, NULL, 0, trns, 1) == NULL);
+        /* NULL pointers with non-zero sizes */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, NULL, 9, NULL, 0) == NULL);
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 9, NULL, 1) == NULL);
+        /* negative sizes */
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, -3, NULL, 0) == NULL);
+    }
+}
