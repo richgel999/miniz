@@ -239,6 +239,42 @@ TEST_CASE("Zip reader tests")
 
 #endif /* MINIZ_NO_STDIO */
 
+TEST_CASE("Zip reader zip64 local header offset out of bounds")
+{
+    /* A central directory entry whose 32-bit comp/uncomp/local-header-offset
+     * fields are all 0xFFFFFFFF forces the reader to pull the real values from
+     * the zip64 extended-information extra field.  Here that field reports a
+     * local header offset far beyond the end of the archive.  The offset is not
+     * range-checked before the local header is read, so it reaches the memory
+     * read callback.  mz_zip_mem_read_func() clamps the copy length to 0 but
+     * still formed the source pointer "pMem + file_ofs"; with a huge offset
+     * that pointer arithmetic overflows (UB; a SIGILL/trap under
+     * -fsanitize=pointer-overflow).  The extract must fail cleanly instead. */
+    static const unsigned char archive[] = {
+        0x50, 0x4b, 0x01, 0x02, 0x14, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x41, 0x01,
+        0x00, 0x18, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x4b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00,
+    };
+
+    mz_zip_archive zip = {};
+    REQUIRE(mz_zip_reader_init_mem(&zip, archive, sizeof(archive), 0));
+    REQUIRE(mz_zip_reader_get_num_files(&zip) == 1);
+
+    size_t out_size = 0;
+    void *p = mz_zip_reader_extract_to_heap(&zip, 0, &out_size, 0);
+    REQUIRE(p == nullptr);
+    REQUIRE(zip.m_last_error == MZ_ZIP_FILE_READ_FAILED);
+
+    free(p);
+    mz_zip_reader_end(&zip);
+}
+
 TEST_CASE("Tinfl / tdefl tests")
 {
     SECTION("simple_test1")
