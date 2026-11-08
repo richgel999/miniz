@@ -6,6 +6,21 @@ Miniz is a lossless, high performance data compression library in a single sourc
 
 Releases are available at the [releases page](https://github.com/richgel999/miniz/releases) as a pair of `miniz.c`/`miniz.h` files which can be simply added to a project. To create this file pair the different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) during build. Alternatively use as cmake or meson module (or build system of your choice).
 
+## ZIP archive comments
+
+To write an archive-wide comment, call `mz_zip_writer_finalize_archive_v2`
+instead of `mz_zip_writer_finalize_archive`. Pass the comment bytes and their
+length (at most 65535 bytes), then call `mz_zip_writer_end` as usual. The comment
+is written during finalization, so its buffer only needs to remain valid for
+that call. It is separate from the per-file comments accepted by
+`mz_zip_writer_add_mem_ex`.
+
+For heap archives, `mz_zip_writer_finalize_heap_archive_v2` also accepts the
+comment and returns the completed buffer and size. Both variants support ZIP64.
+When appending, supply the desired comment again: finalization replaces the old
+archive comment. The original finalization functions continue to write archives
+without an archive-wide comment.
+
 ## Features
 
 * MIT licensed
