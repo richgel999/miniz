@@ -12,20 +12,52 @@
       "description": "Default build options for GCC",
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "gcc-sanitize",
+      "displayName": "GCC ASan/UBSan",
+      "description": "GCC build with AddressSanitizer and UndefinedBehaviorSanitizer",
+      "inherits": "gcc",
+      "binaryDir": "${sourceDir}/build-sanitize",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g -O1",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g -O1",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "gcc",
       "configurePreset": "gcc"
+    },
+    {
+      "name": "gcc-sanitize",
+      "configurePreset": "gcc-sanitize"
     }
   ],
   "testPresets": [
     {
       "name": "gcc",
       "configurePreset": "gcc",
-      "output": {"outputOnFailure": true},
-      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "gcc-sanitize",
+      "inherits": "gcc",
+      "configurePreset": "gcc-sanitize",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:abort_on_error=1:strict_string_checks=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
     }
   ]
 }

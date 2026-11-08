@@ -237,6 +237,24 @@ TEST_CASE("Zip reader tests")
         REQUIRE(!b);
         REQUIRE(zip_archive.m_last_error == MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
     }
+
+    SECTION("Test archive with end of central dir record at start of file")
+    {
+        /* Empty archive: a 22-byte end of central directory record at offset 0
+         * followed by a 4075-byte comment, so the record is more than one scan
+         * buffer away from the end of the 4097-byte file. */
+        const unsigned char eocd[22] = { 0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0, 0, 0, 0,
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0xeb, 0x0f };
+        std::vector<unsigned char> data(sizeof(eocd) + 4075, 'C');
+        for (size_t i = 0; i < sizeof(eocd); ++i)
+            data[i] = eocd[i];
+        mz_zip_archive zip_archive = {};
+
+        auto b = mz_zip_reader_init_mem(&zip_archive, data.data(), data.size(), 0);
+        REQUIRE(b);
+        REQUIRE(mz_zip_reader_get_num_files(&zip_archive) == 0);
+        mz_zip_reader_end(&zip_archive);
+    }
 }
 
 #endif /* MINIZ_NO_STDIO */
@@ -349,6 +367,42 @@ TEST_CASE("Zip extraction iterator buffer ownership")
     CHECK(mz_zip_reader_end(&reader));
     CHECK(allocator.allocations.empty());
     CHECK(allocator.invalid_frees == 0);
+}
+
+TEST_CASE("Zip reader zip64 local header offset out of bounds")
+{
+    /* A central directory entry whose 32-bit comp/uncomp/local-header-offset
+     * fields are all 0xFFFFFFFF forces the reader to pull the real values from
+     * the zip64 extended-information extra field.  Here that field reports a
+     * local header offset far beyond the end of the archive.  The offset is not
+     * range-checked before the local header is read, so it reaches the memory
+     * read callback.  mz_zip_mem_read_func() clamps the copy length to 0 but
+     * still formed the source pointer "pMem + file_ofs"; with a huge offset
+     * that pointer arithmetic overflows (UB; a SIGILL/trap under
+     * -fsanitize=pointer-overflow).  The extract must fail cleanly instead. */
+    static const unsigned char archive[] = {
+        0x50, 0x4b, 0x01, 0x02, 0x14, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x41, 0x01,
+        0x00, 0x18, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x4b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00,
+    };
+
+    mz_zip_archive zip = {};
+    REQUIRE(mz_zip_reader_init_mem(&zip, archive, sizeof(archive), 0));
+    REQUIRE(mz_zip_reader_get_num_files(&zip) == 1);
+
+    size_t out_size = 0;
+    void *p = mz_zip_reader_extract_to_heap(&zip, 0, &out_size, 0);
+    REQUIRE(p == nullptr);
+    REQUIRE(zip.m_last_error == MZ_ZIP_FILE_READ_FAILED);
+
+    free(p);
+    mz_zip_reader_end(&zip);
 }
 
 TEST_CASE("Tinfl / tdefl tests")
