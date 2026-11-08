@@ -175,6 +175,46 @@ TEST_CASE("Zip writer tests")
     }
 }
 
+#ifndef MINIZ_NO_TIME
+static MZ_TIME_T local_time(int year, int mon, int mday, int hour, int min, int sec)
+{
+    struct tm tm = {};
+    tm.tm_year = year - 1900;
+    tm.tm_mon = mon - 1;
+    tm.tm_mday = mday;
+    tm.tm_hour = hour;
+    tm.tm_min = min;
+    tm.tm_sec = sec;
+    tm.tm_isdst = -1;
+    return mktime(&tm);
+}
+
+TEST_CASE("Zip writer clamps times outside the DOS date range")
+{
+    MZ_TIME_T before = local_time(1975, 5, 22, 14, 13, 20);
+    MZ_TIME_T after = local_time(2110, 1, 1, 6, 13, 20);
+
+    mz_zip_archive writer = {};
+    REQUIRE(mz_zip_writer_init_heap(&writer, 0, 0));
+    REQUIRE(mz_zip_writer_add_mem_ex_v2(&writer, "before.txt", "a", 1, NULL, 0, MZ_DEFAULT_COMPRESSION, 0, 0, &before, NULL, 0, NULL, 0));
+    REQUIRE(mz_zip_writer_add_mem_ex_v2(&writer, "after.txt", "b", 1, NULL, 0, MZ_DEFAULT_COMPRESSION, 0, 0, &after, NULL, 0, NULL, 0));
+    void *buf = NULL;
+    size_t size = 0;
+    REQUIRE(mz_zip_writer_finalize_heap_archive(&writer, &buf, &size));
+    REQUIRE(mz_zip_writer_end(&writer));
+
+    mz_zip_archive reader = {};
+    REQUIRE(mz_zip_reader_init_mem(&reader, buf, size, 0));
+    mz_zip_archive_file_stat stat;
+    REQUIRE(mz_zip_reader_file_stat(&reader, 0, &stat));
+    REQUIRE(stat.m_time == local_time(1980, 1, 1, 0, 0, 0));
+    REQUIRE(mz_zip_reader_file_stat(&reader, 1, &stat));
+    REQUIRE(stat.m_time == local_time(2107, 12, 31, 23, 59, 58));
+    REQUIRE(mz_zip_reader_end(&reader));
+    mz_free(buf);
+}
+#endif /* MINIZ_NO_TIME */
+
 TEST_CASE("Zip reader tests")
 {
     const auto b = create_test_zip(true);

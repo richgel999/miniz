@@ -445,6 +445,21 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         struct tm *tm = localtime(&time);
 #endif /* _MSC_VER */
 
+        if (tm->tm_year < 80)
+        {
+            /* Earliest time that a DOS date can hold: 1980-01-01 00:00:00 */
+            *pDOS_time = 0;
+            *pDOS_date = (1 << 5) + 1;
+            return;
+        }
+        if (tm->tm_year > 207)
+        {
+            /* Latest time that a DOS date can hold: 2107-12-31 23:59:58 */
+            *pDOS_time = (23 << 11) + (59 << 5) + 29;
+            *pDOS_date = (127 << 9) + (12 << 5) + 31;
+            return;
+        }
+
         *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) + ((tm->tm_sec) >> 1));
         *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday);
     }
