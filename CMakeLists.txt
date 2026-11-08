@@ -49,9 +49,7 @@ option(INSTALL_PROJECT "Install project" ${MINIZ_STANDALONE_PROJECT})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
-if(INSTALL_PROJECT)
-  include(GNUInstallDirs)
-endif()
+include(GNUInstallDirs)
 
 if(BUILD_HEADER_ONLY)
   set(AMALGAMATE_SOURCES ON CACHE BOOL "Build a header-only version" FORCE)
@@ -97,7 +95,7 @@ if(AMALGAMATE_SOURCES)
     set_property(TARGET ${PROJECT_NAME} APPEND
       PROPERTY INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
-      $<INSTALL_INTERFACE:include>
+      $<INSTALL_INTERFACE:>
     )
   else(BUILD_HEADER_ONLY)
     string(CONCAT AMAL_MINIZ_C "#include \"miniz.h\"\n" "${AMAL_MINIZ_C}")
@@ -108,7 +106,7 @@ if(AMALGAMATE_SOURCES)
     add_library(${PROJECT_NAME} STATIC ${miniz_SOURCE})
     target_include_directories(${PROJECT_NAME} PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
-      $<INSTALL_INTERFACE:include>
+      $<INSTALL_INTERFACE:>
     )
   endif(BUILD_HEADER_ONLY)
 
@@ -158,7 +156,7 @@ else(AMALGAMATE_SOURCES)
   target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:>
   )
 
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
