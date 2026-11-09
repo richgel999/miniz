@@ -1065,6 +1065,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         {
             d->m_num_flags_left = 8;
             d->m_pLZ_flags = d->m_pLZ_code_buf++;
+            *(d->m_pLZ_flags) = 0;
         }
         d->m_huff_count[0][lit]++;
     }
@@ -1089,6 +1090,7 @@ static MZ_FORCEINLINE void tdefl_find_match(tdefl_compressor *d, mz_uint lookahe
         {
             d->m_num_flags_left = 8;
             d->m_pLZ_flags = d->m_pLZ_code_buf++;
+            *(d->m_pLZ_flags) = 0;
         }
 
         s0 = s_tdefl_small_dist_sym[match_dist & 511];
