@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string>
 #include <vector>
+#include <memory>
+#include <unordered_set>
 
 #ifdef _WIN32
 #define unlink _unlink
@@ -175,6 +177,46 @@ TEST_CASE("Zip writer tests")
     }
 }
 
+#ifndef MINIZ_NO_TIME
+static MZ_TIME_T local_time(int year, int mon, int mday, int hour, int min, int sec)
+{
+    struct tm tm = {};
+    tm.tm_year = year - 1900;
+    tm.tm_mon = mon - 1;
+    tm.tm_mday = mday;
+    tm.tm_hour = hour;
+    tm.tm_min = min;
+    tm.tm_sec = sec;
+    tm.tm_isdst = -1;
+    return mktime(&tm);
+}
+
+TEST_CASE("Zip writer clamps times outside the DOS date range")
+{
+    MZ_TIME_T before = local_time(1975, 5, 22, 14, 13, 20);
+    MZ_TIME_T after = local_time(2110, 1, 1, 6, 13, 20);
+
+    mz_zip_archive writer = {};
+    REQUIRE(mz_zip_writer_init_heap(&writer, 0, 0));
+    REQUIRE(mz_zip_writer_add_mem_ex_v2(&writer, "before.txt", "a", 1, NULL, 0, MZ_DEFAULT_COMPRESSION, 0, 0, &before, NULL, 0, NULL, 0));
+    REQUIRE(mz_zip_writer_add_mem_ex_v2(&writer, "after.txt", "b", 1, NULL, 0, MZ_DEFAULT_COMPRESSION, 0, 0, &after, NULL, 0, NULL, 0));
+    void *buf = NULL;
+    size_t size = 0;
+    REQUIRE(mz_zip_writer_finalize_heap_archive(&writer, &buf, &size));
+    REQUIRE(mz_zip_writer_end(&writer));
+
+    mz_zip_archive reader = {};
+    REQUIRE(mz_zip_reader_init_mem(&reader, buf, size, 0));
+    mz_zip_archive_file_stat stat;
+    REQUIRE(mz_zip_reader_file_stat(&reader, 0, &stat));
+    REQUIRE(stat.m_time == local_time(1980, 1, 1, 0, 0, 0));
+    REQUIRE(mz_zip_reader_file_stat(&reader, 1, &stat));
+    REQUIRE(stat.m_time == local_time(2107, 12, 31, 23, 59, 58));
+    REQUIRE(mz_zip_reader_end(&reader));
+    mz_free(buf);
+}
+#endif /* MINIZ_NO_TIME */
+
 TEST_CASE("Zip reader tests")
 {
     const auto b = create_test_zip(true);
@@ -235,9 +277,173 @@ TEST_CASE("Zip reader tests")
         REQUIRE(!b);
         REQUIRE(zip_archive.m_last_error == MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
     }
+
+    SECTION("Test archive with end of central dir record at start of file")
+    {
+        /* Empty archive: a 22-byte end of central directory record at offset 0
+         * followed by a 4075-byte comment, so the record is more than one scan
+         * buffer away from the end of the 4097-byte file. */
+        const unsigned char eocd[22] = { 0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0, 0, 0, 0,
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0xeb, 0x0f };
+        std::vector<unsigned char> data(sizeof(eocd) + 4075, 'C');
+        for (size_t i = 0; i < sizeof(eocd); ++i)
+            data[i] = eocd[i];
+        mz_zip_archive zip_archive = {};
+
+        auto b = mz_zip_reader_init_mem(&zip_archive, data.data(), data.size(), 0);
+        REQUIRE(b);
+        REQUIRE(mz_zip_reader_get_num_files(&zip_archive) == 0);
+        mz_zip_reader_end(&zip_archive);
+    }
 }
 
 #endif /* MINIZ_NO_STDIO */
+
+struct iterator_test_allocator
+{
+    std::unordered_set<void *> allocations;
+    bool fail_dictionary = false;
+    bool dictionary_failed = false;
+    unsigned invalid_frees = 0;
+
+    static void *alloc(void *opaque, size_t items, size_t size)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        if (self.fail_dictionary && items * size == TINFL_LZ_DICT_SIZE)
+        {
+            self.dictionary_failed = true;
+            return nullptr;
+        }
+        void *p = malloc(items * size);
+        if (p)
+            self.allocations.insert(p);
+        return p;
+    }
+
+    static void *realloc(void *opaque, void *p, size_t items, size_t size)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        self.allocations.erase(p);
+        void *result = ::realloc(p, items * size);
+        if (result)
+            self.allocations.insert(result);
+        else if (p)
+            self.allocations.insert(p);
+        return result;
+    }
+
+    static void free(void *opaque, void *p)
+    {
+        auto &self = *static_cast<iterator_test_allocator *>(opaque);
+        if (!p)
+            return;
+        if (self.allocations.erase(p))
+            ::free(p);
+        else
+            ++self.invalid_frees;
+    }
+};
+
+TEST_CASE("Zip extraction iterator buffer ownership")
+{
+    const bool memory_reader = GENERATE(false, true);
+    const bool fail_dictionary = GENERATE(false, true);
+    CAPTURE(memory_reader, fail_dictionary);
+
+    const std::string contents(4096, 'a');
+    mz_zip_archive writer = {};
+    REQUIRE(mz_zip_writer_init_heap(&writer, 0, 0));
+    REQUIRE(mz_zip_writer_add_mem(&writer, "test.txt", contents.data(), contents.size(), MZ_BEST_COMPRESSION));
+    void *archive = nullptr;
+    size_t archive_size = 0;
+    REQUIRE(mz_zip_writer_finalize_heap_archive(&writer, &archive, &archive_size));
+    REQUIRE(mz_zip_writer_end(&writer));
+    std::unique_ptr<void, decltype(&mz_free)> archive_owner(archive, mz_free);
+    std::string_view archive_view(static_cast<const char *>(archive), archive_size);
+
+    iterator_test_allocator allocator;
+    mz_zip_archive reader = {};
+    reader.m_pAlloc = iterator_test_allocator::alloc;
+    reader.m_pRealloc = iterator_test_allocator::realloc;
+    reader.m_pFree = iterator_test_allocator::free;
+    reader.m_pAlloc_opaque = &allocator;
+    if (memory_reader)
+        REQUIRE(mz_zip_reader_init_mem(&reader, archive, archive_size, 0));
+    else
+    {
+        reader.m_pIO_opaque = &archive_view;
+        reader.m_pRead = [](void *opaque, mz_uint64 offset, void *buf, size_t size) -> size_t {
+            const auto &view = *static_cast<std::string_view *>(opaque);
+            if (offset > view.size() || size > view.size() - offset)
+                return 0;
+            memcpy(buf, view.data() + offset, size);
+            return size;
+        };
+        REQUIRE(mz_zip_reader_init(&reader, archive_size, 0));
+    }
+    mz_zip_archive_file_stat stat;
+    REQUIRE(mz_zip_reader_file_stat(&reader, 0, &stat));
+    REQUIRE(stat.m_method == MZ_DEFLATED);
+
+    const auto reader_allocations = allocator.allocations.size();
+    allocator.fail_dictionary = fail_dictionary;
+    auto *iter = mz_zip_reader_extract_iter_new(&reader, 0, 0);
+    if (fail_dictionary)
+    {
+        CHECK(iter == nullptr);
+        CHECK(allocator.dictionary_failed);
+        CHECK(mz_zip_get_last_error(&reader) == MZ_ZIP_ALLOC_FAILED);
+    }
+    else
+    {
+        REQUIRE(iter != nullptr);
+        std::string extracted(contents.size(), '\0');
+        CHECK(mz_zip_reader_extract_iter_read(iter, extracted.data(), extracted.size()) == contents.size());
+        CHECK(extracted == contents);
+    }
+    if (iter)
+        CHECK(mz_zip_reader_extract_iter_free(iter));
+    CHECK(allocator.allocations.size() == reader_allocations);
+    CHECK(mz_zip_reader_end(&reader));
+    CHECK(allocator.allocations.empty());
+    CHECK(allocator.invalid_frees == 0);
+}
+
+TEST_CASE("Zip reader zip64 local header offset out of bounds")
+{
+    /* A central directory entry whose 32-bit comp/uncomp/local-header-offset
+     * fields are all 0xFFFFFFFF forces the reader to pull the real values from
+     * the zip64 extended-information extra field.  Here that field reports a
+     * local header offset far beyond the end of the archive.  The offset is not
+     * range-checked before the local header is read, so it reaches the memory
+     * read callback.  mz_zip_mem_read_func() clamps the copy length to 0 but
+     * still formed the source pointer "pMem + file_ofs"; with a huge offset
+     * that pointer arithmetic overflows (UB; a SIGILL/trap under
+     * -fsanitize=pointer-overflow).  The extract must fail cleanly instead. */
+    static const unsigned char archive[] = {
+        0x50, 0x4b, 0x01, 0x02, 0x14, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x41, 0x01,
+        0x00, 0x18, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x4b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00,
+    };
+
+    mz_zip_archive zip = {};
+    REQUIRE(mz_zip_reader_init_mem(&zip, archive, sizeof(archive), 0));
+    REQUIRE(mz_zip_reader_get_num_files(&zip) == 1);
+
+    size_t out_size = 0;
+    void *p = mz_zip_reader_extract_to_heap(&zip, 0, &out_size, 0);
+    REQUIRE(p == nullptr);
+    REQUIRE(zip.m_last_error == MZ_ZIP_FILE_READ_FAILED);
+
+    free(p);
+    mz_zip_reader_end(&zip);
+}
 
 TEST_CASE("Tinfl / tdefl tests")
 {
