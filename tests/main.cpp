@@ -415,5 +415,73 @@ TEST_CASE("PNG writer tests")
         REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 9, NULL, 1) == NULL);
         /* negative sizes */
         REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, -3, NULL, 0) == NULL);
+        REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, 1, &len, 6, MZ_FALSE, plte, 9, trns, -1) == NULL);
+    }
+
+    SECTION("Invalid image dimensions and channel counts are rejected")
+    {
+        uint8_t img[w * h * 4] = { 0 };
+        size_t len;
+
+        const int bad_dims[][2] = { { 0, 1 }, { 1, 0 }, { -1, 1 }, { 1, -1 }, { 0x10000, 1 }, { 1, 0x10000 } };
+        for (size_t i = 0; i < sizeof(bad_dims) / sizeof(bad_dims[0]); ++i)
+        {
+            INFO("w=" << bad_dims[i][0] << " h=" << bad_dims[i][1]);
+            len = 1;
+            REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, bad_dims[i][0], bad_dims[i][1], 1, &len, 6, MZ_FALSE, NULL, 0, NULL, 0) == NULL);
+            REQUIRE(len == 0);
+            len = 1;
+            REQUIRE(tdefl_write_image_to_png_file_in_memory_ex(img, bad_dims[i][0], bad_dims[i][1], 1, &len, 6, MZ_FALSE) == NULL);
+            REQUIRE(len == 0);
+        }
+
+        const int bad_chans[] = { -1, 0, 5 };
+        for (size_t i = 0; i < sizeof(bad_chans) / sizeof(bad_chans[0]); ++i)
+        {
+            INFO("num_chans=" << bad_chans[i]);
+            len = 1;
+            REQUIRE(tdefl_write_image_to_png_file_in_memory_ex2(img, w, h, bad_chans[i], &len, 6, MZ_FALSE, NULL, 0, NULL, 0) == NULL);
+            REQUIRE(len == 0);
+            len = 1;
+            REQUIRE(tdefl_write_image_to_png_file_in_memory(img, w, h, bad_chans[i], &len) == NULL);
+            REQUIRE(len == 0);
+        }
+    }
+
+    SECTION("Maximum image dimensions are accepted")
+    {
+        const int max_dim = 0xFFFF;
+        std::vector<uint8_t> line(max_dim);
+        for (int i = 0; i < max_dim; ++i)
+            line[i] = (uint8_t)(i * 31);
+
+        /* max_dim x 1 and 1 x max_dim grayscale images contain the same bytes */
+        const int dims[][2] = { { max_dim, 1 }, { 1, max_dim } };
+        for (int d = 0; d < 2; ++d)
+        {
+            const int iw = dims[d][0], ih = dims[d][1];
+            INFO("w=" << iw << " h=" << ih);
+            size_t len = 0;
+            void *png = tdefl_write_image_to_png_file_in_memory_ex2(line.data(), iw, ih, 1, &len, 1, MZ_FALSE, NULL, 0, NULL, 0);
+            REQUIRE(png != NULL);
+            std::vector<PngChunk> chunks = parse_png((const uint8_t *)png, len);
+            mz_free(png);
+
+            REQUIRE(chunks.size() == 3);
+            REQUIRE(chunks[0].type == "IHDR");
+            REQUIRE(read_be32(&chunks[0].data[0]) == (uint32_t)iw);
+            REQUIRE(read_be32(&chunks[0].data[4]) == (uint32_t)ih);
+            REQUIRE(chunks[1].type == "IDAT");
+
+            std::vector<uint8_t> raw((size_t)(iw + 1) * ih);
+            mz_ulong raw_len = (mz_ulong)raw.size();
+            REQUIRE(mz_uncompress(raw.data(), &raw_len, chunks[1].data.data(), (mz_ulong)chunks[1].data.size()) == MZ_OK);
+            REQUIRE(raw_len == raw.size());
+            for (int y = 0; y < ih; ++y)
+            {
+                REQUIRE(raw[(size_t)y * (iw + 1)] == 0); /* filter type: none */
+                REQUIRE(memcmp(&raw[(size_t)y * (iw + 1) + 1], &line[(size_t)y * iw], iw) == 0);
+            }
+        }
     }
 }

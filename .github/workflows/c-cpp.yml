@@ -18,6 +18,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install PNG round-trip test dependencies
+      run: sudo apt-get update && sudo apt-get install -y libpng-dev python3-pil python3-png
     - name: amalgamate
       run: bash amalgamate.sh
     - name: Run CMake consuming CMakePreset.json and run tests
