@@ -321,6 +321,28 @@ if(BUILD_TESTS)
 
   add_test(NAME catch_tests COMMAND $<TARGET_FILE:catch_tests>)
 
+  # Optional PNG round-trip tests: decode PNGs written by miniz with libpng and,
+  # if available, with Python PNG libraries (Pillow / pypng).
+  find_package(PNG QUIET)
+  if(PNG_FOUND)
+    message(STATUS "libpng found, enabling libpng PNG round-trip tests")
+    target_sources(catch_tests PRIVATE tests/png_libpng_tests.cpp)
+    target_link_libraries(catch_tests PNG::PNG)
+  else()
+    message(STATUS "libpng not found, skipping libpng PNG round-trip tests")
+  endif()
+
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_executable(png_roundtrip_gen tests/png_roundtrip_gen.c)
+    target_link_libraries(png_roundtrip_gen miniz)
+    add_test(NAME png_roundtrip_python
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/png_roundtrip_check.py
+                     $<TARGET_FILE:png_roundtrip_gen> ${CMAKE_CURRENT_BINARY_DIR}/png_roundtrip)
+    # The script exits with 77 if neither Pillow nor pypng is installed.
+    set_tests_properties(png_roundtrip_python PROPERTIES SKIP_RETURN_CODE 77)
+  endif()
+
   if(INSTALL_PROJECT AND NOT CMAKE_CROSSCOMPILING)
     add_test(NAME install_test COMMAND ${CMAKE_COMMAND}
       "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
