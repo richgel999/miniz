@@ -83,6 +83,17 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
     return err ? NULL : pFile;
 }
 
+static int mz_delete(const char *path)
+{
+    WCHAR *wPath = mz_utf8z_to_widechar(path);
+    int res;
+    if (!wPath)
+        return -1;
+    res = _wremove(wPath);
+    free(wPath);
+    return res;
+}
+
 #if defined(__MINGW32__)
 static int mz_stat(const char *path, struct _stat *buffer)
 {
@@ -119,7 +130,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #endif /* defined(__MINGW32__) */
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
-#define MZ_DELETE_FILE remove
+#define MZ_DELETE_FILE mz_delete
 
 #elif defined(__WATCOMC__)
 #ifndef MINIZ_NO_TIME
