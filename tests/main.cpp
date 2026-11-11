@@ -445,6 +445,36 @@ TEST_CASE("Zip reader zip64 local header offset out of bounds")
     mz_zip_reader_end(&zip);
 }
 
+TEST_CASE("Deflate reset restores the initial checksum")
+{
+    const mz_uint8 input[] = "reset checksum";
+    mz_uint8 compressed[128], uncompressed[sizeof(input)];
+    mz_stream stream = {};
+    REQUIRE(mz_deflateInit(&stream, MZ_DEFAULT_COMPRESSION) == MZ_OK);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        stream.next_in = input;
+        stream.avail_in = sizeof(input);
+        stream.next_out = compressed;
+        stream.avail_out = sizeof(compressed);
+        REQUIRE(mz_deflate(&stream, MZ_FINISH) == MZ_STREAM_END);
+        REQUIRE(stream.adler == mz_adler32(MZ_ADLER32_INIT, input, sizeof(input)));
+
+        mz_ulong uncompressed_size = sizeof(uncompressed);
+        REQUIRE(mz_uncompress(uncompressed, &uncompressed_size, compressed, stream.total_out) == MZ_OK);
+        REQUIRE(uncompressed_size == sizeof(input));
+        REQUIRE(memcmp(uncompressed, input, sizeof(input)) == 0);
+
+        REQUIRE(mz_deflateReset(&stream) == MZ_OK);
+        CHECK(stream.adler == MZ_ADLER32_INIT);
+        CHECK(stream.total_in == 0);
+        CHECK(stream.total_out == 0);
+    }
+
+    REQUIRE(mz_deflateEnd(&stream) == MZ_OK);
+}
+
 TEST_CASE("Tinfl / tdefl tests")
 {
     SECTION("simple_test1")
