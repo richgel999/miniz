@@ -11,14 +11,19 @@ extern "C"
     /* Decompression flags used by tinfl_decompress(). */
     /* TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream. */
     /* TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input. */
-    /* TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is at least the size of the dictionary (typically 32KB). */
+    /* TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is a power of 2 of at least the window size (32KB, or 64KB for Deflate64). */
     /* TINFL_FLAG_COMPUTE_ADLER32: Force adler-32 checksum computation of the decompressed bytes. */
+    /* TINFL_FLAG_DEFLATE64: The input is a raw Deflate64 stream (ZIP method 9). A wrapping output buffer must be at least 64KB. Requires MINIZ_ENABLE_DEFLATE64. */
     enum
     {
         TINFL_FLAG_PARSE_ZLIB_HEADER = 1,
         TINFL_FLAG_HAS_MORE_INPUT = 2,
         TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF = 4,
         TINFL_FLAG_COMPUTE_ADLER32 = 8
+#ifdef MINIZ_ENABLE_DEFLATE64
+        ,
+        TINFL_FLAG_DEFLATE64 = 16
+#endif
     };
 
     /* High level decompression functions: */
@@ -36,7 +41,7 @@ extern "C"
 #define TINFL_DECOMPRESS_MEM_TO_MEM_FAILED ((size_t)(-1))
     MINIZ_EXPORT size_t tinfl_decompress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, int flags);
 
-    /* tinfl_decompress_mem_to_callback() decompresses a block in memory to an internal 32KB buffer, and a user provided callback function will be called to flush the buffer. */
+    /* tinfl_decompress_mem_to_callback() decompresses a block in memory to an internal TINFL_LZ_DICT_SIZE (64KB) buffer, and a user provided callback function will be called to flush the buffer. */
     /* Returns 1 on success or 0 on failure. */
     typedef int (*tinfl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
     MINIZ_EXPORT int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, tinfl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
@@ -52,8 +57,8 @@ extern "C"
     MINIZ_EXPORT void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
 #endif /* MINIZ_NO_MALLOC */
 
-/* Max size of LZ dictionary. */
-#define TINFL_LZ_DICT_SIZE 32768
+/* Size of the wrapping buffers used by the higher level APIs: Deflate64's 64KB window (Deflate needs 32KB). */
+#define TINFL_LZ_DICT_SIZE 65536
 
     /* Return status. */
     typedef enum

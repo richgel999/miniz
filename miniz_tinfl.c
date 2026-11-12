@@ -513,8 +513,19 @@ extern "C"
                     if ((counter &= 511) == 256)
                         break;
 
-                    num_extra = s_length_extra[counter - 257];
-                    counter = s_length_base[counter - 257];
+#ifdef MINIZ_ENABLE_DEFLATE64
+                    if ((counter == 285) && (decomp_flags & TINFL_FLAG_DEFLATE64))
+                    {
+                        /* Deflate64: length code 285 is 3 + 16 extra bits, not a fixed 258. */
+                        num_extra = 16;
+                        counter = 3;
+                    }
+                    else
+#endif
+                    {
+                        num_extra = s_length_extra[counter - 257];
+                        counter = s_length_base[counter - 257];
+                    }
                     if (num_extra)
                     {
                         mz_uint extra_bits;
@@ -523,8 +534,19 @@ extern "C"
                     }
 
                     TINFL_HUFF_DECODE(26, dist, r->m_look_up[1], r->m_tree_1);
-                    num_extra = s_dist_extra[dist];
-                    dist = s_dist_base[dist];
+#ifdef MINIZ_ENABLE_DEFLATE64
+                    if ((dist >= 30) && (decomp_flags & TINFL_FLAG_DEFLATE64))
+                    {
+                        /* Deflate64: distance codes 30/31 are 32769/49153 + 14 extra bits. */
+                        num_extra = 14;
+                        dist = (dist == 30) ? 32769 : 49153;
+                    }
+                    else
+#endif
+                    {
+                        num_extra = s_dist_extra[dist];
+                        dist = s_dist_base[dist];
+                    }
                     if (num_extra)
                     {
                         mz_uint extra_bits;
