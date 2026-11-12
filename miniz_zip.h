@@ -15,7 +15,14 @@ extern "C"
     {
         /* Note: These enums can be reduced as needed to save memory or stack space - they are pretty conservative. */
         MZ_ZIP_MAX_IO_BUF_SIZE = 64 * 1024,
+#ifdef MINIZ_ZIP_LONG_FILENAMES
+#ifndef MINIZ_ZIP_MAX_FILENAME_SIZE
+#define MINIZ_ZIP_MAX_FILENAME_SIZE 4096
+#endif
+        MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = MINIZ_ZIP_MAX_FILENAME_SIZE,
+#else
         MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = 512,
+#endif
         MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE = 512
     };
 
