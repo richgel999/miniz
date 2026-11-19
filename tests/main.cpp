@@ -493,6 +493,104 @@ TEST_CASE("Tinfl / tdefl tests")
 
 namespace
 {
+    /* Raw DEFLATE streams that decode as 'A', one literal/length symbol, distance code 0, then more literals. They are
+     * small enough to build by hand, and zlib rejects every one of them with "invalid literal/length code". */
+
+    /* One fixed Huffman block: 'A', symbol 286, distance code 0, 'B', 'C', end of block. */
+    const uint8_t s_fixed_symbol_286[] = { 0x73, 0x1c, 0x03, 0x4e, 0xce, 0x00 };
+    /* The same block with symbol 287. */
+    const uint8_t s_fixed_symbol_287[] = { 0x73, 0x1c, 0x07, 0x4e, 0xce, 0x00 };
+    /* One dynamic block declaring 288 literal/length codes, that uses symbol 286 after 'A' and then 'B'. */
+    const uint8_t s_dynamic_symbol_286[] = { 0xfd, 0xc0, 0x81, 0x00, 0x00, 0x00, 0x00, 0x83, 0x30, 0xb6, 0xf2, 0x87, 0x8a, 0xe4, 0x1f, 0x63 };
+    /* The same block with symbol 287. */
+    const uint8_t s_dynamic_symbol_287[] = { 0xfd, 0xc0, 0x81, 0x00, 0x00, 0x00, 0x00, 0x83, 0x30, 0xb6, 0xf2, 0x87, 0x8a, 0xe4, 0x1f, 0x67 };
+    /* Control: the same fixed block with the last valid symbol, 285 (length 258). It decodes to 'A' 259 times, then 'B' and 'C'. */
+    const uint8_t s_fixed_symbol_285[] = { 0x73, 0x1c, 0x05, 0x4e, 0xce, 0x00 };
+
+    struct InvalidLengthSymbolStream
+    {
+        const char *name;
+        const uint8_t *data;
+        size_t size;
+    };
+
+    const InvalidLengthSymbolStream s_invalid_length_symbol_streams[] = {
+        { "fixed block, symbol 286", s_fixed_symbol_286, sizeof(s_fixed_symbol_286) },
+        { "fixed block, symbol 287", s_fixed_symbol_287, sizeof(s_fixed_symbol_287) },
+        { "dynamic block, symbol 286", s_dynamic_symbol_286, sizeof(s_dynamic_symbol_286) },
+        { "dynamic block, symbol 287", s_dynamic_symbol_287, sizeof(s_dynamic_symbol_287) },
+    };
+
+    /* Feeds the stream to tinfl_decompress() in pieces of at most chunk bytes and returns the final status. */
+    tinfl_status inflate_in_chunks(const uint8_t *data, size_t size, size_t chunk, std::vector<uint8_t> &out, int flags)
+    {
+        tinfl_decompressor decomp;
+        tinfl_init(&decomp);
+        out.assign(4096, 0);
+        size_t in_pos = 0, out_pos = 0;
+        for (;;)
+        {
+            size_t in_size = (size - in_pos < chunk) ? size - in_pos : chunk;
+            size_t out_size = out.size() - out_pos;
+            int call_flags = flags | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+            if (in_pos + in_size < size)
+                call_flags |= TINFL_FLAG_HAS_MORE_INPUT;
+            tinfl_status status = tinfl_decompress(&decomp, data + in_pos, &in_size, out.data(), out.data() + out_pos, &out_size, call_flags);
+            in_pos += in_size;
+            out_pos += out_size;
+            if (status <= TINFL_STATUS_DONE)
+            {
+                out.resize(out_pos);
+                return status;
+            }
+        }
+    }
+}
+
+TEST_CASE("Tinfl rejects literal/length symbols 286 and 287")
+{
+    for (const InvalidLengthSymbolStream &stream : s_invalid_length_symbol_streams)
+    {
+        SECTION(stream.name)
+        {
+            uint8_t out[64];
+            REQUIRE(tinfl_decompress_mem_to_mem(out, sizeof(out), stream.data, stream.size, 0) == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
+
+            size_t heap_size = 0;
+            void *p = tinfl_decompress_mem_to_heap(stream.data, stream.size, &heap_size, 0);
+            REQUIRE(p == nullptr);
+
+            /* The zlib-compatible API reports corrupt data. */
+            mz_stream zs;
+            memset(&zs, 0, sizeof(zs));
+            REQUIRE(mz_inflateInit2(&zs, -MZ_DEFAULT_WINDOW_BITS) == MZ_OK);
+            zs.next_in = stream.data;
+            zs.avail_in = (unsigned int)stream.size;
+            zs.next_out = out;
+            zs.avail_out = sizeof(out);
+            REQUIRE(mz_inflate(&zs, MZ_FINISH) == MZ_DATA_ERROR);
+            REQUIRE(mz_inflateEnd(&zs) == MZ_OK);
+
+            /* Whole input at once, and one byte at a time so the decoder has to resume after each byte. */
+            std::vector<uint8_t> decoded;
+            REQUIRE(inflate_in_chunks(stream.data, stream.size, stream.size, decoded, 0) == TINFL_STATUS_FAILED);
+            REQUIRE(inflate_in_chunks(stream.data, stream.size, 1, decoded, 0) == TINFL_STATUS_FAILED);
+        }
+    }
+
+    SECTION("symbol 285 is still accepted")
+    {
+        std::vector<uint8_t> decoded;
+        REQUIRE(inflate_in_chunks(s_fixed_symbol_285, sizeof(s_fixed_symbol_285), sizeof(s_fixed_symbol_285), decoded, 0) == TINFL_STATUS_DONE);
+        REQUIRE(decoded.size() == 261);
+        REQUIRE(decoded[0] == 'A');
+        REQUIRE(decoded[259] == 'B');
+        REQUIRE(decoded[260] == 'C');
+    }
+}
+
+namespace
+{
     struct PngChunk
     {
         std::string type;

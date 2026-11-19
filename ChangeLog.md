@@ -3,6 +3,7 @@
 ### Unreleased
 
  - Add tdefl_write_image_to_png_file_in_memory_ex2() for writing indexed PNGs (PLTE/tRNS chunks), based on SDL commit 1fa6475
+ - Make tinfl_decompress() fail on the literal/length symbols 286 and 287, as zlib does
 
 ### 3.1.2
 
