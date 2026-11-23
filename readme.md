@@ -16,8 +16,11 @@ Releases are available at the [releases page](https://github.com/richgel999/mini
 
 ```sh
 cd minz
-SKIPTESTS=1 sh amalgamate.sh
-ls -al amalgamation/miniz.[hc]
+SKIPTESTS=[1/0] sh amalgamate.sh
+ls -al amalgamation/miniz.{h,c}
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure
 ```
 
 ## Features
@@ -36,11 +39,13 @@ ls -al amalgamation/miniz.[hc]
 
 You can download and install miniz using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
 
-    git clone https://github.com/Microsoft/vcpkg.git
-    cd vcpkg
-    ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
-    ./vcpkg install miniz
+```sh
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install miniz
+```
 
 The miniz port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
