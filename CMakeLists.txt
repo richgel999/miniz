@@ -97,7 +97,6 @@ if(AMALGAMATE_SOURCES)
     set_property(TARGET ${PROJECT_NAME} APPEND
       PROPERTY INTERFACE_INCLUDE_DIRECTORIES
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
-      $<INSTALL_INTERFACE:include>
     )
   else(BUILD_HEADER_ONLY)
     string(CONCAT AMAL_MINIZ_C "#include \"miniz.h\"\n" "${AMAL_MINIZ_C}")
@@ -108,7 +107,6 @@ if(AMALGAMATE_SOURCES)
     add_library(${PROJECT_NAME} STATIC ${miniz_SOURCE})
     target_include_directories(${PROJECT_NAME} PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/amalgamation>
-      $<INSTALL_INTERFACE:include>
     )
   endif(BUILD_HEADER_ONLY)
 
@@ -158,7 +156,6 @@ else(AMALGAMATE_SOURCES)
   target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-    $<INSTALL_INTERFACE:include>
   )
 
   file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
@@ -196,7 +193,7 @@ if(INSTALL_PROJECT)
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     # users can use <miniz.h> or <miniz/miniz.h>
-    INCLUDES DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
   )
 
   include(CMakePackageConfigHelpers)
@@ -323,6 +320,44 @@ if(BUILD_TESTS)
   enable_testing()
 
   add_test(NAME catch_tests COMMAND $<TARGET_FILE:catch_tests>)
+
+  # Optional PNG round-trip tests: decode PNGs written by miniz with libpng and,
+  # if available, with Python PNG libraries (Pillow / pypng).
+  find_package(PNG QUIET)
+  if(PNG_FOUND)
+    message(STATUS "libpng found, enabling libpng PNG round-trip tests")
+    target_sources(catch_tests PRIVATE tests/png_libpng_tests.cpp)
+    target_link_libraries(catch_tests PNG::PNG)
+  else()
+    message(STATUS "libpng not found, skipping libpng PNG round-trip tests")
+  endif()
+
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_executable(png_roundtrip_gen tests/png_roundtrip_gen.c)
+    target_link_libraries(png_roundtrip_gen miniz)
+    add_test(NAME png_roundtrip_python
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/png_roundtrip_check.py
+                     $<TARGET_FILE:png_roundtrip_gen> ${CMAKE_CURRENT_BINARY_DIR}/png_roundtrip)
+    # The script exits with 77 if neither Pillow nor pypng is installed.
+    set_tests_properties(png_roundtrip_python PROPERTIES SKIP_RETURN_CODE 77)
+  endif()
+
+  if(INSTALL_PROJECT AND NOT CMAKE_CROSSCOMPILING)
+    add_test(NAME install_test COMMAND ${CMAKE_COMMAND}
+      "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+      "-DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/install_test"
+      "-DGENERATOR=${CMAKE_GENERATOR}"
+      "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+      "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+      "-DC_COMPILER=${CMAKE_C_COMPILER}"
+      "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+      "-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+      "-DAMALGAMATE_SOURCES=${AMALGAMATE_SOURCES}"
+      "-DBUILD_HEADER_ONLY=${BUILD_HEADER_ONLY}"
+      "-DCONFIG=$<CONFIG>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_install.cmake")
+  endif()
 endif()
 
 set(INCLUDE_INSTALL_DIR "include")

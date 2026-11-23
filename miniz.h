@@ -127,8 +127,10 @@
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
 #define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
-#else
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define MZ_FORCEINLINE inline
+#else
+#define MZ_FORCEINLINE
 #endif /* defined(__STRICT_ANSI__) */
 
 /* Defines to completely disable specific portions of miniz.c:
@@ -297,6 +299,9 @@ extern "C"
 #define MZ_VER_REVISION 2
 #define MZ_VER_SUBREVISION 0
 
+    /* Returns the version string of miniz.c. */
+    MINIZ_EXPORT const char *mz_version(void);
+
 #ifndef MINIZ_NO_ZLIB_APIS
 
     /* Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs). */
@@ -354,9 +359,6 @@ extern "C"
     } mz_stream;
 
     typedef mz_stream *mz_streamp;
-
-    /* Returns the version string of miniz.c. */
-    MINIZ_EXPORT const char *mz_version(void);
 
 #ifndef MINIZ_NO_DEFLATE_APIS
 

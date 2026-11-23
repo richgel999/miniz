@@ -1,5 +1,9 @@
 ## Changelog
 
+### Unreleased
+
+ - Add tdefl_write_image_to_png_file_in_memory_ex2() for writing indexed PNGs (PLTE/tRNS chunks), based on SDL commit 1fa6475
+
 ### 3.1.2
 
  - Fix central directory offset overflow when reading zip file header

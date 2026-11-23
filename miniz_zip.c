@@ -457,6 +457,21 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         struct tm *tm = localtime(&time);
 #endif /* _MSC_VER */
 
+        if (tm->tm_year < 80)
+        {
+            /* Earliest time that a DOS date can hold: 1980-01-01 00:00:00 */
+            *pDOS_time = 0;
+            *pDOS_date = (1 << 5) + 1;
+            return;
+        }
+        if (tm->tm_year > 207)
+        {
+            /* Latest time that a DOS date can hold: 2107-12-31 23:59:58 */
+            *pDOS_time = (23 << 11) + (59 << 5) + 29;
+            *pDOS_date = (127 << 9) + (12 << 5) + 31;
+            return;
+        }
+
         *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) + ((tm->tm_sec) >> 1));
         *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday);
     }
@@ -652,7 +667,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if ((!cur_file_ofs) || ((pZip->m_archive_size - cur_file_ofs) >= ((mz_uint64)(MZ_UINT16_MAX) + record_size)))
                 return MZ_FALSE;
 
-            cur_file_ofs = MZ_MAX(cur_file_ofs - (sizeof(buf_u32) - 3), 0);
+            cur_file_ofs = MZ_MAX(cur_file_ofs - (mz_int64)(sizeof(buf_u32) - 3), 0);
         }
 
         *pOfs = cur_file_ofs;
@@ -1068,7 +1083,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
     {
         mz_zip_archive *pZip = (mz_zip_archive *)pOpaque;
         size_t s = (file_ofs >= pZip->m_archive_size) ? 0 : (size_t)MZ_MIN(pZip->m_archive_size - file_ofs, n);
-        memcpy(pBuf, (const mz_uint8 *)pZip->m_pState->m_pMem + file_ofs, s);
+        if (s)
+            memcpy(pBuf, (const mz_uint8 *)pZip->m_pState->m_pMem + file_ofs, s);
         return s;
     }
 
@@ -2117,7 +2133,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if (NULL == (pState->pWrite_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, TINFL_LZ_DICT_SIZE)))
             {
                 mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
-                if (pState->pRead_buf)
+                if (pState->pRead_buf && !pZip->m_pState->m_pMem)
                     pZip->m_pFree(pZip->m_pAlloc_opaque, pState->pRead_buf);
                 pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
                 return NULL;
@@ -3559,7 +3575,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             }
 
             if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
-                return MZ_FALSE;
+                return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
 
             cur_archive_file_ofs += local_dir_footer_size;
         }
@@ -3881,7 +3897,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             }
 
             if (pZip->m_pWrite(pZip->m_pIO_opaque, cur_archive_file_ofs, local_dir_footer, local_dir_footer_size) != local_dir_footer_size)
-                return MZ_FALSE;
+                return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
 
             cur_archive_file_ofs += local_dir_footer_size;
         }
