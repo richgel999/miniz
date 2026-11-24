@@ -14,10 +14,17 @@ Miniz's compression speed has been tuned to be comparable to zlib's, and it also
 
 Releases are available at the [releases page](https://github.com/richgel999/miniz/releases) as a pair of `miniz.c`/`miniz.h` files which can be simply added to a project. To create this file pair the different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) during build. Alternatively use as cmake or meson module (or build system of your choice).
 
+### Do quick amalgamation
+
 ```sh
 cd minz
-SKIPTESTS=[1/0] sh amalgamate.sh
+SKIPTESTS=1 sh amalgamate.sh
 ls -al amalgamation/miniz.{h,c}
+```
+
+### Full testing a release:
+
+```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ctest --test-dir build --output-on-failure
