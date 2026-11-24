@@ -489,6 +489,17 @@ TEST_CASE("Tinfl / tdefl tests")
         REQUIRE(decomp_len == uncomp_len);
         REQUIRE(memcmp(decomp_buf, p, uncomp_len) == 0);
     }
+
+    SECTION("reserved length symbols are rejected")
+    {
+        /* One fixed-Huffman block: 'A', length symbol 286 (or 287), distance code 0, 'B', 'C', end of block. */
+        const uint8_t sym286[] = { 0x73, 0x1c, 0x03, 0x4e, 0xce, 0x00 };
+        const uint8_t sym287[] = { 0x73, 0x1c, 0x07, 0x4e, 0xce, 0x00 };
+        uint8_t out[64];
+
+        REQUIRE(tinfl_decompress_mem_to_mem(out, sizeof(out), sym286, sizeof(sym286), 0) == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
+        REQUIRE(tinfl_decompress_mem_to_mem(out, sizeof(out), sym287, sizeof(sym287), 0) == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED);
+    }
 }
 
 namespace
