@@ -4,7 +4,9 @@
 // Must link this example against libm on Linux.
 
 // Purposely disable a whole bunch of stuff this low-level example doesn't use.
+#ifndef MINIZ_NO_STDIO
 #define MINIZ_NO_STDIO
+#endif
 #define MINIZ_NO_TIME
 #define MINIZ_NO_ZLIB_APIS
 #include "miniz.h"

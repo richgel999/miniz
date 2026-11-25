@@ -5,6 +5,10 @@
 #endif
 #include <string.h>
 
+#if defined(EXPECT_MINIZ_NO_STDIO) != defined(MINIZ_NO_STDIO)
+#error MINIZ_NO_STDIO must match the library build
+#endif
+
 int main(void)
 {
     const unsigned char input[] = "miniz installed headers";
