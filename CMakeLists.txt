@@ -178,7 +178,11 @@ if(NOT BUILD_HEADER_ONLY)
 endif()
 
 if(BUILD_NO_STDIO)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE MINIZ_NO_STDIO)
+  if(BUILD_HEADER_ONLY)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE MINIZ_NO_STDIO)
+  else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MINIZ_NO_STDIO)
+  endif()
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY

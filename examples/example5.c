@@ -4,7 +4,9 @@
 // For simplicity, this example is limited to files smaller than 4GB, but this is not a limitation of miniz.c.
 
 // Purposely disable a whole bunch of stuff this low-level example doesn't use.
+#ifndef MINIZ_NO_STDIO
 #define MINIZ_NO_STDIO
+#endif
 #define MINIZ_NO_ARCHIVE_APIS
 #define MINIZ_NO_TIME
 #define MINIZ_NO_ZLIB_APIS
