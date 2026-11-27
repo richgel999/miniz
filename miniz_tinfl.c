@@ -513,6 +513,12 @@ extern "C"
                     if ((counter &= 511) == 256)
                         break;
 
+                    /* Length symbols 286 and 287 are reserved (RFC 1951 3.2.6) and never occur in valid data. */
+                    if (counter > 285)
+                    {
+                        TINFL_CR_RETURN_FOREVER(55, TINFL_STATUS_FAILED);
+                    }
+
                     num_extra = s_length_extra[counter - 257];
                     counter = s_length_base[counter - 257];
                     if (num_extra)
