@@ -159,6 +159,20 @@
    functions (such as tdefl_compress_mem_to_heap() and tinfl_decompress_mem_to_heap()) won't work. */
 /*#define MINIZ_NO_MALLOC */
 
+/* Define MINIZ_ENABLE_DEFLATE64 to decompress Deflate64 (ZIP method 9), which e.g. Windows Explorer uses for files >= 2^31-22 bytes. */
+/*#define MINIZ_ENABLE_DEFLATE64 */
+
+/* Define MINIZ_ZIP_LENIENT_DATA_DESCRIPTORS to accept both 32 and 64-bit data descriptors when validating Zip64 archives. */
+/*#define MINIZ_ZIP_LENIENT_DATA_DESCRIPTORS */
+
+/* Define MINIZ_ZIP_BACKSLASH_SEPARATORS to treat '\' in entry names as '/', as written by .NET Framework and Compress-Archive. */
+/*#define MINIZ_ZIP_BACKSLASH_SEPARATORS */
+
+/* Define MINIZ_ZIP_LONG_FILENAMES to validate entries by their full name and enlarge mz_zip_archive_file_stat::m_filename */
+/* from 512 to MINIZ_ZIP_MAX_FILENAME_SIZE bytes (default 4096; 65536 fits any name). Changes the struct layout, so define it */
+/* identically for miniz and its users. Use mz_zip_reader_get_filename() for names that still don't fit. */
+/*#define MINIZ_ZIP_LONG_FILENAMES */
+
 #ifdef MINIZ_NO_INFLATE_APIS
 #define MINIZ_NO_ARCHIVE_APIS
 #endif /* MINIZ_NO_INFLATE_APIS */

@@ -211,6 +211,24 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
+/* Entry name comparison: optionally treat '\' as '/' (MINIZ_ZIP_BACKSLASH_SEPARATORS). */
+#ifdef MINIZ_ZIP_BACKSLASH_SEPARATORS
+#define MZ_ZIP_NAME_SEP(c) (((c) == '\\') ? '/' : (c))
+#else
+#define MZ_ZIP_NAME_SEP(c) (c)
+#endif
+#define MZ_ZIP_NAME_FOLD(c) MZ_TOLOWER(MZ_ZIP_NAME_SEP(c))
+
+/* Decompressible methods: stored, deflate, and Deflate64 with MINIZ_ENABLE_DEFLATE64. */
+#define MZ_ZIP_METHOD_DEFLATE64 9
+#ifdef MINIZ_ENABLE_DEFLATE64
+#define MZ_ZIP_IS_SUPPORTED_METHOD(m) (((m) == 0) || ((m) == MZ_DEFLATED) || ((m) == MZ_ZIP_METHOD_DEFLATE64))
+#define MZ_ZIP_INFLATE_FLAGS(m) (((m) == MZ_ZIP_METHOD_DEFLATE64) ? TINFL_FLAG_DEFLATE64 : 0)
+#else
+#define MZ_ZIP_IS_SUPPORTED_METHOD(m) (((m) == 0) || ((m) == MZ_DEFLATED))
+#define MZ_ZIP_INFLATE_FLAGS(m) 0
+#endif
+
     /* Various ZIP archive enums. To completely avoid cross platform compiler alignment and platform endian issues, miniz.c doesn't use structs for any of this stuff. */
     enum
     {
@@ -535,6 +553,34 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_TRUE;
     }
 
+#ifdef MINIZ_ZIP_BACKSLASH_SEPARATORS
+    /* '\' is only a separator in UTF-8 or pure ASCII names: in DBCS code pages such as Shift-JIS, 0x5C can be a trail byte. */
+    static mz_bool mz_zip_cdh_backslash_is_separator(const mz_uint8 *pCdh)
+    {
+        mz_uint i, n = MZ_READ_LE16(pCdh + MZ_ZIP_CDH_FILENAME_LEN_OFS);
+        const mz_uint8 *pName = pCdh + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
+        if (MZ_READ_LE16(pCdh + MZ_ZIP_CDH_BIT_FLAG_OFS) & MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8)
+            return MZ_TRUE;
+        for (i = 0; i < n; i++)
+            if (pName[i] & 0x80)
+                return MZ_FALSE;
+        return MZ_TRUE;
+    }
+
+    /* Copies an entry's name from its central directory header, converting '\' to '/' when it is a separator. */
+    static void mz_zip_copy_cdh_filename(char *pDst, const mz_uint8 *pCdh, mz_uint n)
+    {
+        mz_uint i;
+        memcpy(pDst, pCdh + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
+        if (mz_zip_cdh_backslash_is_separator(pCdh))
+            for (i = 0; i < n; i++)
+                if (pDst[i] == '\\')
+                    pDst[i] = '/';
+    }
+#else
+#define mz_zip_copy_cdh_filename(pDst, pCdh, n) memcpy((pDst), (pCdh) + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, (n))
+#endif
+
     static MZ_FORCEINLINE mz_bool mz_zip_reader_filename_less(const mz_zip_array *pCentral_dir_array, const mz_zip_array *pCentral_dir_offsets, mz_uint l_index, mz_uint r_index)
     {
         const mz_uint8 *pL = &MZ_ZIP_ARRAY_ELEMENT(pCentral_dir_array, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(pCentral_dir_offsets, mz_uint32, l_index)), *pE;
@@ -546,7 +592,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pE = pL + MZ_MIN(l_len, r_len);
         while (pL < pE)
         {
-            if ((l = MZ_TOLOWER(*pL)) != (r = MZ_TOLOWER(*pR)))
+            if ((l = MZ_ZIP_NAME_FOLD(*pL)) != (r = MZ_ZIP_NAME_FOLD(*pR)))
                 break;
             pL++;
             pR++;
@@ -1242,7 +1288,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         method = MZ_READ_LE16(p + MZ_ZIP_CDH_METHOD_OFS);
         bit_flag = MZ_READ_LE16(p + MZ_ZIP_CDH_BIT_FLAG_OFS);
 
-        if ((method != 0) && (method != MZ_DEFLATED))
+        if (!MZ_ZIP_IS_SUPPORTED_METHOD(method))
         {
             mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
             return MZ_FALSE;
@@ -1278,6 +1324,10 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         {
             if (*(p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_len - 1) == '/')
                 return MZ_TRUE;
+#ifdef MINIZ_ZIP_BACKSLASH_SEPARATORS
+            if ((*(p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_len - 1) == '\\') && (mz_zip_cdh_backslash_is_separator(p)))
+                return MZ_TRUE;
+#endif
         }
 
         /* Bugfix: This code was also checking if the internal attribute was non-zero, which wasn't correct. */
@@ -1326,7 +1376,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         /* Copy as much of the filename and comment as possible. */
         n = MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS);
         n = MZ_MIN(n, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE - 1);
-        memcpy(pStat->m_filename, p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
+        mz_zip_copy_cdh_filename(pStat->m_filename, p, n);
         pStat->m_filename[n] = '\0';
 
         n = MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS);
@@ -1426,6 +1476,28 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_TRUE;
     }
 
+#ifdef MINIZ_ZIP_BACKSLASH_SEPARATORS
+    /* Like mz_zip_string_equal(), but '\' and '/' compare equal. */
+    static MZ_FORCEINLINE mz_bool mz_zip_filename_equal(const char *pA, const char *pB, mz_uint len, mz_uint flags)
+    {
+        mz_uint i;
+        for (i = 0; i < len; ++i)
+        {
+            char a = MZ_ZIP_NAME_SEP(pA[i]), b = MZ_ZIP_NAME_SEP(pB[i]);
+            if (!(flags & MZ_ZIP_FLAG_CASE_SENSITIVE))
+            {
+                a = MZ_TOLOWER(a);
+                b = MZ_TOLOWER(b);
+            }
+            if (a != b)
+                return MZ_FALSE;
+        }
+        return MZ_TRUE;
+    }
+#else
+#define mz_zip_filename_equal mz_zip_string_equal
+#endif
+
     static MZ_FORCEINLINE int mz_zip_filename_compare(const mz_zip_array *pCentral_dir_array, const mz_zip_array *pCentral_dir_offsets, mz_uint l_index, const char *pR, mz_uint r_len)
     {
         const mz_uint8 *pL = &MZ_ZIP_ARRAY_ELEMENT(pCentral_dir_array, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(pCentral_dir_offsets, mz_uint32, l_index)), *pE;
@@ -1435,7 +1507,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         pE = pL + MZ_MIN(l_len, r_len);
         while (pL < pE)
         {
-            if ((l = MZ_TOLOWER(*pL)) != (r = MZ_TOLOWER(*pR)))
+            if ((l = MZ_ZIP_NAME_FOLD(*pL)) != (r = MZ_ZIP_NAME_FOLD(*pR)))
                 break;
             pL++;
             pR++;
@@ -1546,7 +1618,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 pFilename += ofs;
                 filename_len -= ofs;
             }
-            if ((filename_len == name_len) && (mz_zip_string_equal(pName, pFilename, filename_len, flags)))
+            if ((filename_len == name_len) && (mz_zip_filename_equal(pName, pFilename, filename_len, flags)))
             {
                 if (pIndex)
                     *pIndex = file_index;
@@ -1585,8 +1657,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (file_stat.m_bit_flag & (MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_IS_ENCRYPTED | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_USES_STRONG_ENCRYPTION | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_COMPRESSED_PATCH_FLAG))
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_ENCRYPTION);
 
-        /* This function only supports decompressing stored and deflate. */
-        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (file_stat.m_method != 0) && (file_stat.m_method != MZ_DEFLATED))
+        /* This function only supports decompressing stored, deflate and (optionally) Deflate64. */
+        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (!MZ_ZIP_IS_SUPPORTED_METHOD(file_stat.m_method)))
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
 
         /* Ensure supplied output buffer is large enough. */
@@ -1675,7 +1747,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 read_buf_ofs = 0;
             }
             in_buf_size = (size_t)read_buf_avail;
-            status = tinfl_decompress(&inflator, (mz_uint8 *)pRead_buf + read_buf_ofs, &in_buf_size, (mz_uint8 *)pBuf, (mz_uint8 *)pBuf + out_buf_ofs, &out_buf_size, TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF | (comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0));
+            status = tinfl_decompress(&inflator, (mz_uint8 *)pRead_buf + read_buf_ofs, &in_buf_size, (mz_uint8 *)pBuf, (mz_uint8 *)pBuf + out_buf_ofs, &out_buf_size, TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF | (comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0) | MZ_ZIP_INFLATE_FLAGS(file_stat.m_method));
             read_buf_avail -= in_buf_size;
             read_buf_ofs += in_buf_size;
             out_buf_ofs += out_buf_size;
@@ -1802,8 +1874,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (file_stat.m_bit_flag & (MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_IS_ENCRYPTED | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_USES_STRONG_ENCRYPTION | MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_COMPRESSED_PATCH_FLAG))
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_ENCRYPTION);
 
-        /* This function only supports decompressing stored and deflate. */
-        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (file_stat.m_method != 0) && (file_stat.m_method != MZ_DEFLATED))
+        /* This function only supports decompressing stored, deflate and (optionally) Deflate64. */
+        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (!MZ_ZIP_IS_SUPPORTED_METHOD(file_stat.m_method)))
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
 
         /* Read and do some minimal validation of the local directory entry (this doesn't crack the zip64 stuff, which we already have from the central dir) */
@@ -1922,7 +1994,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                     }
 
                     in_buf_size = (size_t)read_buf_avail;
-                    status = tinfl_decompress(&inflator, (const mz_uint8 *)pRead_buf + read_buf_ofs, &in_buf_size, (mz_uint8 *)pWrite_buf, pWrite_buf_cur, &out_buf_size, comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0);
+                    status = tinfl_decompress(&inflator, (const mz_uint8 *)pRead_buf + read_buf_ofs, &in_buf_size, (mz_uint8 *)pWrite_buf, pWrite_buf_cur, &out_buf_size, (comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0) | MZ_ZIP_INFLATE_FLAGS(file_stat.m_method));
                     read_buf_avail -= in_buf_size;
                     read_buf_ofs += in_buf_size;
 
@@ -2017,8 +2089,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             return NULL;
         }
 
-        /* This function only supports decompressing stored and deflate. */
-        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (pState->file_stat.m_method != 0) && (pState->file_stat.m_method != MZ_DEFLATED))
+        /* This function only supports decompressing stored, deflate and (optionally) Deflate64. */
+        if ((!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (!MZ_ZIP_IS_SUPPORTED_METHOD(pState->file_stat.m_method)))
         {
             mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
             pZip->m_pFree(pZip->m_pAlloc_opaque, pState);
@@ -2199,7 +2271,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                     /* Perform decompression */
                     in_buf_size = (size_t)pState->read_buf_avail;
-                    pState->status = tinfl_decompress(&pState->inflator, (const mz_uint8 *)pState->pRead_buf + pState->read_buf_ofs, &in_buf_size, (mz_uint8 *)pState->pWrite_buf, pWrite_buf_cur, &out_buf_size, pState->comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0);
+                    pState->status = tinfl_decompress(&pState->inflator, (const mz_uint8 *)pState->pRead_buf + pState->read_buf_ofs, &in_buf_size, (mz_uint8 *)pState->pWrite_buf, pWrite_buf_cur, &out_buf_size, (pState->comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0) | MZ_ZIP_INFLATE_FLAGS(pState->file_stat.m_method));
                     pState->read_buf_avail -= in_buf_size;
                     pState->read_buf_ofs += in_buf_size;
 
@@ -2404,8 +2476,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (file_stat.m_is_encrypted)
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_ENCRYPTION);
 
-        /* This function only supports stored and deflate. */
-        if ((file_stat.m_method != 0) && (file_stat.m_method != MZ_DEFLATED))
+        /* This function only supports stored, deflate and (optionally) Deflate64. */
+        if (!MZ_ZIP_IS_SUPPORTED_METHOD(file_stat.m_method))
             return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_METHOD);
 
         if (!file_stat.m_is_supported)
@@ -2427,7 +2499,12 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         local_header_bit_flags = MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_BIT_FLAG_OFS);
         has_data_descriptor = (local_header_bit_flags & 8) != 0;
 
+#ifdef MINIZ_ZIP_LONG_FILENAMES
+        /* Compare with the central directory name, not m_filename, which may be truncated. */
+        if (local_header_filename_len != MZ_READ_LE16(pCentral_dir_header + MZ_ZIP_CDH_FILENAME_LEN_OFS))
+#else
         if (local_header_filename_len != strlen(file_stat.m_filename))
+#endif
             return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
         if ((local_header_ofs + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + local_header_filename_len + local_header_extra_len + file_stat.m_comp_size) > pZip->m_archive_size)
@@ -2447,8 +2524,13 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 goto handle_failure;
             }
 
-            /* I've seen 1 archive that had the same pathname, but used backslashes in the local dir and forward slashes in the central dir. Do we care about this? For now, this case will fail validation. */
-            if (memcmp(file_stat.m_filename, file_data_array.m_p, local_header_filename_len) != 0)
+            /* I've seen 1 archive that had the same pathname, but used backslashes in the local dir and forward slashes in the central dir. */
+            /* This fails validation unless MINIZ_ZIP_BACKSLASH_SEPARATORS is defined. */
+#ifdef MINIZ_ZIP_LONG_FILENAMES
+            if (!mz_zip_filename_equal((const char *)pCentral_dir_header + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, (const char *)file_data_array.m_p, local_header_filename_len, MZ_ZIP_FLAG_CASE_SENSITIVE))
+#else
+            if (!mz_zip_filename_equal(file_stat.m_filename, (const char *)file_data_array.m_p, local_header_filename_len, MZ_ZIP_FLAG_CASE_SENSITIVE))
+#endif
             {
                 mz_zip_set_error(pZip, MZ_ZIP_VALIDATION_FAILED);
                 goto handle_failure;
@@ -2516,8 +2598,46 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             mz_bool has_id;
             const mz_uint8 *pSrc;
             mz_uint32 file_crc32;
-            mz_uint64 comp_size = 0, uncomp_size = 0;
 
+#ifdef MINIZ_ZIP_LENIENT_DATA_DESCRIPTORS
+            /* APPNOTE 4.3.9.2 uses 64-bit descriptor sizes only when the local header has a Zip64 extra field. libarchive (tar.exe) follows */
+            /* that, while .NET writes 64-bit descriptors without one. Accept whichever layout matches the central directory. */
+            const mz_uint64 descriptor_ofs = local_header_ofs + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + local_header_filename_len + local_header_extra_len + file_stat.m_comp_size;
+            const mz_uint32 descriptor_avail = (mz_uint32)MZ_MIN((descriptor_ofs < pZip->m_archive_size) ? (pZip->m_archive_size - descriptor_ofs) : 0, sizeof(mz_uint32) * 6);
+            mz_uint32 descriptor_body_size;
+            mz_bool matched = MZ_FALSE;
+            (void)pState;
+            (void)found_zip64_ext_data_in_ldir;
+
+            if ((descriptor_avail < sizeof(mz_uint32) * 3) || (pZip->m_pRead(pZip->m_pIO_opaque, descriptor_ofs, descriptor_buf, descriptor_avail) != descriptor_avail))
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
+                goto handle_failure;
+            }
+
+            has_id = (descriptor_avail >= sizeof(mz_uint32) * 4) && (MZ_READ_LE32(descriptor_buf) == MZ_ZIP_DATA_DESCRIPTOR_ID);
+            pSrc = has_id ? (descriptor_buf + sizeof(mz_uint32)) : descriptor_buf;
+            descriptor_body_size = descriptor_avail - (has_id ? sizeof(mz_uint32) : 0);
+
+            file_crc32 = MZ_READ_LE32(pSrc);
+            if (file_crc32 == file_stat.m_crc32)
+            {
+                if ((descriptor_body_size >= sizeof(mz_uint32) * 5) &&
+                    (MZ_READ_LE64(pSrc + sizeof(mz_uint32)) == file_stat.m_comp_size) &&
+                    (MZ_READ_LE64(pSrc + sizeof(mz_uint32) + sizeof(mz_uint64)) == file_stat.m_uncomp_size))
+                    matched = MZ_TRUE;
+                else if ((MZ_READ_LE32(pSrc + sizeof(mz_uint32)) == file_stat.m_comp_size) &&
+                         (MZ_READ_LE32(pSrc + sizeof(mz_uint32) * 2) == file_stat.m_uncomp_size))
+                    matched = MZ_TRUE;
+            }
+
+            if (!matched)
+            {
+                mz_zip_set_error(pZip, MZ_ZIP_VALIDATION_FAILED);
+                goto handle_failure;
+            }
+#else
+            mz_uint64 comp_size = 0, uncomp_size = 0;
             mz_uint32 num_descriptor_uint32s = ((pState->m_zip64) || (found_zip64_ext_data_in_ldir)) ? 6 : 4;
 
             if (pZip->m_pRead(pZip->m_pIO_opaque, local_header_ofs + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + local_header_filename_len + local_header_extra_len + file_stat.m_comp_size, descriptor_buf, sizeof(mz_uint32) * num_descriptor_uint32s) != (sizeof(mz_uint32) * num_descriptor_uint32s))
@@ -2547,6 +2667,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                 mz_zip_set_error(pZip, MZ_ZIP_VALIDATION_FAILED);
                 goto handle_failure;
             }
+#endif
         }
         else
         {
@@ -2579,6 +2700,27 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         return MZ_FALSE;
     }
 
+#ifdef MINIZ_ZIP_LONG_FILENAMES
+    /* Looks up entry file_index by its full central directory name, which m_filename may truncate. */
+    static mz_bool mz_zip_locate_file_by_full_name(mz_zip_archive *pZip, mz_uint file_index, mz_uint32 *pIndex)
+    {
+        const mz_uint8 *pCdh = mz_zip_get_cdh(pZip, file_index);
+        mz_uint n;
+        char *pName;
+        mz_bool found;
+        if (!pCdh)
+            return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+        n = MZ_READ_LE16(pCdh + MZ_ZIP_CDH_FILENAME_LEN_OFS);
+        if (NULL == (pName = (char *)pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, n + 1)))
+            return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+        memcpy(pName, pCdh + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
+        pName[n] = '\0';
+        found = mz_zip_reader_locate_file_v2(pZip, pName, NULL, 0, pIndex);
+        pZip->m_pFree(pZip->m_pAlloc_opaque, pName);
+        return found;
+    }
+#endif
+
     mz_bool mz_zip_validate_archive(mz_zip_archive *pZip, mz_uint flags)
     {
         mz_zip_internal_state *pState;
@@ -2609,6 +2751,10 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
             if (MZ_ZIP_FLAG_VALIDATE_LOCATE_FILE_FLAG & flags)
             {
                 mz_uint32 found_index;
+#ifdef MINIZ_ZIP_LONG_FILENAMES
+                if (!mz_zip_locate_file_by_full_name(pZip, i, &found_index))
+                    return MZ_FALSE;
+#else
                 mz_zip_archive_file_stat stat;
 
                 if (!mz_zip_reader_file_stat(pZip, i, &stat))
@@ -2616,6 +2762,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
                 if (!mz_zip_reader_locate_file_v2(pZip, stat.m_filename, NULL, 0, &found_index))
                     return MZ_FALSE;
+#endif
 
                 /* This check can fail if there are duplicate filenames in the archive (which we don't check for when writing - that's up to the user) */
                 if (found_index != i)
@@ -4878,7 +5025,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         if (filename_buf_size)
         {
             n = MZ_MIN(n, filename_buf_size - 1);
-            memcpy(pFilename, p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
+            mz_zip_copy_cdh_filename(pFilename, p, n);
             pFilename[n] = '\0';
         }
         return n + 1;
