@@ -400,13 +400,19 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
     static MZ_FORCEINLINE mz_bool mz_zip_array_ensure_room(mz_zip_archive *pZip, mz_zip_array *pArray, size_t n)
     {
-        return mz_zip_array_reserve(pZip, pArray, pArray->m_size + n, MZ_TRUE);
+        size_t new_size = pArray->m_size + n;
+        if (new_size < pArray->m_size)
+            return MZ_FALSE;
+        return mz_zip_array_reserve(pZip, pArray, new_size, MZ_TRUE);
     }
 
     static MZ_FORCEINLINE mz_bool mz_zip_array_push_back(mz_zip_archive *pZip, mz_zip_array *pArray, const void *pElements, size_t n)
     {
         size_t orig_size = pArray->m_size;
-        if (!mz_zip_array_resize(pZip, pArray, orig_size + n, MZ_TRUE))
+        size_t new_size = orig_size + n;
+        if (new_size < orig_size)
+            return MZ_FALSE;
+        if (!mz_zip_array_resize(pZip, pArray, new_size, MZ_TRUE))
             return MZ_FALSE;
         if (n > 0)
             memcpy((mz_uint8 *)pArray->m_p + orig_size * pArray->m_element_size, pElements, n * pArray->m_element_size);
@@ -1328,6 +1334,21 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
         n = MZ_MIN(n, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE - 1);
         memcpy(pStat->m_filename, p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
         pStat->m_filename[n] = '\0';
+
+        /* Reject dangerous filenames: path traversal, absolute paths, embedded NUL */
+        if (memchr(pStat->m_filename, '\0', n) != NULL)
+            return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+        {
+            const char *pFn = pStat->m_filename;
+            if (pFn[0] == '/' || pFn[0] == '\\')
+                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+#ifdef _WIN32
+            if (n >= 2 && ((pFn[0] >= 'A' && pFn[0] <= 'Z') || (pFn[0] >= 'a' && pFn[0] <= 'z')) && pFn[1] == ':')
+                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+#endif
+            if (strstr(pFn, "..") != NULL)
+                return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+        }
 
         n = MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS);
         n = MZ_MIN(n, MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE - 1);
