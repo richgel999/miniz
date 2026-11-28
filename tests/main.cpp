@@ -190,7 +190,7 @@ static MZ_TIME_T local_time(int year, int mon, int mday, int hour, int min, int 
     tm.tm_isdst = -1;
     return mktime(&tm);
 }
-
+#ifndef MINIZ_NO_ARCHIVE_APIS
 TEST_CASE("Zip writer clamps times outside the DOS date range")
 {
     MZ_TIME_T before = local_time(1975, 5, 22, 14, 13, 20);
@@ -215,6 +215,7 @@ TEST_CASE("Zip writer clamps times outside the DOS date range")
     REQUIRE(mz_zip_reader_end(&reader));
     mz_free(buf);
 }
+#endif /* MINIZ_NO_ARCHIVE_APIS */
 #endif /* MINIZ_NO_TIME */
 
 TEST_CASE("Zip reader tests")
@@ -409,6 +410,8 @@ TEST_CASE("Zip extraction iterator buffer ownership")
     CHECK(allocator.invalid_frees == 0);
 }
 
+#ifndef _FOR_UCHAOSYS_ONLY
+#ifndef MINIZ_NO_ARCHIVE_APIS
 TEST_CASE("Zip reader zip64 local header offset out of bounds")
 {
     /* A central directory entry whose 32-bit comp/uncomp/local-header-offset
@@ -444,6 +447,8 @@ TEST_CASE("Zip reader zip64 local header offset out of bounds")
     free(p);
     mz_zip_reader_end(&zip);
 }
+#endif
+#endif
 
 TEST_CASE("Zip reader zip64 local header offset in archive under 4 GiB")
 {

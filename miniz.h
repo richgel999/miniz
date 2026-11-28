@@ -114,7 +114,9 @@
 
 #include "miniz_export.h"
 
-#if defined(_MSC_VER)
+#if defined(__STRICT_ANSI__)
+#define MZ_FORCEINLINE
+#elif defined(_MSC_VER)
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
 #define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
@@ -123,6 +125,42 @@
 #else
 #define MZ_FORCEINLINE
 #endif /* defined(__STRICT_ANSI__) */
+
+#ifndef MINIZ_NO_STDIO
+#ifndef MINIZ_NO_ARCHIVE_APIS
+#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
+#elif defined(__WATCOMC__)
+#elif defined(__TINYC__)
+#elif defined(__USE_LARGEFILE64)
+#elif defined(__APPLE__) || defined(__FreeBSD__) || (defined(__linux__) && defined(__x86_64__))
+/* RAF: this is the case that generates these warnings,
+        which definitions below apparently fixes it
+
+_build/amalgamation/miniz.c:3443:20: warning: implicit declaration of function ‘fseeko’; did you mean ‘fseek’? [-Wimplicit-function-declaration]
+ 3443 | #define MZ_FSEEK64 fseeko
+      |                    ^~~~~~
+_build/amalgamation/miniz.c:4397:80: note: in expansion of macro ‘MZ_FSEEK64’
+ 4397 |         if (((mz_int64)file_ofs < 0) || (((cur_ofs != (mz_int64)file_ofs)) && (MZ_FSEEK64(pZip->m_pState->m_pFile, (mz_int64)file_ofs, SEEK_SET))))
+      |   
+*/
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE
+#endif
+#endif
+/* RAF: the source of the catch_tests test #1 failure is
+        the code added in part #4 in miniz_zip.c:
+
+    / * RAF: RFC 1952 * /
+    / * Read zip64 extended information field into comp_size,
+        decomp_size, local_header_ofs
+        Header ID: 0x0001, field size: 2 bytes
+      * /
+*/
+#endif /* MINIZ_NO_ARCHIVE_APIS */
+#endif /* MINIZ_NO_STDIO */
 
 /* Defines to completely disable specific portions of miniz.c:
    If all macros here are defined the only functionality remaining will be CRC-32 and adler-32. */
@@ -369,7 +407,10 @@ extern "C"
     /* mz_deflateInit2() is like mz_deflate(), except with more control: */
     /* Additional parameters: */
     /*   method must be MZ_DEFLATED */
-    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer) */
+    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer),
+         -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer), or MZ_DEFAULT_WINDOW_BITS+16 (gzip header/CRC-32 footer) 
+	   //RAF: RFC 1952
+     */
     /*   mem_level must be between [1, 9] (it's checked but ignored by miniz.c) */
     MINIZ_EXPORT int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
 
@@ -413,7 +454,10 @@ extern "C"
     MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
 
     /* mz_inflateInit2() is like mz_inflateInit() with an additional option that controls the window size and whether or not the stream has been wrapped with a zlib header/footer: */
-    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
+    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer),
+       -MZ_DEFAULT_WINDOW_BITS (raw deflate) or MZ_DEFAULT_WINDOW_BITS+16 (gzip header/footer).
+	   //RAF: RFC 1952
+	 */
     MINIZ_EXPORT int mz_inflateInit2(mz_streamp pStream, int window_bits);
 
     /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */

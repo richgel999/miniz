@@ -10,7 +10,7 @@ cmake -H. -B_build -DAMALGAMATE_SOURCES=ON -G"Unix Makefiles"
 
 if [ "${SKIPTESTS:-0}" != "1" ]; then
 
-echo "int main() { return 0; }" > main.c
+echo "int main(void) { return 0; }" > main.c
 echo "Test compile with GCC..."
 ${CCPREFIX}gcc -pedantic -Wall -Wno-unused-function -I$OUTPUT_PREFIX main.c $OUTPUT_PREFIX/miniz.c -o test.out
 echo "Test compile with GCC ANSI..."

@@ -41,7 +41,7 @@ extern "C"
 #include <sys/stat.h>
 
 #if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
-
+/* #pragma message("Using Windows file I/O syscalls") */
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif /* WIN32_LEAN_AND_MEAN */
@@ -122,6 +122,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__WATCOMC__)
+/* #pragma message("Using WatcomC file I/O syscalls") */
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif /* MINIZ_NO_TIME */
@@ -138,6 +139,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__TINYC__)
+/* #pragma message("Using TinyC file I/O syscalls") */
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif /* MINIZ_NO_TIME */
@@ -154,6 +156,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
+/* #pragma message("Using large 64-bit file I/O syscalls") */
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif /* MINIZ_NO_TIME */
@@ -170,6 +173,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) || (defined(__linux__) && defined(__x86_64__))
+/* #pragma message("Using UNIX file I/O syscalls") */
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif /* MINIZ_NO_TIME */
@@ -208,6 +212,15 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 #endif /* defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__) */
 #endif /* MINIZ_NO_STDIO */
+
+/* Ensure MZ_PLATFORM is defined regardless of MINIZ_NO_STDIO */
+#ifndef MZ_PLATFORM
+  #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__)
+    #define MZ_PLATFORM (10 << 8) /* Windows NTFS */
+  #else
+    #define MZ_PLATFORM (3 << 8)  /* Unix / Linux */
+  #endif
+#endif
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
@@ -925,6 +938,36 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
                                 /* Ok, the archive didn't have any zip64 headers but it uses a zip64 extended information field so mark it as zip64 anyway (this can occur with infozip's zip util when it reads compresses files from stdin). */
                                 pZip->m_pState->m_zip64 = MZ_TRUE;
                                 pZip->m_pState->m_zip64_has_extended_info_fields = MZ_TRUE;
+#if 0 /* This code makes the catch_tests test #1 fails */
+                                /* RAF: RFC 1952 */
+                                /* Read zip64 extended information field into comp_size,
+                                   decomp_size, local_header_ofs
+                                   Header ID: 0x0001, field size: 2 bytes
+                                 */
+                                if (extra_size_remaining >= sizeof(mz_uint16) * 2)
+                                {
+                                    extra_size_remaining -= sizeof(mz_uint16) * 2;
+                                    pExtra_data += sizeof(mz_uint16) * 2;
+                                    if (decomp_size == MZ_UINT32_MAX
+                                    && extra_size_remaining >= sizeof(mz_uint64)) {
+                                        decomp_size = MZ_READ_LE64(pExtra_data);
+                                        extra_size_remaining -= sizeof(mz_uint64);
+                                        pExtra_data += sizeof(mz_uint64);
+                                    }
+                                    if (comp_size == MZ_UINT32_MAX
+                                    && extra_size_remaining >= sizeof(mz_uint64)) {
+                                        comp_size = MZ_READ_LE64(pExtra_data);
+                                        extra_size_remaining -= sizeof(mz_uint64);
+                                        pExtra_data += sizeof(mz_uint64);
+                                    }
+                                    if (local_header_ofs == MZ_UINT32_MAX
+                                    && extra_size_remaining >= sizeof(mz_uint64)) {
+                                        local_header_ofs = MZ_READ_LE64(pExtra_data);
+                                        extra_size_remaining -= sizeof(mz_uint64);
+                                        pExtra_data += sizeof(mz_uint64);
+                                    }
+                                }
+#endif
                                 break;
                             }
 

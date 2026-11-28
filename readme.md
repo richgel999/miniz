@@ -1,10 +1,34 @@
 ## Miniz
 
-Miniz is a lossless, high performance data compression library in a single source file that implements the zlib (RFC 1950) and Deflate (RFC 1951) compressed data format specification standards. It supports the most commonly used functions exported by the zlib library, but is a completely independent implementation so zlib's licensing requirements do not apply. Miniz also contains simple to use functions for writing .PNG format image files and reading/writing/appending .ZIP format archives. Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
+> [!WARNING]
+> 
+> The RFC-1952 support has been recently added but is not deeply tested, yet. An example of use can be found starting from this commit [here](https://github.com/robang74/pgunzip/commit/2be87f79fa9ade14dbab17474244b8100e34683e).
+
+Miniz is a lossless, high performance data compression library in a single source file that implements the zlib (RFC 1950) and Deflate (RFC 1951) compressed data format specification standards. The support for 32-bit CRC and ISIZE has been added recently and is still under testing.
+
+Miniz  supports the most commonly used functions exported by the zlib library, but is a completely independent implementation so zlib's licensing requirements do not apply. It also contains simple to use functions for writing .PNG format image files and reading/writing/appending .ZIP format archives.
+
+Miniz's compression speed has been tuned to be comparable to zlib's, and it also has a specialized real-time compressor function designed to compare well against fastlz/minilzo.
 
 ## Usage
 
 Releases are available at the [releases page](https://github.com/richgel999/miniz/releases) as a pair of `miniz.c`/`miniz.h` files which can be simply added to a project. To create this file pair the different source and header files are [amalgamated](https://www.sqlite.org/amalgamation.html) during build. Alternatively use as cmake or meson module (or build system of your choice).
+
+### Do quick amalgamation
+
+```sh
+cd minz
+SKIPTESTS=1 sh amalgamate.sh
+ls -al amalgamation/miniz.{h,c}
+```
+
+### Full testing a release:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure
+```
 
 ## Features
 
@@ -22,11 +46,13 @@ Releases are available at the [releases page](https://github.com/richgel999/mini
 
 You can download and install miniz using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
 
-    git clone https://github.com/Microsoft/vcpkg.git
-    cd vcpkg
-    ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
-    ./vcpkg install miniz
+```sh
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install miniz
+```
 
 The miniz port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
